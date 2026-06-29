@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a1a2e">
+<title>Kicken Bites — Admin</title>
+<style>
+  :root {
+    --orange:#e65c00;--orange-pale:#fff3e8;--orange-light:#ff8c42;
+    --green:#22c55e;--green-pale:#f0fdf4;--red:#ef4444;--red-pale:#fef2f2;
+    --blue:#3b82f6;--blue-pale:#eff6ff;--yellow:#f59e0b;--yellow-pale:#fffbeb;
+    --dark:#1a1a2e;--text:#1a1a1a;--muted:#666;--bg:#f5f5f5;--card:#fff;--radius:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);}
+
+  /* LOGIN */
+  #loginScreen{position:fixed;inset:0;background:var(--dark);display:flex;align-items:center;justify-content:center;z-index:999;}
+  .login-box{background:white;border-radius:20px;padding:32px 24px;width:90%;max-width:340px;text-align:center;}
+  .login-box h2{font-size:1.3rem;font-weight:800;margin-bottom:4px;}
+  .l-inp{width:100%;padding:12px 14px;border:2px solid #e5e5e5;border-radius:var(--radius);font-size:1rem;outline:none;margin-bottom:10px;font-family:inherit;}
+  .l-inp:focus{border-color:var(--orange);}
+  .l-btn{width:100%;padding:13px;background:var(--orange);color:white;border:none;border-radius:var(--radius);font-size:1rem;font-weight:700;cursor:pointer;}
+
+  /* HEADER */
+  .header{background:var(--dark);color:white;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;}
+  .header h1{font-size:1rem;font-weight:700;}
+  .live-badge{background:var(--green);color:white;font-size:0.68rem;font-weight:700;padding:3px 8px;border-radius:20px;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+
+  /* TABS */
+  .tabs{background:white;display:flex;border-bottom:1px solid #eee;position:sticky;top:0;z-index:100;overflow-x:auto;}
+  .tab{flex:1;min-width:60px;padding:11px 6px;text-align:center;font-size:0.72rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;}
+  .tab.active{color:var(--orange);border-bottom-color:var(--orange);}
+
+  .panel{display:none;padding:14px;}
+  .panel.active{display:block;}
+
+  /* CARDS */
+  .card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+  .card-title{font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:10px;}
+
+  /* STATS */
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+  .stat-box{background:var(--card);border-radius:var(--radius);padding:12px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+  .stat-num{font-size:1.7rem;font-weight:800;color:var(--orange);}
+  .stat-label{font-size:0.7rem;color:var(--muted);margin-top:1px;}
+
+  /* ORDER CARDS */
+  .order-card{background:var(--card);border-radius:var(--radius);padding:13px;margin-bottom:9px;box-shadow:0 1px 4px rgba(0,0,0,0.06);border-left:4px solid #ddd;}
+  .order-card.confirmed{border-left-color:var(--green);}
+  .order-card.pending_payment{border-left-color:var(--yellow);}
+  .order-card.ready{border-left-color:var(--blue);}
+  .order-card.delivered{border-left-color:#ccc;opacity:0.65;}
+  .order-card.cancelled{border-left-color:var(--red);opacity:0.55;}
+  .order-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+  .order-name{font-weight:700;font-size:0.92rem;}
+  .order-phone{font-size:0.78rem;color:var(--muted);}
+  .order-time{font-size:0.72rem;color:var(--muted);}
+  .tag{display:inline-block;font-size:0.68rem;padding:2px 7px;border-radius:20px;font-weight:600;margin-left:5px;}
+  .tag-delivery{background:var(--orange-pale);color:var(--orange);}
+  .tag-takeaway{background:var(--blue-pale);color:var(--blue);}
+  .order-items{font-size:0.83rem;margin:5px 0;}
+  .order-addr{font-size:0.78rem;color:var(--muted);margin:3px 0;}
+  .order-total{font-weight:700;color:var(--orange);font-size:0.9rem;}
+  .status-row{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
+  .sbtn{padding:6px 11px;border-radius:20px;border:none;font-size:0.72rem;font-weight:600;cursor:pointer;}
+  .sbtn-confirm{background:var(--green-pale);color:var(--green);}
+  .sbtn-ready{background:var(--blue-pale);color:var(--blue);}
+  .sbtn-delivered{background:var(--dark);color:white;}
+  .sbtn-cancel{background:var(--red-pale);color:var(--red);}
+  .stag{font-size:0.68rem;font-weight:700;padding:3px 7px;border-radius:20px;}
+  .st-pending_payment{background:var(--yellow-pale);color:var(--yellow);}
+  .st-confirmed{background:var(--green-pale);color:var(--green);}
+  .st-ready{background:var(--blue-pale);color:var(--blue);}
+  .st-delivered{background:#f0f0f0;color:var(--muted);}
+  .st-cancelled{background:var(--red-pale);color:var(--red);}
+
+  /* FILTER */
+  .filter-row{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;}
+  .fbtn{white-space:nowrap;padding:5px 12px;border-radius:20px;border:2px solid #eee;background:white;font-size:0.75rem;font-weight:600;cursor:pointer;color:var(--muted);}
+  .fbtn.active{border-color:var(--orange);color:var(--orange);background:var(--orange-pale);}
+
+  /* MASTER MENU */
+  .master-item{background:white;border:1px solid #eee;border-radius:10px;padding:11px;margin-bottom:8px;}
+  .master-top{display:flex;gap:7px;align-items:flex-start;}
+  .master-img{width:54px;height:54px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:1.5rem;}
+  .master-img img{width:54px;height:54px;border-radius:8px;object-fit:cover;}
+  .master-fields{flex:1;display:flex;flex-direction:column;gap:5px;}
+  .inp-row{display:flex;gap:6px;}
+  .mi{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:0.82rem;outline:none;font-family:inherit;width:100%;}
+  .mi:focus{border-color:var(--orange);}
+  .mi-emoji{width:46px;text-align:center;flex-shrink:0;}
+  .mi-price{width:70px;flex-shrink:0;}
+  .mi-qty{width:70px;flex-shrink:0;}
+  .mi-img{width:100%;font-size:0.78rem;}
+  .remove-btn{width:26px;height:26px;border-radius:50%;background:var(--red-pale);color:var(--red);border:none;font-size:1rem;cursor:pointer;flex-shrink:0;margin-top:2px;}
+
+  /* TODAY TOGGLE */
+  .today-section{margin-top:14px;}
+  .today-item{background:white;border:1px solid #eee;border-radius:10px;padding:10px 12px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+  .today-item img{width:40px;height:40px;border-radius:7px;object-fit:cover;flex-shrink:0;}
+  .today-emoji{width:40px;height:40px;border-radius:7px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
+  .today-info{flex:1;min-width:0;}
+  .today-name{font-weight:700;font-size:0.88rem;}
+  .today-price{font-size:0.78rem;color:var(--muted);}
+  .switch{position:relative;width:46px;height:26px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:#ccc;border-radius:26px;transition:0.3s;cursor:pointer;}
+  .slider:before{content:'';position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:white;border-radius:50%;transition:0.3s;}
+  input:checked+.slider{background:var(--green);}
+  input:checked+.slider:before{transform:translateX(20px);}
+
+  /* BUTTONS */
+  .add-btn{width:100%;padding:10px;border:2px dashed var(--orange);background:var(--orange-pale);color:var(--orange);border-radius:var(--radius);font-weight:600;cursor:pointer;margin-top:4px;font-size:0.88rem;}
+  .save-btn{width:100%;padding:13px;background:var(--orange);color:white;border:none;border-radius:var(--radius);font-size:0.95rem;font-weight:700;cursor:pointer;margin-top:10px;}
+  .save-btn.dark{background:var(--dark);}
+  .save-btn.secondary{background:white;color:var(--dark);border:2px solid var(--dark);}
+
+  /* PRINT PREVIEW */
+  .print-preview-box{background:white;border-radius:var(--radius);padding:14px;margin-top:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);font-size:0.82rem;line-height:1.7;}
+  .print-preview-box h3{font-size:0.9rem;font-weight:800;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #eee;}
+  .print-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #eee;}
+  .print-row.bold{font-weight:700;}
+  .delivery-slip{border:1px solid #333;border-radius:8px;padding:10px;margin-bottom:10px;}
+
+  /* SETTINGS INPUTS */
+  .s-group{margin-bottom:11px;}
+  .s-group label{font-size:0.78rem;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;}
+  .s-inp{width:100%;padding:10px 12px;border:2px solid #e5e5e5;border-radius:var(--radius);font-size:0.88rem;outline:none;font-family:inherit;}
+  .s-inp:focus{border-color:var(--orange);}
+
+  .empty{text-align:center;padding:36px 20px;color:var(--muted);}
+  .empty .icon{font-size:2.3rem;margin-bottom:8px;}
+
+  /* OPEN TOGGLE */
+  .open-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
+
+  @media print{
+    body *{visibility:hidden;}
+    #printArea,#printArea *{visibility:visible;}
+    #printArea{position:fixed;inset:0;background:white;padding:16px;font-size:12px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div style="font-size:2.5rem;margin-bottom:10px">👩‍🍳</div>
+    <h2>Owner Login</h2>
+    <p style="color:var(--muted);font-size:0.82rem;margin:6px 0 18px">Enter admin password</p>
+    <input class="l-inp" type="password" id="loginPass" placeholder="Password" onkeyup="if(event.key==='Enter')doLogin()">
+    <button class="l-btn" onclick="doLogin()">Login →</button>
+    <p style="font-size:0.72rem;color:var(--muted);margin-top:12px">Default password: <b>1234</b></p>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="header">
+    <div>
+      <h1 id="adminShopName">🍽️ Dashboard</h1>
+      <div style="font-size:0.7rem;opacity:0.7" id="adminDate"></div>
+    </div>
+    <span class="live-badge" id="liveBadge">● LIVE</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('orders')">📋 Orders</div>
+    <div class="tab" onclick="switchTab('today')">📅 Today</div>
+    <div class="tab" onclick="switchTab('master')">🗂️ Master</div>
+    <div class="tab" onclick="switchTab('print')">🖨️ Print</div>
+    <div class="tab" onclick="switchTab('settings')">⚙️ Setup</div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="panel active" id="tab-orders">
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total Orders</div></div>
+      <div class="stat-box"><div class="stat-num" id="statRevenue">₹0</div><div class="stat-label">Revenue</div></div>
+      <div class="stat-box"><div class="stat-num" id="statPending">0</div><div class="stat-label">Awaiting Pay</div></div>
+      <div class="stat-box"><div class="stat-num" id="statDelivered">0</div><div class="stat-label">Delivered</div></div>
+    </div>
+    <div class="filter-row">
+      <button class="fbtn active" onclick="filterOrders('all',this)">All</button>
+      <button class="fbtn" onclick="filterOrders('pending_payment',this)">Awaiting Pay</button>
+      <button class="fbtn" onclick="filterOrders('confirmed',this)">Confirmed</button>
+      <button class="fbtn" onclick="filterOrders('ready',this)">Ready</button>
+      <button class="fbtn" onclick="filterOrders('delivered',this)">Delivered</button>
+    </div>
+    <div id="ordersList"></div>
+  </div>
+
+  <!-- TODAY'S MENU SELECTION -->
+  <div class="panel" id="tab-today">
+    <div class="card">
+      <div class="card-title">Shop Status</div>
+      <div class="open-row">
+        <span style="font-size:0.88rem;font-weight:600">Accept orders today?</span>
+        <label class="switch"><input type="checkbox" id="shopOpenToggle" checked><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Delivery Charge (₹)</div>
+      <input class="mi" type="number" inputmode="numeric" id="deliveryChargeInput" placeholder="e.g. 30" style="width:100%">
+    </div>
+    <div class="card">
+      <div class="card-title">Select Today's Items from Master Menu</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:10px">Toggle ON the items available today. Set quantity for each.</p>
+      <div id="todayItemsList"></div>
+    </div>
+    <button class="save-btn" onclick="saveTodayMenu()">💾 Save & Publish Today's Menu</button>
+  </div>
+
+  <!-- MASTER MENU -->
+  <div class="panel" id="tab-master">
+    <div class="card">
+      <div class="card-title">All Menu Items (Master List)</div>
+      <p style="font-size:0.78rem;color:var(--muted);margin-bottom:10px">Add all your items here once. Select daily from "Today" tab.</p>
+      <div id="masterList"></div>
+      <button class="add-btn" onclick="addMasterItem()">+ Add New Item</button>
+    </div>
+    <button class="save-btn" onclick="saveMasterMenu()">💾 Save Master Menu</button>
+  </div>
+
+  <!-- PRINT -->
+  <div class="panel" id="tab-print">
+    <div class="card">
+      <div class="card-title">Print Lists</div>
+      <button class="save-btn" onclick="showPrintPreview('kitchen')" style="margin-top:0">🍳 Preview Kitchen List</button>
+      <button class="save-btn dark" onclick="showPrintPreview('delivery')" style="margin-top:8px">🛵 Preview Delivery List</button>
+    </div>
+    <div id="printPreviewArea"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="panel" id="tab-settings">
+    <div class="card">
+      <div class="card-title">Shop Details</div>
+      <div class="s-group"><label>Shop Name</label><input class="s-inp" id="settingShopName" placeholder="e.g. Maa Ki Rasoi"></div>
+      <div class="s-group"><label>UPI ID</label><input class="s-inp" id="settingUpiId" placeholder="e.g. 9876543210@paytm"></div>
+      <div class="s-group"><label>UPI Display Name</label><input class="s-inp" id="settingUpiName" placeholder="e.g. Rekha Devi"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Change Password</div>
+      <div class="s-group"><label>New Password</label><input class="s-inp" type="password" id="newPass" placeholder="New password"></div>
+      <div class="s-group"><label>Confirm Password</label><input class="s-inp" type="password" id="newPassConfirm" placeholder="Confirm"></div>
+    </div>
+    <button class="save-btn" onclick="saveSettings()">💾 Save Settings</button>
+    <button class="save-btn secondary" onclick="logout()" style="margin-top:8px">Logout</button>
+  </div>
+</div>
+
+<div id="printArea" style="display:none"></div>
+
+<script type="module">
+import { getMenu, saveMenu, listenToOrders, updateOrderStatus } from './src/utils/firebase.js';
+
+const PASS_KEY = 'adminPass_v2';
+let allOrders = [];
+let menuConfig = {};
+let masterItems = [];
+let currentFilter = 'all';
+
+// ---- LOGIN ----
+window.doLogin = function() {
+  const saved = localStorage.getItem(PASS_KEY) || '1234';
+  if (document.getElementById('loginPass').value === saved) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initDashboard();
+  } else { alert('Wrong password!'); }
+};
+window.logout = function() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+};
+
+// ---- INIT ----
+async function initDashboard() {
+  document.getElementById('adminDate').textContent = new Date().toLocaleDateString('en-IN', {weekday:'long',day:'numeric',month:'long'});
+  menuConfig = await getMenu();
+  masterItems = menuConfig.masterItems || menuConfig.items || [];
+  // migrate old items to master if needed
+  if (!menuConfig.masterItems && menuConfig.items && menuConfig.items.length) {
+    masterItems = menuConfig.items.map(i => ({...i, todayActive: true}));
+  }
+  loadSettings();
+  renderMasterList();
+  renderTodayList();
+  document.getElementById('deliveryChargeInput').value = menuConfig.deliveryCharge || 30;
+  document.getElementById('shopOpenToggle').checked = menuConfig.isOpen !== false;
+
+  listenToOrders(orders => {
+    const today = new Date().toLocaleDateString('en-IN');
+    allOrders = orders.filter(o => o.date === today);
+    updateStats();
+    renderOrders();
+  });
+}
+
+function loadSettings() {
+  document.getElementById('adminShopName').textContent = '🍽️ ' + (menuConfig.shopName || 'Dashboard');
+  document.getElementById('settingShopName').value = menuConfig.shopName || '';
+  document.getElementById('settingUpiId').value = menuConfig.upiId || '';
+  document.getElementById('settingUpiName').value = menuConfig.upiName || '';
+}
+
+// ---- STATS ----
+function updateStats() {
+  const confirmed = allOrders.filter(o => ['confirmed','ready','delivered'].includes(o.status));
+  document.getElementById('statTotal').textContent = allOrders.length;
+  document.getElementById('statRevenue').textContent = '₹' + confirmed.reduce((s,o) => s+(o.total||0), 0);
+  document.getElementById('statPending').textContent = allOrders.filter(o => o.status==='pending_payment').length;
+  document.getElementById('statDelivered').textContent = allOrders.filter(o => o.status==='delivered').length;
+  document.getElementById('liveBadge').textContent = '● ' + allOrders.filter(o => !['delivered','cancelled'].includes(o.status)).length + ' active';
+}
+
+// ---- ORDERS ----
+window.filterOrders = function(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderOrders();
+};
+
+function renderOrders() {
+  const list = document.getElementById('ordersList');
+  const filtered = currentFilter === 'all' ? allOrders : allOrders.filter(o => o.status === currentFilter);
+  if (!filtered.length) { list.innerHTML = '<div class="empty"><div class="icon">📭</div><p>No orders</p></div>'; return; }
+  const statusLabel = {pending_payment:'Awaiting Pay',confirmed:'Confirmed',ready:'Ready',delivered:'Delivered',cancelled:'Cancelled'};
+  list.innerHTML = filtered.map(o => {
+    const time = o.createdAt ? new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+    const items = (o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
+    return `<div class="order-card ${o.status}">
+      <div class="order-top">
+        <div>
+          <div class="order-name">${o.name}<span class="tag tag-${o.orderType}">${o.orderType==='delivery'?'🛵 Delivery':'🏠 Takeaway'}</span></div>
+          <div class="order-phone">📞 ${o.phone}</div>
+        </div>
+        <div style="text-align:right">
+          <span class="stag st-${o.status}">${statusLabel[o.status]||o.status}</span>
+          <div class="order-time">${time}</div>
+        </div>
+      </div>
+      <div class="order-items">${items}</div>
+      ${o.orderType==='delivery'?`<div class="order-addr">📍 ${o.address}</div>`:''}
+      <div class="order-total">₹${o.total}${o.deliveryCharge?` (incl. ₹${o.deliveryCharge} delivery)`:''}</div>
+      <div class="status-row">
+        ${o.status==='pending_payment'?`<button class="sbtn sbtn-confirm" onclick="chgStatus('${o.id}','confirmed')">✅ Confirm Payment</button>`:''}
+        ${o.status==='confirmed'?`<button class="sbtn sbtn-ready" onclick="chgStatus('${o.id}','ready')">📦 Mark Ready</button>`:''}
+        ${o.status==='ready'?`<button class="sbtn sbtn-delivered" onclick="chgStatus('${o.id}','delivered')">✅ Delivered</button>`:''}
+        ${['pending_payment','confirmed'].includes(o.status)?`<button class="sbtn sbtn-cancel" onclick="chgStatus('${o.id}','cancelled')">✗ Cancel</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.chgStatus = async function(id, status) {
+  try { await updateOrderStatus(id, status); } catch(e) { alert('Error updating order'); }
+};
+
+// ---- MASTER MENU ----
+let masterCounter = 0;
+
+function renderMasterList() {
+  masterCounter = masterItems.length;
+  const list = document.getElementById('masterList');
+  list.innerHTML = masterItems.map((item, idx) => `
+    <div class="master-item" id="mrow_${idx}">
+      <div class="master-top">
+        <div class="master-img" id="imgPreview_${idx}">
+          ${item.imageUrl ? `<img src="${item.imageUrl}" onerror="this.parentElement.textContent='${item.emoji||'🍛'}'">` : (item.emoji || '🍛')}
+        </div>
+        <div class="master-fields">
+          <div class="inp-row">
+            <input class="mi mi-emoji" data-idx="${idx}" data-field="emoji" value="${item.emoji||'🍛'}" placeholder="🍛" title="Emoji">
+            <input class="mi" data-idx="${idx}" data-field="name" value="${item.name||''}" placeholder="Item name" style="flex:1">
+            <input class="mi mi-price" data-idx="${idx}" data-field="price" type="number" inputmode="numeric" value="${item.price||''}" placeholder="₹" title="Price">
+          </div>
+          <input class="mi" data-idx="${idx}" data-field="desc" value="${item.desc||''}" placeholder="Short description (optional)">
+          <input class="mi mi-img" data-idx="${idx}" data-field="imageUrl" value="${item.imageUrl||''}" placeholder="Image URL (paste link from Google Photos / WhatsApp)" oninput="previewImg(${idx}, this.value)">
+        </div>
+        <button class="remove-btn" onclick="removeMasterItem(${idx})">×</button>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('input[data-field]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const idx = parseInt(inp.dataset.idx);
+      const field = inp.dataset.field;
+      if (!isNaN(idx) && masterItems[idx]) {
+        masterItems[idx][field] = field === 'price' ? Number(inp.value) : inp.value;
+      }
+    });
+  });
+}
+
+window.previewImg = function(idx, url) {
+  const box = document.getElementById('imgPreview_' + idx);
+  if (!box) return;
+  if (url) box.innerHTML = `<img src="${url}" onerror="this.parentElement.textContent='${masterItems[idx]?.emoji||'🍛'}'">`;
+  else box.textContent = masterItems[idx]?.emoji || '🍛';
+};
+
+window.addMasterItem = function() {
+  masterItems.push({ id: 'item_' + (Date.now()), name:'', price:0, emoji:'🍛', desc:'', imageUrl:'', todayActive:false, availableQty:0 });
+  renderMasterList();
+  renderTodayList();
+};
+
+window.removeMasterItem = function(idx) {
+  if (!confirm('Remove this item from master menu?')) return;
+  masterItems.splice(idx, 1);
+  renderMasterList();
+  renderTodayList();
+};
+
+window.saveMasterMenu = async function() {
+  // sync DOM values
+  document.querySelectorAll('#masterList input[data-field]').forEach(inp => {
+    const idx = parseInt(inp.dataset.idx);
+    const field = inp.dataset.field;
+    if (!isNaN(idx) && masterItems[idx]) {
+      masterItems[idx][field] = field === 'price' ? Number(inp.value) : inp.value;
+    }
+  });
+  const valid = masterItems.filter(i => i.name && i.name.trim() && i.price > 0);
+  if (!valid.length) { alert('Add at least one item with name and price.'); return; }
+  const btn = event.target; btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    menuConfig.masterItems = masterItems;
+    await saveMenu(menuConfig);
+    renderTodayList();
+    alert('✅ Master menu saved!');
+  } catch(e) { alert('Error saving. Check internet.'); }
+  btn.textContent = '💾 Save Master Menu'; btn.disabled = false;
+};
+
+// ---- TODAY MENU ----
+function renderTodayList() {
+  const list = document.getElementById('todayItemsList');
+  if (!masterItems.length) {
+    list.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;text-align:center;padding:16px">No items in master menu yet.<br>Add items in 🗂️ Master tab first.</p>';
+    return;
+  }
+  list.innerHTML = masterItems.map((item, idx) => `
+    <div class="today-item">
+      <div class="today-emoji" id="todayImg_${idx}">
+        ${item.imageUrl ? `<img src="${item.imageUrl}" style="width:40px;height:40px;border-radius:7px;object-fit:cover" onerror="this.parentElement.textContent='${item.emoji||'🍛'}'">` : (item.emoji || '🍛')}
+      </div>
+      <div class="today-info">
+        <div class="today-name">${item.name || 'Unnamed'}</div>
+        <div class="today-price">₹${item.price || 0}
+          ${item.todayActive ? `— <input type="number" inputmode="numeric" id="todayQty_${idx}" value="${item.availableQty||0}" min="0" max="999" style="width:52px;padding:2px 6px;border:1px solid #ddd;border-radius:6px;font-size:0.78rem" placeholder="Qty">  pcs` : ''}
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="todayToggle_${idx}" ${item.todayActive?'checked':''} onchange="todayToggleChange(${idx})">
+        <span class="slider"></span>
+      </label>
+    </div>`).join('');
+}
+
+window.todayToggleChange = function(idx) {
+  masterItems[idx].todayActive = document.getElementById('todayToggle_' + idx).checked;
+  renderTodayList();
+};
+
+window.saveTodayMenu = async function() {
+  // Read qty values from DOM
+  masterItems.forEach((item, idx) => {
+    const qtyEl = document.getElementById('todayQty_' + idx);
+    if (qtyEl) item.availableQty = parseInt(qtyEl.value) || 0;
+    item.todayActive = !!(document.getElementById('todayToggle_' + idx)?.checked);
+  });
+
+  const todayItems = masterItems.filter(i => i.todayActive);
+  if (!todayItems.length) { alert('Please select at least one item for today.'); return; }
+
+  const btn = event.target; btn.textContent = 'Saving…'; btn.disabled = true;
+  try {
+    const data = {
+      ...menuConfig,
+      masterItems,
+      items: masterItems, // keep items in sync for customer page
+      isOpen: document.getElementById('shopOpenToggle').checked,
+      deliveryCharge: Number(document.getElementById('deliveryChargeInput').value) || 0,
+    };
+    await saveMenu(data);
+    menuConfig = data;
+    alert(`✅ Today's menu published! ${todayItems.length} item(s) active.`);
+  } catch(e) { alert('Error saving. Check internet.'); }
+  btn.textContent = '💾 Save & Publish Today\'s Menu'; btn.disabled = false;
+};
+
+// ---- PRINT ----
+window.showPrintPreview = function(type) {
+  const area = document.getElementById('printPreviewArea');
+  const today = new Date().toLocaleDateString('en-IN');
+  const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+
+  if (type === 'kitchen') {
+    const active = allOrders.filter(o => ['confirmed','ready'].includes(o.status));
+    if (!active.length) { area.innerHTML = '<div class="card" style="color:var(--muted);text-align:center;padding:20px">No confirmed orders to print</div>'; return; }
+
+    const summary = {};
+    active.forEach(o => (o.items||[]).forEach(i => { summary[i.name] = (summary[i.name]||0) + i.qty; }));
+
+    let html = `<div class="print-preview-box">
+      <h3>🍳 Kitchen Order List — ${today} ${now}</h3>
+      <div style="margin-bottom:12px">
+        <b>TOTAL ITEMS NEEDED:</b>
+        ${Object.entries(summary).map(([n,q]) => `<div class="print-row bold"><span>${n}</span><span>${q} pcs</span></div>`).join('')}
+      </div>
+      <b>ORDER WISE (${active.length} orders):</b>`;
+    active.forEach((o,i) => {
+      const time = o.createdAt ? new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+      html += `<div style="margin-top:8px;padding:7px;border:1px solid #ddd;border-radius:6px">
+        <b>#${i+1} ${o.name}</b> | ${o.phone} | ${o.orderType.toUpperCase()} | ${time}<br>
+        ${(o.items||[]).map(i=>`<span style="margin-right:10px">${i.name} ×${i.qty}</span>`).join('')}
+      </div>`;
+    });
+    html += `<button onclick="doPrint('kitchen')" style="margin-top:12px;width:100%;padding:11px;background:var(--dark);color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer">🖨️ Print This</button></div>`;
+    area.innerHTML = html;
+
+  } else {
+    const deliveries = allOrders.filter(o => o.orderType==='delivery' && ['confirmed','ready'].includes(o.status));
+    if (!deliveries.length) { area.innerHTML = '<div class="card" style="color:var(--muted);text-align:center;padding:20px">No delivery orders to print</div>'; return; }
+
+    let html = `<div class="print-preview-box">
+      <h3>🛵 Delivery List — ${today} ${now}</h3>`;
+    deliveries.forEach((o,i) => {
+      const time = o.createdAt ? new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+      html += `<div class="delivery-slip">
+        <b>#${i+1} — ${o.name}</b><br>
+        📞 <b>${o.phone}</b> | ⏰ ${time}<br>
+        📍 ${o.address}<br>
+        ${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(' | ')}<br>
+        <b>💰 ₹${o.total}</b> &nbsp;&nbsp; [ ] Delivered
+      </div>`;
+    });
+    html += `<button onclick="doPrint('delivery')" style="margin-top:10px;width:100%;padding:11px;background:var(--dark);color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer">🖨️ Print This</button></div>`;
+    area.innerHTML = html;
+  }
+};
+
+window.doPrint = function(type) {
+  const content = document.getElementById('printPreviewArea').querySelector('.print-preview-box').innerHTML;
+  const printArea = document.getElementById('printArea');
+  printArea.innerHTML = content;
+  printArea.style.display = 'block';
+  window.print();
+  setTimeout(() => { printArea.style.display = 'none'; }, 1500);
+};
+
+// ---- SETTINGS ----
+window.saveSettings = async function() {
+  const np = document.getElementById('newPass').value;
+  const nc = document.getElementById('newPassConfirm').value;
+  if (np) {
+    if (np !== nc) { alert('Passwords do not match!'); return; }
+    localStorage.setItem(PASS_KEY, np);
+  }
+  const data = { ...menuConfig,
+    shopName: document.getElementById('settingShopName').value,
+    upiId: document.getElementById('settingUpiId').value,
+    upiName: document.getElementById('settingUpiName').value,
+  };
+  await saveMenu(data);
+  menuConfig = data;
+  document.getElementById('adminShopName').textContent = '🍽️ ' + data.shopName;
+  alert('✅ Settings saved!');
+};
+
+// ---- TABS ----
+window.switchTab = function(tab) {
+  const tabs = ['orders','today','master','print','settings'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+};
+</script>
+</body>
+</html>
