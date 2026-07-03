@@ -14,49 +14,88 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-export async function getMenu() {
+// Get full config (master menu + settings)
+export async function getConfig() {
   const snap = await getDoc(doc(db, "config", "menu"));
   return snap.exists() ? snap.data() : {
-    items: [], masterItems: [], deliveryCharge: 30,
-    upiId: "", upiName: "", shopName: "Kicken Bites", isOpen: false
+    masterItems: [], deliveryCharge: 30,
+    upiId: "", upiName: "", shopName: "Kicken Bites"
   };
 }
 
-export async function saveMenu(menuData) {
-  await setDoc(doc(db, "config", "menu"), menuData);
+// Get today's scheduled menu (by today's date string)
+export async function getTodayMenu() {
+  const today = getTodayDate();
+  const snap = await getDoc(doc(db, "dailyMenu", today));
+  if (snap.exists()) return snap.data();
+  return null; // no menu for today
 }
 
-// Place order AND atomically decrement stock in one transaction
+// Save master config
+export async function saveConfig(data) {
+  await setDoc(doc(db, "config", "menu"), data);
+}
+
+// Save daily menu for a specific date
+export async function saveDailyMenu(dateStr, menuData) {
+  await setDoc(doc(db, "dailyMenu", dateStr), menuData);
+}
+
+// Get daily menu for any date
+export async function getDailyMenu(dateStr) {
+  const snap = await getDoc(doc(db, "dailyMenu", dateStr));
+  return snap.exists() ? snap.data() : null;
+}
+
+// Live listener on today's daily menu
+export function listenToTodayMenu(callback) {
+  const today = getTodayDate();
+  return onSnapshot(doc(db, "dailyMenu", today), snap => {
+    callback(snap.exists() ? snap.data() : null);
+  });
+}
+
+export function getTodayDate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+export function formatDisplayDate(dateStr) {
+  if (!dateStr) return '';
+  const [y,m,d] = dateStr.split('-');
+  const date = new Date(y, m-1, d);
+  return date.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+}
+
+// Place order with stock decrement
 export async function placeOrder(orderData) {
-  const menuRef = doc(db, "config", "menu");
+  const today = getTodayDate();
+  const dailyRef = doc(db, "dailyMenu", today);
   const ordersRef = collection(db, "orders");
   let newOrderId = null;
 
   await runTransaction(db, async (tx) => {
-    const menuSnap = await tx.get(menuRef);
+    const menuSnap = await tx.get(dailyRef);
     const menuData = menuSnap.exists() ? menuSnap.data() : {};
-    const masterItems = menuData.masterItems || menuData.items || [];
+    const items = menuData.items || [];
 
-    // Check stock and decrement
-    const updatedItems = masterItems.map(item => {
+    const updatedItems = items.map(item => {
       const ordered = (orderData.items || []).find(i => i.id === item.id);
       if (ordered && item.availableQty > 0) {
-        const newQty = Math.max(0, item.availableQty - ordered.qty);
-        return { ...item, availableQty: newQty };
+        return { ...item, availableQty: Math.max(0, item.availableQty - ordered.qty) };
       }
       return item;
     });
 
-    tx.update(menuRef, { masterItems: updatedItems, items: updatedItems });
+    tx.update(dailyRef, { items: updatedItems });
 
-    // Add order doc (we can't use addDoc in transaction, use doc with auto id)
     const newRef = doc(ordersRef);
     newOrderId = newRef.id;
     tx.set(newRef, {
       ...orderData,
       status: "pending_payment",
       createdAt: new Date().toISOString(),
-      date: new Date().toLocaleDateString("en-IN")
+      date: today
     });
   });
 
@@ -70,23 +109,20 @@ export async function confirmPayment(orderId) {
 }
 
 export async function updateOrderStatus(orderId, status) {
-  await updateDoc(doc(db, "orders", orderId), {
-    status, updatedAt: new Date().toISOString()
-  });
+  await updateDoc(doc(db, "orders", orderId), { status, updatedAt: new Date().toISOString() });
 }
 
-export function listenToOrders(callback) {
+export function listenToOrders(dateStr, callback) {
   const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
   return onSnapshot(q, snap => {
-    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    callback(all.filter(o => o.date === dateStr));
   });
 }
 
-// Live listener for menu changes (so customer page updates in real time)
+// Legacy compat
+export async function getMenu() { return getConfig(); }
+export async function saveMenu(data) { return saveConfig(data); }
 export function listenToMenu(callback) {
-  return onSnapshot(doc(db, "config", "menu"), snap => {
-    if (snap.exists()) callback(snap.data());
-  });
+  return onSnapshot(doc(db, "config", "menu"), snap => { if(snap.exists()) callback(snap.data()); });
 }
-
-export { collection, onSnapshot, query, orderBy, doc, updateDoc };

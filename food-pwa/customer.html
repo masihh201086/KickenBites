@@ -250,7 +250,7 @@
 </div>
 
 <script type="module">
-import { getMenu, listenToMenu, placeOrder, confirmPayment } from './src/utils/firebase.js';
+import { getTodayMenu, listenToTodayMenu, placeOrder, confirmPayment, getTodayDate, formatDisplayDate } from './src/utils/firebase.js';
 
 let menuConfig = {};
 let quantities = {};
@@ -265,12 +265,11 @@ document.getElementById('todayDate').textContent = now.toLocaleDateString('en-IN
 // ---- INIT ----
 async function init() {
   try {
-    menuConfig = await getMenu();
-    applyMenu(menuConfig);
-    // Live listener — menu updates in real time (stock, delivery charge)
-    menuUnsubscribe = listenToMenu(data => {
-      menuConfig = data;
-      refreshMenuItems(data);
+    const todayData = await getTodayMenu();
+    applyMenu(todayData);
+    // Live listener — updates in real time when owner changes stock
+    menuUnsubscribe = listenToTodayMenu(data => {
+      if (data) { menuConfig = data; refreshMenuItems(data); }
     });
   } catch(e) {
     document.getElementById('loadingScreen').innerHTML = '<p style="color:red;padding:20px;text-align:center">Error loading. Please refresh.</p>';
@@ -278,22 +277,27 @@ async function init() {
 }
 
 function applyMenu(cfg) {
-  document.getElementById('shopNameHeader').textContent = '🍽️ ' + (cfg.shopName || 'Kicken Bites');
-  document.getElementById('shopNameClosed').textContent = '🍽️ ' + (cfg.shopName || 'Kicken Bites');
-  const todayItems = getTodayItems(cfg);
   document.getElementById('loadingScreen').style.display = 'none';
-  if (!todayItems.length || cfg.isOpen === false) {
+  if (!cfg || !cfg.isOpen || !(cfg.items||[]).length) {
+    document.getElementById('shopNameClosed').textContent = '🍗 ' + (cfg?.shopName || 'Kicken Bites');
     document.getElementById('closedPage').style.display = 'block';
     return;
   }
+  menuConfig = cfg;
+  document.getElementById('shopNameHeader').textContent = '🍗 ' + (cfg.shopName || 'Kicken Bites');
+  // Show menu date on header
+  if (cfg.date) {
+    document.getElementById('todayDate').textContent = formatDisplayDate(cfg.date);
+  }
+  const todayItems = getTodayItems(cfg);
   renderMenu(todayItems);
   document.getElementById('mainPage').style.display = 'block';
   updateBill();
 }
 
 function getTodayItems(cfg) {
-  const master = cfg.masterItems || cfg.items || [];
-  return master.filter(i => i.todayActive !== false);
+  // dailyMenu items are already filtered — all are active
+  return cfg.items || [];
 }
 
 // Full re-render of menu
