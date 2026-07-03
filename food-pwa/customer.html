@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="theme-color" content="#e65c00">
 <link rel="manifest" href="manifest.json">
-<title>Kicken Bites — Order Now</title>
+<title>Order Food</title>
 <style>
   :root{--orange:#e65c00;--orange-light:#ff8c42;--orange-bg:#fff8f0;--orange-pale:#ffe8d0;
     --green:#22c55e;--red:#ef4444;--text:#1a1a1a;--muted:#666;--radius:14px;--card:#fff;}
@@ -136,7 +136,7 @@
 
 <div id="mainPage" style="display:none">
   <div class="header">
-    <h1 id="shopNameHeader">🍽️ Kicken Bites</h1>
+    <h1 id="shopNameHeader">🍽️ Daily Food</h1>
     <div class="date" id="todayDate"></div>
   </div>
 
@@ -193,7 +193,7 @@
 </div>
 
 <div id="closedPage" style="display:none;padding-top:56px">
-  <div class="header"><h1 id="shopNameClosed">🍽️ Kicken Bites</h1></div>
+  <div class="header"><h1 id="shopNameClosed">🍽️ Daily Food</h1></div>
   <div class="closed-msg">
     <div style="font-size:3rem;margin-bottom:10px">😴</div>
     <h2>No menu today</h2>
@@ -250,7 +250,7 @@
 </div>
 
 <script type="module">
-import { getTodayMenu, listenToTodayMenu, placeOrder, confirmPayment, getTodayDate, formatDisplayDate } from './src/utils/firebase.js';
+import { getMenu, listenToMenu, placeOrder, confirmPayment } from './src/utils/firebase.js';
 
 let menuConfig = {};
 let quantities = {};
@@ -265,11 +265,12 @@ document.getElementById('todayDate').textContent = now.toLocaleDateString('en-IN
 // ---- INIT ----
 async function init() {
   try {
-    const todayData = await getTodayMenu();
-    applyMenu(todayData);
-    // Live listener — updates in real time when owner changes stock
-    menuUnsubscribe = listenToTodayMenu(data => {
-      if (data) { menuConfig = data; refreshMenuItems(data); }
+    menuConfig = await getMenu();
+    applyMenu(menuConfig);
+    // Live listener — menu updates in real time (stock, delivery charge)
+    menuUnsubscribe = listenToMenu(data => {
+      menuConfig = data;
+      refreshMenuItems(data);
     });
   } catch(e) {
     document.getElementById('loadingScreen').innerHTML = '<p style="color:red;padding:20px;text-align:center">Error loading. Please refresh.</p>';
@@ -277,27 +278,22 @@ async function init() {
 }
 
 function applyMenu(cfg) {
+  document.getElementById('shopNameHeader').textContent = '🍽️ ' + (cfg.shopName || 'Daily Food');
+  document.getElementById('shopNameClosed').textContent = '🍽️ ' + (cfg.shopName || 'Daily Food');
+  const todayItems = getTodayItems(cfg);
   document.getElementById('loadingScreen').style.display = 'none';
-  if (!cfg || !cfg.isOpen || !(cfg.items||[]).length) {
-    document.getElementById('shopNameClosed').textContent = '🍗 ' + (cfg?.shopName || 'Kicken Bites');
+  if (!todayItems.length || cfg.isOpen === false) {
     document.getElementById('closedPage').style.display = 'block';
     return;
   }
-  menuConfig = cfg;
-  document.getElementById('shopNameHeader').textContent = '🍗 ' + (cfg.shopName || 'Kicken Bites');
-  // Show menu date on header
-  if (cfg.date) {
-    document.getElementById('todayDate').textContent = formatDisplayDate(cfg.date);
-  }
-  const todayItems = getTodayItems(cfg);
   renderMenu(todayItems);
   document.getElementById('mainPage').style.display = 'block';
   updateBill();
 }
 
 function getTodayItems(cfg) {
-  // dailyMenu items are already filtered — all are active
-  return cfg.items || [];
+  const master = cfg.masterItems || cfg.items || [];
+  return master.filter(i => i.todayActive !== false);
 }
 
 // Full re-render of menu
