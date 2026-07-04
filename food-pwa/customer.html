@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="theme-color" content="#e65c00">
 <link rel="manifest" href="manifest.json">
-<title>Order Food</title>
+<title>Kicken Bites — Order Now</title>
 <style>
   :root{--orange:#e65c00;--orange-light:#ff8c42;--orange-bg:#fff8f0;--orange-pale:#ffe8d0;
     --green:#22c55e;--red:#ef4444;--text:#1a1a1a;--muted:#666;--radius:14px;--card:#fff;}
@@ -70,40 +70,55 @@
     font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(230,92,0,.3);}
   .place-btn:disabled{opacity:.4;cursor:not-allowed;}
 
-  /* PAY SCREEN */
-  #payScreen{display:none;position:fixed;inset:0;background:var(--orange-bg);z-index:200;overflow-y:auto;}
-  .pay-bar{background:var(--orange);padding:14px 18px;position:sticky;top:0;z-index:10;}
-  .pay-bar span{color:white;font-weight:700;font-size:.97rem;}
-  .pay-body{padding:18px 14px 40px;}
-  .amt-badge{display:block;text-align:center;background:var(--orange-pale);color:var(--orange);
-    font-size:2rem;font-weight:800;padding:14px;border-radius:var(--radius);margin-bottom:16px;}
+  /* PAY SCREEN — Beautiful new design */
+  #payScreen{display:none;position:fixed;inset:0;z-index:200;overflow-y:auto;
+    background:linear-gradient(160deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);}
+  .pay-bar{padding:16px 18px 12px;display:flex;align-items:center;justify-content:space-between;}
+  .pay-bar .pay-logo{color:white;font-weight:800;font-size:1rem;letter-spacing:.02em;}
+  .pay-bar .back-x{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.15);
+    border:none;color:white;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 
-  .upi-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px;}
-  .upi-btn{padding:13px 8px;border-radius:var(--radius);border:2px solid #e5e5e5;background:white;
-    cursor:pointer;text-align:center;font-weight:700;font-size:.82rem;color:var(--text);
-    box-shadow:0 1px 4px rgba(0,0,0,.06);transition:all .15s;-webkit-tap-highlight-color:transparent;}
-  .upi-btn:active{transform:scale(.96);border-color:var(--orange);}
-  .upi-btn .icon{font-size:1.7rem;display:block;margin-bottom:3px;}
-  .upi-gpay{border-color:#4285f4;}
-  .upi-phonepe{border-color:#5f259f;}
-  .upi-paytm{border-color:#00baf2;}
-  .upi-bhim{border-color:#e87722;}
+  /* Amount hero */
+  .pay-hero{text-align:center;padding:10px 20px 24px;}
+  .pay-hero .pay-label{color:rgba(255,255,255,.6);font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+  .pay-hero .pay-amt{color:white;font-size:3rem;font-weight:900;letter-spacing:-.02em;line-height:1;}
+  .pay-hero .pay-name{color:rgba(255,255,255,.7);font-size:.82rem;margin-top:6px;}
 
-  .divider{display:flex;align-items:center;gap:9px;margin:14px 0;color:var(--muted);font-size:.8rem;}
-  .divider::before,.divider::after{content:'';flex:1;height:1px;background:#e5e5e5;}
+  /* White card area */
+  .pay-card{background:white;border-radius:28px 28px 0 0;padding:24px 18px 40px;min-height:60vh;}
 
-  .qr-card{background:white;border-radius:var(--radius);padding:14px;text-align:center;
-    box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:13px;}
-  .qr-card h3{font-size:.82rem;color:var(--muted);margin-bottom:9px;}
-  .qr-card img{width:175px;height:175px;border-radius:10px;}
-  .upi-info{font-size:.8rem;color:var(--muted);margin-top:7px;}
-  .upi-info strong{color:var(--orange);}
+  /* UPI ID box */
+  .upi-id-section{margin-bottom:20px;}
+  .upi-id-label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+  .upi-id-box{background:linear-gradient(135deg,#fff8f0,#ffe8d0);border:2px solid var(--orange-pale);
+    border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .upi-id-text{font-size:1.1rem;font-weight:800;color:var(--orange);letter-spacing:.01em;flex:1;word-break:break-all;}
+  .copy-btn{flex-shrink:0;padding:9px 16px;background:var(--orange);color:white;border:none;
+    border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap;}
+  .copy-btn:active{transform:scale(.95);}
+  .copy-btn.copied{background:var(--green);}
+  .upi-hint{font-size:.75rem;color:var(--muted);margin-top:7px;line-height:1.4;}
 
-  .warn-box{background:#fffbeb;border-radius:11px;padding:11px;margin-bottom:13px;
-    font-size:.8rem;color:#92400e;line-height:1.5;}
-  .confirm-btn{width:100%;padding:15px;background:var(--green);color:white;border:none;
-    border-radius:var(--radius);font-size:.97rem;font-weight:700;cursor:pointer;margin-bottom:9px;}
-  .back-lnk{display:block;text-align:center;color:var(--muted);font-size:.83rem;cursor:pointer;padding:7px;}
+  /* Divider */
+  .or-divider{display:flex;align-items:center;gap:10px;margin:18px 0;color:#ccc;font-size:.75rem;font-weight:700;letter-spacing:.05em;}
+  .or-divider::before,.or-divider::after{content:'';flex:1;height:1.5px;background:#eee;}
+
+  /* QR section */
+  .qr-section{text-align:center;margin-bottom:22px;}
+  .qr-label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;}
+  .qr-wrapper{display:inline-block;padding:14px;background:white;border-radius:20px;
+    box-shadow:0 4px 20px rgba(0,0,0,.1);border:3px solid var(--orange-pale);margin-bottom:10px;}
+  .qr-wrapper img{width:190px;height:190px;display:block;border-radius:10px;}
+  .qr-hint{font-size:.78rem;color:var(--muted);line-height:1.5;}
+  .qr-hint b{color:var(--text);}
+
+  /* Confirm button */
+  .confirm-btn{width:100%;padding:17px;background:linear-gradient(135deg,var(--green),#16a34a);
+    color:white;border:none;border-radius:var(--radius);font-size:1.05rem;font-weight:800;
+    cursor:pointer;box-shadow:0 4px 15px rgba(34,197,94,.35);letter-spacing:.01em;
+    display:flex;align-items:center;justify-content:center;gap:8px;}
+  .confirm-btn:active{transform:scale(.98);}
+  .back-lnk{display:block;text-align:center;color:var(--muted);font-size:.82rem;cursor:pointer;padding:10px;margin-top:4px;}
 
   /* SUCCESS */
   #successScreen{display:none;position:fixed;inset:0;background:var(--orange-bg);z-index:300;
@@ -136,7 +151,7 @@
 
 <div id="mainPage" style="display:none">
   <div class="header">
-    <h1 id="shopNameHeader">🍽️ Daily Food</h1>
+    <h1 id="shopNameHeader">🍽️ Kicken Bites</h1>
     <div class="date" id="todayDate"></div>
   </div>
 
@@ -193,7 +208,7 @@
 </div>
 
 <div id="closedPage" style="display:none;padding-top:56px">
-  <div class="header"><h1 id="shopNameClosed">🍽️ Daily Food</h1></div>
+  <div class="header"><h1 id="shopNameClosed">🍽️ Kicken Bites</h1></div>
   <div class="closed-msg">
     <div style="font-size:3rem;margin-bottom:10px">😴</div>
     <h2>No menu today</h2>
@@ -201,41 +216,60 @@
   </div>
 </div>
 
-<!-- PAYMENT SCREEN -->
+<!-- PAYMENT SCREEN — Beautiful -->
 <div id="payScreen">
-  <div class="pay-bar"><span>💳 Complete Payment</span></div>
-  <div class="pay-body">
-    <div class="amt-badge" id="payAmount">₹0</div>
+  <div class="pay-bar">
+    <div class="pay-logo">🍗 Kicken Bites</div>
+    <button class="back-x" onclick="closePayScreen()">✕</button>
+  </div>
 
-    <div style="font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:9px;text-transform:uppercase;letter-spacing:.05em">Tap to open UPI app</div>
-    <div class="upi-grid">
-      <button class="upi-btn upi-gpay" onclick="openUPI('gpay')">
-        <span class="icon">G</span>Google Pay
-      </button>
-      <button class="upi-btn upi-phonepe" onclick="openUPI('phonepe')">
-        <span class="icon">📱</span>PhonePe
-      </button>
-      <button class="upi-btn upi-paytm" onclick="openUPI('paytm')">
-        <span class="icon">💙</span>Paytm
-      </button>
-      <button class="upi-btn upi-bhim" onclick="openUPI('bhim')">
-        <span class="icon">🇮🇳</span>BHIM / Any UPI
-      </button>
+  <!-- Amount Hero -->
+  <div class="pay-hero">
+    <div class="pay-label">Amount to Pay</div>
+    <div class="pay-amt" id="payAmount">₹0</div>
+    <div class="pay-name" id="payToName">Pay to Kicken Bites</div>
+  </div>
+
+  <!-- White Card -->
+  <div class="pay-card">
+
+    <!-- UPI ID COPY SECTION -->
+    <div class="upi-id-section">
+      <div class="upi-id-label">📋 Copy UPI ID &amp; Pay</div>
+      <div class="upi-id-box">
+        <div class="upi-id-text" id="upiIdDisplay">—</div>
+        <button class="copy-btn" id="copyBtn" onclick="copyUpiId()">Copy</button>
+      </div>
+      <div class="upi-hint">
+        1️⃣ Tap <b>Copy</b> above &nbsp;→&nbsp;
+        2️⃣ Open GPay / PhonePe / Paytm &nbsp;→&nbsp;
+        3️⃣ Go to <b>"Pay by UPI ID"</b> &nbsp;→&nbsp;
+        4️⃣ Paste &amp; enter amount <b id="hintAmt"></b> &nbsp;→&nbsp;
+        5️⃣ Pay ✅
+      </div>
     </div>
 
-    <div class="divider">OR scan QR code below</div>
+    <div class="or-divider">OR SCAN QR CODE</div>
 
-    <div class="qr-card">
-      <h3>Scan with any UPI app</h3>
-      <img id="qrImg" src="" alt="UPI QR Code">
-      <div class="upi-info">UPI ID: <strong id="upiIdDisplay"></strong></div>
-      <div class="upi-info">Pay to: <strong id="upiNameDisplay"></strong></div>
+    <!-- QR SECTION -->
+    <div class="qr-section">
+      <div class="qr-label">📷 Scan with any UPI app</div>
+      <div class="qr-wrapper">
+        <img id="qrImg" src="" alt="UPI QR Code">
+      </div>
+      <div class="qr-hint">
+        Open <b>GPay / PhonePe / Paytm</b> → tap Scan QR<br>
+        Amount <b id="qrHintAmt"></b> will be pre-filled automatically
+      </div>
     </div>
 
-    <div class="warn-box">⚠️ After paying in your UPI app, come back here and tap <b>"I Have Paid"</b> to confirm your order.</div>
-
-    <button class="confirm-btn" onclick="iHavePaid()">✅ I Have Paid — Confirm Order</button>
+    <!-- CONFIRM BUTTON -->
+    <button class="confirm-btn" onclick="iHavePaid()">
+      <span style="font-size:1.3rem">✅</span>
+      I Have Paid — Confirm My Order
+    </button>
     <span class="back-lnk" onclick="closePayScreen()">← Go back and edit order</span>
+
   </div>
 </div>
 
@@ -250,7 +284,7 @@
 </div>
 
 <script type="module">
-import { getMenu, listenToMenu, placeOrder, confirmPayment } from './src/utils/firebase.js';
+import { getTodayMenu, listenToTodayMenu, placeOrder, confirmPayment, getTodayDate, formatDisplayDate } from './src/utils/firebase.js';
 
 let menuConfig = {};
 let quantities = {};
@@ -265,12 +299,11 @@ document.getElementById('todayDate').textContent = now.toLocaleDateString('en-IN
 // ---- INIT ----
 async function init() {
   try {
-    menuConfig = await getMenu();
-    applyMenu(menuConfig);
-    // Live listener — menu updates in real time (stock, delivery charge)
-    menuUnsubscribe = listenToMenu(data => {
-      menuConfig = data;
-      refreshMenuItems(data);
+    const todayData = await getTodayMenu();
+    applyMenu(todayData);
+    // Live listener — updates in real time when owner changes stock
+    menuUnsubscribe = listenToTodayMenu(data => {
+      if (data) { menuConfig = data; refreshMenuItems(data); }
     });
   } catch(e) {
     document.getElementById('loadingScreen').innerHTML = '<p style="color:red;padding:20px;text-align:center">Error loading. Please refresh.</p>';
@@ -278,22 +311,27 @@ async function init() {
 }
 
 function applyMenu(cfg) {
-  document.getElementById('shopNameHeader').textContent = '🍽️ ' + (cfg.shopName || 'Daily Food');
-  document.getElementById('shopNameClosed').textContent = '🍽️ ' + (cfg.shopName || 'Daily Food');
-  const todayItems = getTodayItems(cfg);
   document.getElementById('loadingScreen').style.display = 'none';
-  if (!todayItems.length || cfg.isOpen === false) {
+  if (!cfg || !cfg.isOpen || !(cfg.items||[]).length) {
+    document.getElementById('shopNameClosed').textContent = '🍗 ' + (cfg?.shopName || 'Kicken Bites');
     document.getElementById('closedPage').style.display = 'block';
     return;
   }
+  menuConfig = cfg;
+  document.getElementById('shopNameHeader').textContent = '🍗 ' + (cfg.shopName || 'Kicken Bites');
+  // Show menu date on header
+  if (cfg.date) {
+    document.getElementById('todayDate').textContent = formatDisplayDate(cfg.date);
+  }
+  const todayItems = getTodayItems(cfg);
   renderMenu(todayItems);
   document.getElementById('mainPage').style.display = 'block';
   updateBill();
 }
 
 function getTodayItems(cfg) {
-  const master = cfg.masterItems || cfg.items || [];
-  return master.filter(i => i.todayActive !== false);
+  // dailyMenu items are already filtered — all are active
+  return cfg.items || [];
 }
 
 // Full re-render of menu
@@ -483,46 +521,42 @@ window.placeOrderClick = async function() {
 // ---- PAYMENT ----
 function showPayScreen(total) {
   const upiId = menuConfig.upiId || '';
-  const upiName = menuConfig.upiName || menuConfig.shopName || '';
+  const upiName = menuConfig.upiName || menuConfig.shopName || 'Kicken Bites';
   document.getElementById('payAmount').textContent = '₹' + total;
+  document.getElementById('payToName').textContent = 'Pay to ' + upiName;
   document.getElementById('upiIdDisplay').textContent = upiId;
-  document.getElementById('upiNameDisplay').textContent = upiName;
-  // QR code with UPI deep link
-  const upiData = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${total}&cu=INR&tn=${encodeURIComponent('Food Order')}`;
-  document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=175x175&data=${encodeURIComponent(upiData)}`;
+  document.getElementById('hintAmt').textContent = '₹' + total;
+  document.getElementById('qrHintAmt').textContent = '₹' + total;
+  // Reset copy button
+  const copyBtn = document.getElementById('copyBtn');
+  copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied');
+  // Generate QR
+  const upiData = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${total}&cu=INR&tn=${encodeURIComponent('Kicken Bites Order')}`;
+  document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=190x190&data=${encodeURIComponent(upiData)}`;
   document.getElementById('payScreen').style.display = 'block';
   window.scrollTo(0,0);
 }
 
-window.openUPI = function(app) {
+// Copy UPI ID to clipboard
+window.copyUpiId = function() {
   const upiId = menuConfig.upiId || '';
-  const upiName = menuConfig.upiName || '';
-  const amt = currentTotal;
-  const tn = encodeURIComponent('Food Order');
-  const pa = encodeURIComponent(upiId);
-  const pn = encodeURIComponent(upiName);
-  // Intent URLs that open the specific app on Android
-  // On iOS all fall back to generic upi://
-  const links = {
-    gpay:    `gpay://upi/pay?pa=${pa}&pn=${pn}&am=${amt}&cu=INR&tn=${tn}`,
-    phonepe: `phonepe://pay?pa=${pa}&pn=${pn}&am=${amt}&cu=INR&tn=${tn}`,
-    paytm:   `paytmmp://pay?pa=${pa}&pn=${pn}&am=${amt}&cu=INR&tn=${tn}`,
-    bhim:    `upi://pay?pa=${pa}&pn=${pn}&am=${amt}&cu=INR&tn=${tn}`
-  };
-  const fallback = `upi://pay?pa=${pa}&pn=${pn}&am=${amt}&cu=INR&tn=${tn}`;
-  // Use an iframe trick to try the deep link without leaving the page
-  const frame = document.createElement('iframe');
-  frame.style.display = 'none';
-  document.body.appendChild(frame);
-  frame.src = links[app] || fallback;
-  // Remove iframe after 1.5s; if app not installed show the QR
-  setTimeout(() => {
-    document.body.removeChild(frame);
-  }, 1500);
-  // Also try direct location as backup for some browsers
-  setTimeout(() => {
-    window.location.href = links[app] || fallback;
-  }, 300);
+  if (!upiId) { alert('UPI ID not set. Contact shop.'); return; }
+  navigator.clipboard.writeText(upiId).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 3000);
+    showToast('UPI ID copied! Now open your UPI app and paste it.');
+  }).catch(() => {
+    // Fallback for older browsers
+    const el = document.createElement('textarea');
+    el.value = upiId; el.style.position = 'fixed'; el.style.opacity = '0';
+    document.body.appendChild(el); el.select();
+    document.execCommand('copy'); document.body.removeChild(el);
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✅ Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 3000);
+    showToast('UPI ID copied! Now open your UPI app and paste it.');
+  });
 };
 
 window.closePayScreen = function() { document.getElementById('payScreen').style.display = 'none'; };

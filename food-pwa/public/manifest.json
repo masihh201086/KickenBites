@@ -1,6 +1,6 @@
 {
-  "name": "Daily Food Order",
-  "short_name": "FoodOrder",
+  "name": "Kicken Bites",
+  "short_name": "KickenBites",
   "description": "Order fresh home food daily",
   "start_url": "/",
   "display": "standalone",
