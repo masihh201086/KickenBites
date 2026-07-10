@@ -272,7 +272,7 @@
 <input type="file" id="imgFileInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
 
 <script type="module">
-import { getConfig, saveConfig, getTodayDate, formatDisplayDate, saveDailyMenu, getDailyMenu, listenToOrders, updateOrderStatus } from './src/utils/firebase.js';
+import { getConfig, saveConfig, getTodayDate, formatDisplayDate, saveDailyMenu, getDailyMenu, listenToOrders, updateOrderStatus, setDeliveryStatus, listenToDelivery } from './src/utils/firebase.js';
 
 const PASS_KEY = 'adminPass_v3';
 let IMGBB_KEY = localStorage.getItem('imgbbKey') || ''; // Free ImgBB API key — replace with yours from imgbb.com
@@ -647,8 +647,6 @@ window.saveSettings = async function() {
 };
 
 // ---- DELIVERY TRACKING ----
-import { setDeliveryStatus, listenToDelivery } from './src/utils/firebase.js';
-
 // Start listening to delivery boy status
 function initDeliveryListener() {
   listenToDelivery(data => {
