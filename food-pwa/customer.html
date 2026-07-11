@@ -222,7 +222,7 @@
   <div class="closed-msg">
     <div style="font-size:3rem;margin-bottom:10px">😴</div>
     <h2>No menu today</h2>
-    <p style="margin-top:8px">Check the WhatsApp group for updates!</p>
+    <p id="closedMsg" style="margin-top:8px">Check the WhatsApp group for updates!</p>
   </div>
 </div>
 
@@ -315,22 +315,36 @@ document.getElementById('todayDate').textContent = now.toLocaleDateString('en-IN
 
 // ---- INIT ----
 async function init() {
+  // Timeout after 8 seconds — show closed page if Firebase unreachable
+  const timeout = setTimeout(() => {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('closedPage').style.display = 'block';
+    document.getElementById('shopNameClosed').textContent = '🍗 Kicken Bites';
+    document.getElementById('closedMsg').textContent = 'Could not load menu. Please check your internet and refresh.';
+  }, 8000);
+
   try {
     const todayData = await getTodayMenu();
+    clearTimeout(timeout);
     applyMenu(todayData);
     // Live listener — updates in real time when owner changes stock
     menuUnsubscribe = listenToTodayMenu(data => {
       if (data) { menuConfig = data; refreshMenuItems(data); }
     });
   } catch(e) {
-    document.getElementById('loadingScreen').innerHTML = '<p style="color:red;padding:20px;text-align:center">Error loading. Please refresh.</p>';
+    clearTimeout(timeout);
+    console.error('Init error:', e);
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('closedPage').style.display = 'block';
+    document.getElementById('shopNameClosed').textContent = '🍗 Kicken Bites';
+    document.getElementById('closedMsg').textContent = 'Error loading menu. Please refresh the page.';
   }
 }
 
 function applyMenu(cfg) {
   document.getElementById('loadingScreen').style.display = 'none';
   if (!cfg || !cfg.isOpen || !(cfg.items||[]).length) {
-    document.getElementById('shopNameClosed').textContent = '🍗 ' + (cfg?.shopName || 'Kicken Bites');
+    document.getElementById('shopNameClosed').textContent = '🍗 ' + (cfg && cfg.shopName ? cfg.shopName : 'Kicken Bites');
     document.getElementById('closedPage').style.display = 'block';
     return;
   }
@@ -695,19 +709,28 @@ init();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
 // Listen to delivery status — show track button when delivery is active
-listenToDelivery(data => {
-  const btn = document.getElementById('trackDeliveryBtn');
-  if (!btn) return;
-  if (data && data.isDelivering) {
-    btn.classList.remove('track-hidden');
-  } else {
-    btn.classList.add('track-hidden');
-  }
-});
+try {
+  listenToDelivery(data => {
+    try {
+      const btn = document.getElementById('trackDeliveryBtn');
+      if (!btn) return;
+      if (data && data.isDelivering) {
+        btn.classList.remove('track-hidden');
+      } else {
+        btn.classList.add('track-hidden');
+      }
+    } catch(e) { console.log('Delivery listener update error', e); }
+  });
+} catch(e) { console.log('Delivery listener setup error', e); }
 
 window.openTracking = function() {
-  const orderId = currentOrderId ? currentOrderId.slice(-8).toUpperCase() : '';
-  window.open(`track.html?order=${orderId}`, '_blank');
+  if (!currentOrderId) return;
+  const { total } = getTotal();
+  const name = orderType==='delivery' ? document.getElementById('custName').value.trim() : document.getElementById('custNameTA').value.trim();
+  const addr = orderType==='delivery' ? (document.getElementById('custLocation').value + ' — ' + document.getElementById('custHouseNo').value) : 'TAKEAWAY';
+  const items = getTodayItems(menuConfig).filter(i=>quantities[i.id]>0).map(i=>`${i.name} ×${quantities[i.id]}`).join(', ');
+  const url = `track.html?order=${currentOrderId}&name=${encodeURIComponent(name)}&total=${total}&addr=${encodeURIComponent(addr)}&items=${encodeURIComponent(items)}`;
+  window.open(url, '_blank');
 };
 </script>
 </body>

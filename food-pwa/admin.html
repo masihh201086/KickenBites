@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1a1a2e">
 <title>Kicken Bites — Admin</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root{--orange:#e65c00;--orange-pale:#fff3e8;--orange-light:#ff8c42;
     --green:#22c55e;--green-pale:#f0fdf4;--red:#ef4444;--red-pale:#fef2f2;
@@ -128,6 +130,15 @@
   .print-preview-box h3{font-size:0.9rem;font-weight:800;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #eee;}
   .print-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #eee;}
   .delivery-slip{border:1px solid #333;border-radius:8px;padding:10px;margin-bottom:10px;}
+
+  /* DELIVERY MAP */
+  #deliveryMap{width:100%;height:320px;border-radius:var(--radius);margin-top:10px;display:none;}
+  .boy-live-card{background:var(--green-pale);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px;margin-top:10px;}
+  .boy-live-avatar{width:40px;height:40px;border-radius:50%;background:var(--green);color:white;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;}
+  .boy-live-info{flex:1;}
+  .boy-live-name{font-weight:700;font-size:.88rem;}
+  .boy-live-sub{font-size:.72rem;color:var(--muted);margin-top:2px;}
+  .call-boy-btn{padding:7px 12px;background:var(--green);color:white;border:none;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap;}
   .empty{text-align:center;padding:36px 20px;color:var(--muted);}
   .empty .icon{font-size:2.3rem;margin-bottom:8px;}
   .info-box{background:var(--blue-pale);border-radius:10px;padding:10px 12px;font-size:0.78rem;color:#1e40af;margin-bottom:10px;line-height:1.5;}
@@ -648,25 +659,62 @@ window.saveSettings = async function() {
 
 // ---- DELIVERY TRACKING ----
 // Start listening to delivery boy status
+let adminMap = null;
+let adminMarker = null;
+
 function initDeliveryListener() {
   listenToDelivery(data => {
     const toggle = document.getElementById('deliveryToggle');
     const statusText = document.getElementById('deliveryStatusText');
     const subText = document.getElementById('deliverySubText');
     const boyInfo = document.getElementById('deliveryBoyInfo');
-    if (data && data.isDelivering) {
+    const boyLiveCard = document.getElementById('boyLiveCard');
+    const mapDiv = document.getElementById('deliveryMap');
+
+    if (data && data.isDelivering && data.lat && data.lng) {
       if (toggle) toggle.checked = true;
       statusText.textContent = '🟢 Delivery Active!';
       subText.textContent = 'Customers can see live location';
       subText.style.color = 'var(--green)';
-      boyInfo.style.display = 'block';
-      document.getElementById('activeBoyName').textContent = data.boyName || 'Delivery Boy';
+      if (boyInfo) { boyInfo.style.display = 'block'; document.getElementById('activeBoyName').textContent = data.boyName || 'Delivery Boy'; }
+
+      // Show boy live card
+      if (boyLiveCard) {
+        boyLiveCard.style.display = 'flex';
+        document.getElementById('mapBoyName').textContent = data.boyName || 'Delivery Boy';
+        const t = data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+        document.getElementById('mapBoyStatus').textContent = `📍 Live | Last update: ${t}`;
+        const callBtn = document.getElementById('callBoyBtn');
+        if (callBtn && data.boyPhone) { callBtn.href = 'tel:' + data.boyPhone; callBtn.textContent = '📞 ' + data.boyPhone; }
+      }
+
+      // Show map
+      mapDiv.style.display = 'block';
+      if (!adminMap) {
+        setTimeout(() => {
+          adminMap = L.map('deliveryMap').setView([data.lat, data.lng], 15);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(adminMap);
+          const icon = L.divIcon({
+            html: '<div style="background:#e65c00;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;box-shadow:0 2px 8px rgba(0,0,0,.3);border:3px solid white">🛵</div>',
+            iconSize:[40,40], iconAnchor:[20,20], className:''
+          });
+          adminMarker = L.marker([data.lat, data.lng], {icon}).addTo(adminMap);
+          adminMarker.bindPopup(`<b>${data.boyName||'Delivery Boy'}</b><br>${data.boyPhone||''}`).openPopup();
+        }, 100);
+      } else {
+        adminMarker.setLatLng([data.lat, data.lng]);
+        adminMap.panTo([data.lat, data.lng]);
+        const t = data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+        adminMarker.getPopup().setContent(`<b>${data.boyName||'Delivery Boy'}</b><br>${data.boyPhone||''}<br>Updated: ${t}`);
+      }
     } else {
       if (toggle) toggle.checked = false;
       statusText.textContent = 'Delivery Not Started';
       subText.textContent = 'Toggle to start delivery tracking for customers';
-      subText.style.color = 'var(--muted)';
-      boyInfo.style.display = 'none';
+      subText.style.color = '';
+      if (boyInfo) boyInfo.style.display = 'none';
+      if (boyLiveCard) boyLiveCard.style.display = 'none';
+      mapDiv.style.display = 'none';
     }
   });
 }
