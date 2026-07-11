@@ -95,8 +95,8 @@
 </div>
 
 <script type="module">
-import { db, getTodayDate } from './src/utils/firebase.js';
-import { doc, setDoc, onSnapshot, collection, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { db, getTodayDate, where, setDoc, collection, query, orderBy } from './src/utils/firebase.js';
+import { doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 let isDelivering = false;
 let watchId = null;
