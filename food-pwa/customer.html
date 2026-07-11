@@ -625,8 +625,7 @@ function showSuccess() {
   waLines.push('✅ Your order is being prepared freshly!');
   waLines.push('Thank you for ordering from Kicken Bites 🙏');
 
-  lastOrderDetails = { name, phone, orderId, total, delivery, address, orderType, waText: waLines.join('
-') };
+  lastOrderDetails = { name, phone, orderId, total, delivery, address, orderType, waText: waLines.join('\n') };
 
   // Send admin WhatsApp notification via CallMeBot
   sendAdminNotification(lastOrderDetails, items);
