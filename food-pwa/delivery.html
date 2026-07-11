@@ -15,20 +15,17 @@
   .container{padding:16px;}
   .card{background:white;border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
   .card-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#888;margin-bottom:10px;}
-  .inp{width:100%;padding:11px 13px;border:2px solid #e5e5e5;border-radius:var(--radius);font-size:.95rem;outline:none;font-family:inherit;margin-bottom:10px;}
+  .inp{width:100%;padding:12px 13px;border:2px solid #e5e5e5;border-radius:var(--radius);font-size:.95rem;outline:none;font-family:inherit;margin-bottom:10px;}
   .inp:focus{border-color:var(--orange);}
-  /* BIG START BUTTON */
-  .start-btn{width:100%;padding:18px;border:none;border-radius:var(--radius);font-size:1.1rem;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.02em;}
+  .start-btn{width:100%;padding:18px;border:none;border-radius:var(--radius);font-size:1.1rem;font-weight:800;cursor:pointer;transition:all .2s;}
   .start-btn.off{background:linear-gradient(135deg,var(--green),#16a34a);color:white;box-shadow:0 4px 16px rgba(34,197,94,.4);}
   .start-btn.on{background:linear-gradient(135deg,var(--red),#dc2626);color:white;box-shadow:0 4px 16px rgba(239,68,68,.4);}
-  /* STATUS */
   .status-box{text-align:center;padding:20px;border-radius:var(--radius);margin-bottom:12px;}
   .status-box.active{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:2px solid var(--green);}
   .status-box.inactive{background:#f9f9f9;border:2px solid #eee;}
   .status-icon{font-size:3rem;margin-bottom:8px;}
   .status-text{font-weight:700;font-size:1rem;}
   .status-sub{font-size:.78rem;color:#666;margin-top:4px;}
-  /* GPS SIGNAL */
   .gps-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;font-size:.82rem;font-weight:600;margin-bottom:10px;}
   .gps-bar.good{background:#f0fdf4;color:var(--green);}
   .gps-bar.bad{background:#fef2f2;color:var(--red);}
@@ -38,16 +35,15 @@
   .gps-dot.bad{background:var(--red);}
   .gps-dot.waiting{background:#f59e0b;}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-  /* DELIVERIES LIST */
   .delivery-item{border:1px solid #eee;border-radius:10px;padding:12px;margin-bottom:8px;}
   .d-name{font-weight:700;font-size:.9rem;}
   .d-addr{font-size:.78rem;color:#666;margin-top:3px;}
   .d-phone{font-size:.78rem;color:var(--orange);margin-top:3px;}
   .d-items{font-size:.78rem;color:#333;margin-top:4px;}
-  .call-btn{float:right;padding:6px 12px;background:var(--green);color:white;border:none;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;}
-  /* COORDS */
+  .call-btn{float:right;padding:6px 12px;background:var(--green);color:white;border:none;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;}
   .coords{font-size:.72rem;color:#999;text-align:center;margin-top:8px;}
   .update-count{font-size:.72rem;color:var(--green);text-align:center;margin-top:4px;}
+  .err-msg{background:#fef2f2;color:var(--red);border-radius:10px;padding:10px;font-size:.8rem;margin-bottom:10px;display:none;}
 </style>
 </head>
 <body>
@@ -55,30 +51,27 @@
   <h1>🛵 Kicken Bites — Delivery</h1>
   <p>Delivery Boy App</p>
 </div>
-
 <div class="container">
 
-  <!-- NAME & PHONE -->
   <div class="card" id="setupCard">
     <div class="card-title">Your Details</div>
     <input class="inp" id="boyName" placeholder="Your name" type="text">
     <input class="inp" id="boyPhone" placeholder="Your mobile number" type="tel" inputmode="numeric" maxlength="10">
   </div>
 
-  <!-- GPS STATUS -->
+  <div class="err-msg" id="errMsg"></div>
+
   <div class="gps-bar waiting" id="gpsBar">
     <div class="gps-dot waiting"></div>
     <span id="gpsText">GPS not started</span>
   </div>
 
-  <!-- STATUS BOX -->
   <div class="status-box inactive" id="statusBox">
     <div class="status-icon">😴</div>
     <div class="status-text">Not Delivering</div>
     <div class="status-sub">Press Start to begin live tracking</div>
   </div>
 
-  <!-- START/STOP BUTTON -->
   <button class="start-btn off" id="mainBtn" onclick="toggleDelivery()">
     🟢 Start Delivery & Share Location
   </button>
@@ -86,7 +79,6 @@
   <div class="coords" id="coordsDisplay"></div>
   <div class="update-count" id="updateCount"></div>
 
-  <!-- TODAY'S DELIVERIES -->
   <div class="card" style="margin-top:14px">
     <div class="card-title">Today's Delivery Orders</div>
     <div id="deliveryList"><p style="color:#999;font-size:.82rem;text-align:center;padding:12px">Loading orders…</p></div>
@@ -95,14 +87,30 @@
 </div>
 
 <script type="module">
-import { db, getTodayDate, where, setDoc, collection, query, orderBy } from './src/utils/firebase.js';
-import { doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+// Direct Firebase imports — no dependency on firebase.js exports
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, orderBy, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD7in6rCrdL5aiDoY9w8i3k3o9yQXqEWo4",
+  authDomain: "myfood-6487f.firebaseapp.com",
+  projectId: "myfood-6487f",
+  storageBucket: "myfood-6487f.firebasestorage.app",
+  messagingSenderId: "133560849575",
+  appId: "1:133560849575:web:2a7aa07ef8047928beb782"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+function getTodayDate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
 let isDelivering = false;
 let watchId = null;
 let updateCount = 0;
-let currentLat = null;
-let currentLng = null;
 
 // Load saved name/phone
 const savedName = localStorage.getItem('boyName') || '';
@@ -111,32 +119,56 @@ if (savedName) document.getElementById('boyName').value = savedName;
 if (savedPhone) document.getElementById('boyPhone').value = savedPhone;
 
 // Load today's delivery orders
-const today = getTodayDate();
-const q = query(collection(db, 'orders'), where('date', '==', today), where('orderType', '==', 'delivery'), orderBy('createdAt', 'desc'));
-onSnapshot(q, snap => {
-  const orders = snap.docs.map(d => ({id:d.id,...d.data()})).filter(o => ['confirmed','ready','out_for_delivery'].includes(o.status));
-  const list = document.getElementById('deliveryList');
-  if (!orders.length) { list.innerHTML = '<p style="color:#999;font-size:.82rem;text-align:center;padding:12px">No delivery orders yet</p>'; return; }
-  list.innerHTML = orders.map((o,i) => `
-    <div class="delivery-item">
-      <div style="display:flex;align-items:flex-start">
-        <div style="flex:1">
-          <div class="d-name">#${i+1} ${o.name}</div>
-          <div class="d-addr">📍 ${o.address}</div>
-          <div class="d-phone">📞 ${o.phone}</div>
-          <div class="d-items">${(o.items||[]).map(i=>`${i.name}×${i.qty}`).join(', ')} | ₹${o.total}</div>
-        </div>
-        <a class="call-btn" href="tel:${o.phone}">Call</a>
-      </div>
-    </div>`).join('');
-});
+function loadOrders() {
+  try {
+    const today = getTodayDate();
+    const q = query(
+      collection(db, 'orders'),
+      where('date', '==', today),
+      where('orderType', '==', 'delivery'),
+      orderBy('createdAt', 'desc')
+    );
+    onSnapshot(q, snap => {
+      const orders = snap.docs.map(d => ({id:d.id,...d.data()}))
+        .filter(o => ['confirmed','ready','pending_payment'].includes(o.status));
+      const list = document.getElementById('deliveryList');
+      if (!orders.length) {
+        list.innerHTML = '<p style="color:#999;font-size:.82rem;text-align:center;padding:12px">No delivery orders today</p>';
+        return;
+      }
+      list.innerHTML = orders.map((o,i) => `
+        <div class="delivery-item">
+          <div style="display:flex;align-items:flex-start">
+            <div style="flex:1">
+              <div class="d-name">#${i+1} ${o.name}</div>
+              <div class="d-addr">📍 ${o.address}</div>
+              <div class="d-phone">📞 ${o.phone}</div>
+              <div class="d-items">${(o.items||[]).map(i=>`${i.name}×${i.qty}`).join(', ')} | ₹${o.total}</div>
+            </div>
+            <a class="call-btn" href="tel:${o.phone}">Call</a>
+          </div>
+        </div>`).join('');
+    }, err => {
+      console.error('Orders load error:', err);
+      document.getElementById('deliveryList').innerHTML = '<p style="color:#999;font-size:.82rem;text-align:center;padding:12px">Could not load orders</p>';
+    });
+  } catch(e) {
+    console.error('loadOrders error:', e);
+  }
+}
 
-// Toggle delivery start/stop
+loadOrders();
+
+// Toggle delivery
 window.toggleDelivery = function() {
   const name = document.getElementById('boyName').value.trim();
   const phone = document.getElementById('boyPhone').value.trim();
-  if (!name) { alert('Please enter your name'); return; }
-  if (!phone) { alert('Please enter your phone number'); return; }
+  const errEl = document.getElementById('errMsg');
+  errEl.style.display = 'none';
+
+  if (!name) { showErr('Please enter your name'); return; }
+  if (!phone) { showErr('Please enter your mobile number'); return; }
+
   localStorage.setItem('boyName', name);
   localStorage.setItem('boyPhone', phone);
 
@@ -147,43 +179,70 @@ window.toggleDelivery = function() {
   }
 };
 
+function showErr(msg) {
+  const el = document.getElementById('errMsg');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+}
+
 function startTracking(name, phone) {
-  if (!navigator.geolocation) { alert('GPS not supported on this device'); return; }
+  if (!navigator.geolocation) {
+    showErr('GPS not supported on this device. Please use Chrome on Android.');
+    return;
+  }
 
-  setGpsBar('waiting', 'Getting GPS location…');
+  setGpsBar('waiting', 'Requesting GPS permission…');
 
-  watchId = navigator.geolocation.watchPosition(
-    async (pos) => {
-      currentLat = pos.coords.latitude;
-      currentLng = pos.coords.longitude;
-      updateCount++;
+  // First get current position to trigger permission prompt
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      // Permission granted — now start watching
+      isDelivering = true;
+      updateUI(true);
+      saveLocation(pos, name, phone);
 
-      setGpsBar('good', `GPS Active — Accuracy: ${Math.round(pos.coords.accuracy)}m`);
-      document.getElementById('coordsDisplay').textContent = `📍 ${currentLat.toFixed(5)}, ${currentLng.toFixed(5)}`;
-      document.getElementById('updateCount').textContent = `✅ Location updated ${updateCount} times`;
-
-      // Save to Firebase
-      await setDoc(doc(db, 'delivery', 'status'), {
-        isDelivering: true,
-        lat: currentLat,
-        lng: currentLng,
-        boyName: name,
-        boyPhone: phone,
-        accuracy: pos.coords.accuracy,
-        updatedAt: new Date().toISOString()
-      });
-
-      // Update UI on first fix
-      if (!isDelivering) {
-        isDelivering = true;
-        updateUI(true);
+      watchId = navigator.geolocation.watchPosition(
+        pos => { saveLocation(pos, name, phone); },
+        err => { setGpsBar('bad', 'GPS Error: ' + err.message); },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+      );
+    },
+    err => {
+      if (err.code === 1) {
+        showErr('GPS permission denied! Please allow location access in browser settings and try again.');
+      } else if (err.code === 2) {
+        showErr('GPS not available. Please check if location is enabled on your phone.');
+      } else {
+        showErr('GPS timeout. Please try again.');
       }
+      setGpsBar('bad', 'GPS permission denied');
     },
-    (err) => {
-      setGpsBar('bad', 'GPS Error: ' + err.message);
-    },
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+    { enableHighAccuracy: true, timeout: 10000 }
   );
+}
+
+async function saveLocation(pos, name, phone) {
+  updateCount++;
+  const lat = pos.coords.latitude;
+  const lng = pos.coords.longitude;
+  const acc = Math.round(pos.coords.accuracy);
+
+  setGpsBar('good', `GPS Active — Accuracy: ${acc}m`);
+  document.getElementById('coordsDisplay').textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  document.getElementById('updateCount').textContent = `✅ Location updated ${updateCount} times`;
+
+  try {
+    await setDoc(doc(db, 'delivery', 'status'), {
+      isDelivering: true,
+      lat, lng,
+      boyName: name,
+      boyPhone: phone,
+      accuracy: acc,
+      updatedAt: new Date().toISOString()
+    });
+  } catch(e) {
+    console.error('Save location error:', e);
+  }
 }
 
 async function stopTracking() {
@@ -194,13 +253,13 @@ async function stopTracking() {
   isDelivering = false;
   updateCount = 0;
 
-  // Mark as not delivering in Firebase
-  await setDoc(doc(db, 'delivery', 'status'), {
-    isDelivering: false,
-    lat: null, lng: null,
-    boyName: '', boyPhone: '',
-    updatedAt: new Date().toISOString()
-  });
+  try {
+    await setDoc(doc(db, 'delivery', 'status'), {
+      isDelivering: false, lat: null, lng: null,
+      boyName: '', boyPhone: '',
+      updatedAt: new Date().toISOString()
+    });
+  } catch(e) { console.error('Stop tracking error:', e); }
 
   setGpsBar('waiting', 'GPS stopped');
   document.getElementById('coordsDisplay').textContent = '';
@@ -211,20 +270,21 @@ async function stopTracking() {
 function updateUI(active) {
   const btn = document.getElementById('mainBtn');
   const box = document.getElementById('statusBox');
+  const setup = document.getElementById('setupCard');
   if (active) {
     btn.className = 'start-btn on';
     btn.textContent = '🔴 Stop Delivery & Tracking';
     box.className = 'status-box active';
     box.innerHTML = '<div class="status-icon">🛵</div><div class="status-text" style="color:var(--green)">Delivery Active!</div><div class="status-sub">Customers can see your live location</div>';
-    document.getElementById('setupCard').style.opacity = '.5';
-    document.getElementById('setupCard').style.pointerEvents = 'none';
+    setup.style.opacity = '.5';
+    setup.style.pointerEvents = 'none';
   } else {
     btn.className = 'start-btn off';
     btn.textContent = '🟢 Start Delivery & Share Location';
     box.className = 'status-box inactive';
     box.innerHTML = '<div class="status-icon">😴</div><div class="status-text">Not Delivering</div><div class="status-sub">Press Start to begin live tracking</div>';
-    document.getElementById('setupCard').style.opacity = '1';
-    document.getElementById('setupCard').style.pointerEvents = 'auto';
+    setup.style.opacity = '1';
+    setup.style.pointerEvents = 'auto';
   }
 }
 
