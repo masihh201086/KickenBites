@@ -120,6 +120,23 @@ export function listenToOrders(dateStr, callback) {
   });
 }
 
+
+// ---- DELIVERY TRACKING ----
+export async function setDeliveryStatus(data) {
+  await setDoc(doc(db, 'delivery', 'status'), data);
+}
+
+export async function getDeliveryStatus() {
+  const snap = await getDoc(doc(db, 'delivery', 'status'));
+  return snap.exists() ? snap.data() : null;
+}
+
+export function listenToDelivery(callback) {
+  return onSnapshot(doc(db, 'delivery', 'status'), snap => {
+    callback(snap.exists() ? snap.data() : null);
+  });
+}
+
 // Legacy compat
 export async function getMenu() { return getConfig(); }
 export async function saveMenu(data) { return saveConfig(data); }

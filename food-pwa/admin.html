@@ -169,6 +169,24 @@
       <div class="stat-box"><div class="stat-num" id="statPending">0</div><div class="stat-label">Awaiting Pay</div></div>
       <div class="stat-box"><div class="stat-num" id="statDelivered">0</div><div class="stat-label">Delivered</div></div>
     </div>
+    <!-- DELIVERY CONTROL -->
+    <div class="card" id="deliveryControlCard">
+      <div class="card-title">🛵 Delivery Control</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-weight:700;font-size:.9rem" id="deliveryStatusText">Delivery Not Started</div>
+          <div style="font-size:.75rem;color:var(--muted)" id="deliverySubText">Toggle to start delivery tracking for customers</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="deliveryToggle" onchange="toggleDeliveryMode(this.checked)"><span class="slider"></span></label>
+      </div>
+      <div id="deliveryBoyInfo" style="display:none;background:var(--green-pale);border-radius:10px;padding:10px;font-size:.8rem;color:var(--green)">
+        🛵 <b id="activeBoyName"></b> is delivering | 📍 Live tracking active
+      </div>
+      <div style="margin-top:10px;font-size:.78rem;color:var(--muted)">
+        Delivery Boy App: <a id="deliveryBoyLink" href="delivery.html" target="_blank" style="color:var(--orange);font-weight:600">Open Delivery Page</a>
+      </div>
+    </div>
+
     <div class="filter-row">
       <button class="fbtn active" onclick="filterOrders('all',this)">All</button>
       <button class="fbtn" onclick="filterOrders('pending_payment',this)">Awaiting Pay</button>
@@ -254,7 +272,7 @@
 <input type="file" id="imgFileInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
 
 <script type="module">
-import { getConfig, saveConfig, getTodayDate, formatDisplayDate, saveDailyMenu, getDailyMenu, listenToOrders, updateOrderStatus } from './src/utils/firebase.js';
+import { getConfig, saveConfig, getTodayDate, formatDisplayDate, saveDailyMenu, getDailyMenu, listenToOrders, updateOrderStatus, setDeliveryStatus, listenToDelivery } from './src/utils/firebase.js';
 
 const PASS_KEY = 'adminPass_v3';
 let IMGBB_KEY = localStorage.getItem('imgbbKey') || ''; // Free ImgBB API key — replace with yours from imgbb.com
@@ -291,6 +309,7 @@ async function initDashboard() {
 
   // Set default date to today
   setMenuDate('today');
+  initDeliveryListener();
 
   // Load today's orders
   if (ordersUnsub) ordersUnsub();
@@ -626,6 +645,54 @@ window.saveSettings = async function() {
   await saveConfig(config);
   alert('✅ Settings saved!');
 };
+
+// ---- DELIVERY TRACKING ----
+// Start listening to delivery boy status
+function initDeliveryListener() {
+  listenToDelivery(data => {
+    const toggle = document.getElementById('deliveryToggle');
+    const statusText = document.getElementById('deliveryStatusText');
+    const subText = document.getElementById('deliverySubText');
+    const boyInfo = document.getElementById('deliveryBoyInfo');
+    if (data && data.isDelivering) {
+      if (toggle) toggle.checked = true;
+      statusText.textContent = '🟢 Delivery Active!';
+      subText.textContent = 'Customers can see live location';
+      subText.style.color = 'var(--green)';
+      boyInfo.style.display = 'block';
+      document.getElementById('activeBoyName').textContent = data.boyName || 'Delivery Boy';
+    } else {
+      if (toggle) toggle.checked = false;
+      statusText.textContent = 'Delivery Not Started';
+      subText.textContent = 'Toggle to start delivery tracking for customers';
+      subText.style.color = 'var(--muted)';
+      boyInfo.style.display = 'none';
+    }
+  });
+}
+
+window.toggleDeliveryMode = async function(checked) {
+  try {
+    if (!checked) {
+      await setDeliveryStatus({ isDelivering: false, lat: null, lng: null, boyName: '', boyPhone: '', updatedAt: new Date().toISOString() });
+      showToast('Delivery tracking stopped');
+    } else {
+      showToast('Delivery mode ON — Delivery boy must start their app');
+    }
+  } catch(e) { alert('Error updating delivery status'); }
+};
+
+function showToast(msg) {
+  let t = document.getElementById('adminToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'adminToast';
+    t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:10px 20px;border-radius:50px;font-size:.82rem;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 2500);
+}
 
 window.switchTab = function(tab) {
   const tabs=['orders','today','master','print','settings'];
