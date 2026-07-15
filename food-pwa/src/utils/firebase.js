@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, setDoc, getDoc, getDocs, query, orderBy, runTransaction, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, setDoc, getDoc, getDocs, query, orderBy, runTransaction, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD7in6rCrdL5aiDoY9w8i3k3o9yQXqEWo4",
@@ -14,47 +14,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// Get full config (master menu + settings)
-export async function getConfig() {
-  const snap = await getDoc(doc(db, "config", "menu"));
-  return snap.exists() ? snap.data() : {
-    masterItems: [], deliveryCharge: 30,
-    upiId: "", upiName: "", shopName: "Kicken Bites"
-  };
-}
-
-// Get today's scheduled menu (by today's date string)
-export async function getTodayMenu() {
-  const today = getTodayDate();
-  const snap = await getDoc(doc(db, "dailyMenu", today));
-  if (snap.exists()) return snap.data();
-  return null; // no menu for today
-}
-
-// Save master config
-export async function saveConfig(data) {
-  await setDoc(doc(db, "config", "menu"), data);
-}
-
-// Save daily menu for a specific date
-export async function saveDailyMenu(dateStr, menuData) {
-  await setDoc(doc(db, "dailyMenu", dateStr), menuData);
-}
-
-// Get daily menu for any date
-export async function getDailyMenu(dateStr) {
-  const snap = await getDoc(doc(db, "dailyMenu", dateStr));
-  return snap.exists() ? snap.data() : null;
-}
-
-// Live listener on today's daily menu
-export function listenToTodayMenu(callback) {
-  const today = getTodayDate();
-  return onSnapshot(doc(db, "dailyMenu", today), snap => {
-    callback(snap.exists() ? snap.data() : null);
-  });
-}
-
+// ---- DATE HELPERS ----
 export function getTodayDate() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -63,11 +23,46 @@ export function getTodayDate() {
 export function formatDisplayDate(dateStr) {
   if (!dateStr) return '';
   const [y,m,d] = dateStr.split('-');
-  const date = new Date(y, m-1, d);
-  return date.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  return new Date(y, m-1, d).toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
 }
 
-// Place order with stock decrement
+// ---- CONFIG ----
+export async function getConfig() {
+  const snap = await getDoc(doc(db, "config", "menu"));
+  return snap.exists() ? snap.data() : {
+    masterItems: [], deliveryCharge: 30,
+    upiId: "", upiName: "", shopName: "Kicken Bites"
+  };
+}
+
+export async function saveConfig(data) {
+  await setDoc(doc(db, "config", "menu"), data);
+}
+
+// ---- DAILY MENU ----
+export async function getTodayMenu() {
+  const today = getTodayDate();
+  const snap = await getDoc(doc(db, "dailyMenu", today));
+  return snap.exists() ? snap.data() : null;
+}
+
+export async function saveDailyMenu(dateStr, menuData) {
+  await setDoc(doc(db, "dailyMenu", dateStr), menuData);
+}
+
+export async function getDailyMenu(dateStr) {
+  const snap = await getDoc(doc(db, "dailyMenu", dateStr));
+  return snap.exists() ? snap.data() : null;
+}
+
+export function listenToTodayMenu(callback) {
+  const today = getTodayDate();
+  return onSnapshot(doc(db, "dailyMenu", today), snap => {
+    callback(snap.exists() ? snap.data() : null);
+  });
+}
+
+// ---- ORDERS ----
 export async function placeOrder(orderData) {
   const today = getTodayDate();
   const dailyRef = doc(db, "dailyMenu", today);
@@ -78,7 +73,6 @@ export async function placeOrder(orderData) {
     const menuSnap = await tx.get(dailyRef);
     const menuData = menuSnap.exists() ? menuSnap.data() : {};
     const items = menuData.items || [];
-
     const updatedItems = items.map(item => {
       const ordered = (orderData.items || []).find(i => i.id === item.id);
       if (ordered && item.availableQty > 0) {
@@ -86,9 +80,7 @@ export async function placeOrder(orderData) {
       }
       return item;
     });
-
     tx.update(dailyRef, { items: updatedItems });
-
     const newRef = doc(ordersRef);
     newOrderId = newRef.id;
     tx.set(newRef, {
@@ -98,7 +90,6 @@ export async function placeOrder(orderData) {
       date: today
     });
   });
-
   return newOrderId;
 }
 
@@ -109,7 +100,9 @@ export async function confirmPayment(orderId) {
 }
 
 export async function updateOrderStatus(orderId, status) {
-  await updateDoc(doc(db, "orders", orderId), { status, updatedAt: new Date().toISOString() });
+  await updateDoc(doc(db, "orders", orderId), {
+    status, updatedAt: new Date().toISOString()
+  });
 }
 
 export function listenToOrders(dateStr, callback) {
@@ -120,8 +113,7 @@ export function listenToOrders(dateStr, callback) {
   });
 }
 
-
-// ---- DELIVERY TRACKING ----
+// ---- DELIVERY ----
 export async function setDeliveryStatus(data) {
   await setDoc(doc(db, 'delivery', 'status'), data);
 }
@@ -137,9 +129,18 @@ export function listenToDelivery(callback) {
   });
 }
 
-// Legacy compat
+// ---- LEGACY COMPAT ----
 export async function getMenu() { return getConfig(); }
 export async function saveMenu(data) { return saveConfig(data); }
 export function listenToMenu(callback) {
-  return onSnapshot(doc(db, "config", "menu"), snap => { if(snap.exists()) callback(snap.data()); });
+  return onSnapshot(doc(db, "config", "menu"), snap => {
+    if (snap.exists()) callback(snap.data());
+  });
 }
+
+// ---- EXPORT FIRESTORE HELPERS ----
+export { 
+  collection, onSnapshot, query, orderBy, doc, 
+  updateDoc, where, setDoc, getDocs, getDoc, deleteDoc,
+  addDoc
+};
