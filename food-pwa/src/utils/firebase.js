@@ -7,14 +7,12 @@ const firebaseConfig = {
   projectId: "myfood-6487f",
   storageBucket: "myfood-6487f.firebasestorage.app",
   messagingSenderId: "133560849575",
-  appId: "1:133560849575:web:2a7aa07ef8047928beb782",
-  measurementId: "G-EX8HKRZQRJ"
+  appId: "1:133560849575:web:2a7aa07ef8047928beb782"
 };
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// ---- DATE HELPERS ----
 export function getTodayDate() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -23,124 +21,84 @@ export function getTodayDate() {
 export function formatDisplayDate(dateStr) {
   if (!dateStr) return '';
   const [y,m,d] = dateStr.split('-');
-  return new Date(y, m-1, d).toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  return new Date(y,m-1,d).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
 
-// ---- CONFIG ----
 export async function getConfig() {
-  const snap = await getDoc(doc(db, "config", "menu"));
-  return snap.exists() ? snap.data() : {
-    masterItems: [], deliveryCharge: 30,
-    upiId: "", upiName: "", shopName: "Kicken Bites"
-  };
+  const snap = await getDoc(doc(db,"config","menu"));
+  return snap.exists() ? snap.data() : { masterItems:[], deliveryCharge:30, upiId:"", upiName:"", shopName:"Kicken Bites" };
 }
+export async function saveConfig(data) { await setDoc(doc(db,"config","menu"),data); }
 
-export async function saveConfig(data) {
-  await setDoc(doc(db, "config", "menu"), data);
-}
-
-// ---- DAILY MENU ----
 export async function getTodayMenu() {
-  const today = getTodayDate();
-  const snap = await getDoc(doc(db, "dailyMenu", today));
+  const snap = await getDoc(doc(db,"dailyMenu",getTodayDate()));
   return snap.exists() ? snap.data() : null;
 }
-
-export async function saveDailyMenu(dateStr, menuData) {
-  await setDoc(doc(db, "dailyMenu", dateStr), menuData);
-}
-
+export async function saveDailyMenu(dateStr,data) { await setDoc(doc(db,"dailyMenu",dateStr),data); }
 export async function getDailyMenu(dateStr) {
-  const snap = await getDoc(doc(db, "dailyMenu", dateStr));
+  const snap = await getDoc(doc(db,"dailyMenu",dateStr));
   return snap.exists() ? snap.data() : null;
 }
-
 export function listenToTodayMenu(callback) {
-  const today = getTodayDate();
-  return onSnapshot(doc(db, "dailyMenu", today), snap => {
-    callback(snap.exists() ? snap.data() : null);
-  });
+  return onSnapshot(doc(db,"dailyMenu",getTodayDate()),snap=>callback(snap.exists()?snap.data():null));
 }
 
-// ---- ORDERS ----
 export async function placeOrder(orderData) {
   const today = getTodayDate();
-  const dailyRef = doc(db, "dailyMenu", today);
-  const ordersRef = collection(db, "orders");
+  const dailyRef = doc(db,"dailyMenu",today);
+  const ordersRef = collection(db,"orders");
   let newOrderId = null;
-
-  await runTransaction(db, async (tx) => {
+  await runTransaction(db, async tx => {
     const menuSnap = await tx.get(dailyRef);
-    const menuData = menuSnap.exists() ? menuSnap.data() : {};
-    const items = menuData.items || [];
-    const updatedItems = items.map(item => {
-      const ordered = (orderData.items || []).find(i => i.id === item.id);
-      if (ordered && item.availableQty > 0) {
-        return { ...item, availableQty: Math.max(0, item.availableQty - ordered.qty) };
-      }
+    const md = menuSnap.exists() ? menuSnap.data() : {};
+    const updatedItems = (md.items||[]).map(item => {
+      const ord = (orderData.items||[]).find(i=>i.id===item.id);
+      if (ord && item.availableQty > 0) return {...item, availableQty: Math.max(0, item.availableQty - ord.qty)};
       return item;
     });
-    tx.update(dailyRef, { items: updatedItems });
+    tx.update(dailyRef, {items: updatedItems});
     const newRef = doc(ordersRef);
     newOrderId = newRef.id;
-    tx.set(newRef, {
-      ...orderData,
-      status: "pending_payment",
-      createdAt: new Date().toISOString(),
-      date: today
-    });
+    tx.set(newRef, {...orderData, status:"pending_payment", createdAt:new Date().toISOString(), date:today});
   });
   return newOrderId;
 }
 
 export async function confirmPayment(orderId) {
-  await updateDoc(doc(db, "orders", orderId), {
-    status: "confirmed", confirmedAt: new Date().toISOString()
+  await updateDoc(doc(db,"orders",orderId),{status:"confirmed",confirmedAt:new Date().toISOString()});
+}
+export async function updateOrderStatus(orderId,status,extra={}) {
+  await updateDoc(doc(db,"orders",orderId),{status,...extra,updatedAt:new Date().toISOString()});
+}
+export function listenToOrders(dateStr,callback) {
+  const q = query(collection(db,"orders"),orderBy("createdAt","desc"));
+  return onSnapshot(q,snap=>{
+    callback(snap.docs.map(d=>({id:d.id,...d.data()})).filter(o=>o.date===dateStr));
   });
 }
 
-export async function updateOrderStatus(orderId, status) {
-  await updateDoc(doc(db, "orders", orderId), {
-    status, updatedAt: new Date().toISOString()
+// Ratings
+export async function submitRating(orderId, itemId, rating, review) {
+  await setDoc(doc(db,"ratings",`${orderId}_${itemId}`),{
+    orderId, itemId, rating, review, createdAt:new Date().toISOString(), hidden:false
   });
 }
-
-export function listenToOrders(dateStr, callback) {
-  const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-  return onSnapshot(q, snap => {
-    const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    callback(all.filter(o => o.date === dateStr));
-  });
+export function listenToItemRatings(itemId, callback) {
+  const q = query(collection(db,"ratings"),where("itemId","==",itemId),where("hidden","==",false));
+  return onSnapshot(q,snap=>callback(snap.docs.map(d=>({id:d.id,...d.data()}))));
 }
 
-// ---- DELIVERY ----
-export async function setDeliveryStatus(data) {
-  await setDoc(doc(db, 'delivery', 'status'), data);
-}
-
-export async function getDeliveryStatus() {
-  const snap = await getDoc(doc(db, 'delivery', 'status'));
-  return snap.exists() ? snap.data() : null;
-}
-
+// Delivery
+export async function setDeliveryStatus(data) { await setDoc(doc(db,"delivery","status"),data); }
 export function listenToDelivery(callback) {
-  return onSnapshot(doc(db, 'delivery', 'status'), snap => {
-    callback(snap.exists() ? snap.data() : null);
-  });
+  return onSnapshot(doc(db,"delivery","status"),snap=>callback(snap.exists()?snap.data():null));
 }
 
-// ---- LEGACY COMPAT ----
+// Legacy
 export async function getMenu() { return getConfig(); }
 export async function saveMenu(data) { return saveConfig(data); }
-export function listenToMenu(callback) {
-  return onSnapshot(doc(db, "config", "menu"), snap => {
-    if (snap.exists()) callback(snap.data());
-  });
+export function listenToMenu(cb) {
+  return onSnapshot(doc(db,"config","menu"),snap=>{if(snap.exists())cb(snap.data());});
 }
 
-// ---- EXPORT FIRESTORE HELPERS ----
-export { 
-  collection, onSnapshot, query, orderBy, doc, 
-  updateDoc, where, setDoc, getDocs, getDoc, deleteDoc,
-  addDoc
-};
+export { collection, onSnapshot, query, orderBy, doc, updateDoc, where, setDoc, getDocs, getDoc, deleteDoc, addDoc };
