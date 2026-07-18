@@ -101,4 +101,4 @@ export function listenToMenu(cb) {
   return onSnapshot(doc(db,"config","menu"),snap=>{if(snap.exists())cb(snap.data());});
 }
 
-export { collection, onSnapshot, query, orderBy, doc, updateDoc, where, setDoc, getDocs, getDoc, deleteDoc, addDoc };
+export { collection, onSnapshot, query, orderBy, doc, updateDoc, where, setDoc, getDocs, getDoc, deleteDoc, addDoc, runTransaction };
