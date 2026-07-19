@@ -266,7 +266,8 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
       <div style="margin-top:9px;font-size:.76rem;display:flex;gap:12px;flex-wrap:wrap">
         <a href="delivery.html" target="_blank" style="color:var(--muted)">Delivery App ↗</a>
-        <a id="trackLink" href="track.html" target="_blank" style="color:var(--o);font-weight:600">📍 Open Customer Tracking →</a>
+        <a id="trackLink" href="track.html" target="_blank" style="color:var(--o);font-weight:600">📍 Customer Tracking →</a>
+        <a onclick="showAdminTracking()" style="color:var(--b);font-weight:600;cursor:pointer">🗺️ Admin Live Map →</a>
       </div>
     </div>
     <div class="fr">
@@ -417,6 +418,19 @@ input:checked+.slider:before{transform:translateX(20px);}
 </div>
 
 <div id="printArea" style="display:none"></div>
+<!-- ADMIN TRACKING MODAL -->
+<div id="adminTrackModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;padding:12px">
+  <div style="background:white;border-radius:20px;height:100%;display:flex;flex-direction:column;overflow:hidden">
+    <div style="background:var(--dark);color:white;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <div><div style="font-weight:700">🗺️ Live Delivery Tracking</div><div style="font-size:.72rem;opacity:.7" id="atBoyInfo">Waiting for delivery boy…</div></div>
+      <button onclick="document.getElementById('adminTrackModal').style.display='none'" style="background:rgba(255,255,255,.2);border:none;color:white;width:30px;height:30px;border-radius:50%;font-size:1rem;cursor:pointer">✕</button>
+    </div>
+    <div id="adminTrackMap" style="flex:1;min-height:0"></div>
+    <div style="padding:11px 14px;flex-shrink:0">
+      <div id="atEta" style="font-size:.82rem;color:var(--muted)">Loading live location…</div>
+    </div>
+  </div>
+</div>
 <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="handleImgUpload(event)">
 <div id="toast"></div>
 
@@ -464,13 +478,21 @@ async function initDash(){
   const today=getTodayDate();
   let prevOrderIds=new Set();
   if(ordersUnsub)ordersUnsub();
+  let prevOrderStatuses={};
   ordersUnsub=listenToOrders(today,orders=>{
-    // Detect new orders for notification
+    const isFirstLoad=prevOrderIds.size===0;
     orders.forEach(o=>{
-      if(!prevOrderIds.has(o.id)&&o.status==='pending_payment'){
-        if(prevOrderIds.size>0) notifyAdmin(o); // Don't notify on first load
+      const wasNew=!prevOrderIds.has(o.id);
+      const statusChanged=prevOrderStatuses[o.id]&&prevOrderStatuses[o.id]!==o.status;
+      if(!isFirstLoad){
+        if(wasNew&&o.status==='pending_payment'){
+          notifyAdmin(o,'new');
+        } else if(statusChanged&&o.status==='delivered'){
+          notifyAdmin(o,'delivered');
+        }
       }
       prevOrderIds.add(o.id);
+      prevOrderStatuses[o.id]=o.status;
     });
     allOrders=orders;updateStats();renderOrders();
   });
@@ -485,23 +507,22 @@ function requestNotificationPermission(){
   }
 }
 
-function notifyAdmin(order){
-  // In-app notification
-  showInAppNotif(`🆕 New Order from ${order.name}! ₹${order.total}`,'new-order');
-  // Browser push notification
+function notifyAdmin(order, type='new'){
+  const isNew=type==='new';
+  const title=isNew?'🆕 New Order!':'✅ Order Delivered!';
+  const msg=isNew?`${order.name} — ₹${order.total} | ${(order.items||[]).map(i=>i.name).join(', ')}`:`Order by ${order.name} has been delivered! ₹${order.total}`;
+  const emoji=isNew?'🆕':'✅';
+  showInAppNotif(`${emoji} ${msg}`, type);
   if('Notification' in window && Notification.permission==='granted'){
     try{
-      new Notification('🍗 Kicken Bites — New Order!',{
-        body:`${order.name} ordered ₹${order.total} — ${(order.items||[]).map(i=>i.name).join(', ')}`,
-        icon:'https://masihh201086.github.io/KickenBites/food-pwa/icon-192.png',
-        badge:'https://masihh201086.github.io/KickenBites/food-pwa/icon-192.png',
-        tag:'new-order-'+order.id,
-        requireInteraction:true
+      new Notification(`🍗 Kicken Bites — ${title}`,{
+        body:msg,
+        tag:type+'-'+order.id,
+        requireInteraction:isNew
       });
     }catch(e){}
   }
-  // Sound
-  playNotifSound();
+  playNotifSound(isNew);
 }
 
 function showInAppNotif(msg, type){
@@ -520,18 +541,19 @@ function showInAppNotif(msg, type){
   setTimeout(()=>{try{notif.remove();}catch(e){}},8000);
 }
 
-function playNotifSound(){
+function playNotifSound(isNew=true){
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    const osc=ctx.createOscillator();
-    const gain=ctx.createGain();
-    osc.connect(gain);gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(880,ctx.currentTime);
-    osc.frequency.setValueAtTime(660,ctx.currentTime+0.1);
-    osc.frequency.setValueAtTime(880,ctx.currentTime+0.2);
-    gain.gain.setValueAtTime(0.3,ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.5);
-    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.5);
+    const notes=isNew?[880,660,880,1100]:[660,880,1100];
+    notes.forEach((freq,i)=>{
+      const osc=ctx.createOscillator(),g=ctx.createGain();
+      osc.connect(g);g.connect(ctx.destination);
+      osc.frequency.value=freq;
+      g.gain.setValueAtTime(0.25,ctx.currentTime+i*0.12);
+      g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+i*0.12+0.1);
+      osc.start(ctx.currentTime+i*0.12);
+      osc.stop(ctx.currentTime+i*0.12+0.12);
+    });
   }catch(e){}
 }
 
@@ -629,17 +651,26 @@ window.filterO=function(f,btn){curFilter=f;document.querySelectorAll('.fb').forE
 
 function renderOrders(){
   const list=document.getElementById('ordersList');
-  const filtered=curFilter==='all'?allOrders:allOrders.filter(o=>o.status===curFilter);
+  let filtered=curFilter==='all'?[...allOrders]:allOrders.filter(o=>o.status===curFilter);
+  // FIX 5: Active orders on top, then by newest first
+  const statusPriority={pending_payment:0,confirmed:1,preparing:2,ready:3,out_for_delivery:4,delivered:5,cancelled:6};
+  filtered.sort((a,b)=>{
+    const ap=statusPriority[a.status]??9, bp=statusPriority[b.status]??9;
+    if(ap!==bp) return ap-bp;
+    return (b.createdAt||'').localeCompare(a.createdAt||''); // newest first within same status
+  });
   if(!filtered.length){list.innerHTML='<div class="empty">📭 No orders</div>';return;}
   const sl={pending_payment:'Awaiting Pay',confirmed:'Confirmed',preparing:'Preparing',ready:'Ready',out_for_delivery:'Out for Delivery',delivered:'Delivered',cancelled:'Cancelled'};
   list.innerHTML=filtered.map(o=>{
-    const t=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+    const ocDate=o.createdAt?new Date(o.createdAt):null;
+    const t=ocDate?ocDate.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+    const d=ocDate?ocDate.toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
     const items=(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
     const boy=o.assignedBoy?`🛵 Assigned: ${o.assignedBoy}`:'';
     return `<div class="oc ${o.status}">
       <div class="oc-top">
         <div><div class="oc-name">${o.name}<span class="tag ${o.orderType==='delivery'?'td':'tt'}">${o.orderType==='delivery'?'🛵':'🏠'}</span></div><div class="oc-ph">📞 ${o.phone}</div></div>
-        <div style="text-align:right"><span class="sp sp-${o.status}">${sl[o.status]||o.status}</span><div class="oc-time">${t}</div></div>
+        <div style="text-align:right"><span class="sp sp-${o.status}">${sl[o.status]||o.status}</span><div class="oc-time">${d} ${t}</div></div>
       </div>
       <div class="oc-items">${items}</div>
       ${o.orderType==='delivery'?`<div class="oc-addr">📍 ${o.address}</div>`:''}
@@ -988,41 +1019,47 @@ window.runPrediction=async function(){
 // ---- DELIVERY BOYS ----
 let boysUnsub = null;
 async function loadDeliveryBoys(){
-  try{
-    // Use real-time listener for instant online/offline updates (B4 fix)
-    if(boysUnsub) boysUnsub();
-    boysUnsub = onSnapshot(collection(db,'deliveryBoys'), snap=>{
-      deliveryBoys = snap.docs.map(d=>({id:d.id,...d.data()})).filter(b=>!b.removed);
-      renderDeliveryBoys();
-    });
-  }catch(e){
-    console.error('Load boys error',e);
-    // Fallback to one-time read
-    try{
-      const snap=await getDocs(collection(db,'deliveryBoys'));
-      deliveryBoys=snap.docs.map(d=>({id:d.id,...d.data()})).filter(b=>!b.removed);
-      renderDeliveryBoys();
-    }catch(e2){console.error(e2);}
-  }
+  if(boysUnsub){boysUnsub();boysUnsub=null;}
+  boysUnsub = onSnapshot(collection(db,'deliveryBoys'), snap=>{
+    deliveryBoys = snap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .filter(b=>!b.removed)
+      .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    renderDeliveryBoys();
+  }, err=>{
+    console.error('Boys listener error:',err);
+    // Retry after 2s
+    setTimeout(loadDeliveryBoys, 2000);
+  });
 }
 
 function renderDeliveryBoys(){
   const list=document.getElementById('dbList');
   if(!list)return;
-  if(!deliveryBoys.length){list.innerHTML='<p style="font-size:.76rem;color:var(--muted);text-align:center;padding:10px">No delivery boys added yet.<br>Add a boy below — they will login via delivery.html</p>';return;}
-  list.innerHTML=deliveryBoys.map(b=>{
+  const onlineCount=deliveryBoys.filter(b=>b.isOnline).length;
+  if(!deliveryBoys.length){
+    list.innerHTML='<div style="text-align:center;padding:13px"><p style="font-size:.78rem;color:var(--muted)">No delivery boys added yet.</p><p style="font-size:.73rem;color:var(--muted);margin-top:4px">Add below — they login via delivery.html</p></div>';
+    return;
+  }
+  let html=`<div style="font-size:.73rem;color:var(--muted);margin-bottom:8px">${deliveryBoys.length} boys | <span style="color:var(--g);font-weight:700">${onlineCount} online</span></div>`;
+  html+=deliveryBoys.map(b=>{
     const isOnline=b.isOnline||false;
     const phone=b.phone||b.id;
+    const lastSeen=b.lastSeen?new Date(b.lastSeen).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
     return `<div class="db-row">
-      <div class="db-av">🛵</div>
+      <div class="db-av" style="background:${isOnline?'var(--g)':'#ccc'}">🛵</div>
       <div class="db-info">
         <div class="db-name">${b.name||'—'}</div>
-        <div class="db-ph">📞 ${phone} ${b.pin?'🔐 PIN set':'⚠️ No PIN yet'}</div>
+        <div class="db-ph">📞 ${phone} ${b.pin?'🔐':'⚠️ No PIN'}</div>
+        ${lastSeen?`<div style="font-size:.66rem;color:var(--muted)">Last seen: ${lastSeen}</div>`:''}
       </div>
-      <span class="db-status ${isOnline?'dbs-online':'dbs-offline'}">${isOnline?'🟢 Online':'⚫ Offline'}</span>
-      <button onclick="removeBoy('${phone}')" style="width:24px;height:24px;border-radius:50%;background:var(--rp);color:var(--r);border:none;cursor:pointer;font-size:.85rem;margin-left:6px">×</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span class="db-status ${isOnline?'dbs-online':'dbs-offline'}">${isOnline?'🟢 Online':'⚫ Offline'}</span>
+        <button onclick="removeBoy('${phone}')" style="font-size:.68rem;color:var(--r);background:none;border:none;cursor:pointer;padding:2px 4px">Remove</button>
+      </div>
     </div>`;
   }).join('');
+  list.innerHTML=html;
 }
 
 window.addDeliveryBoy=async function(){
@@ -1156,6 +1193,40 @@ window.clearDue=async function(phone){
     loadDues();
   }catch(e){alert('Error');}
 };
+
+// FIX 7: Admin live tracking modal
+let atMap=null, atMarker=null;
+window.showAdminTracking=function(){
+  document.getElementById('adminTrackModal').style.display='block';
+  setTimeout(initAdminTrackMap, 200);
+};
+
+function initAdminTrackMap(){
+  if(!atMap){
+    atMap=L.map('adminTrackMap').setView([26.64,79.49],14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(atMap);
+  }
+  // Listen to delivery status
+  listenToDelivery(data=>{
+    if(data&&data.isDelivering&&data.lat&&data.lng){
+      document.getElementById('atBoyInfo').textContent=`🛵 ${data.boyName||'Delivery Boy'} | 📞 ${data.boyPhone||''}`;
+      const t=data.updatedAt?new Date(data.updatedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+      document.getElementById('atEta').textContent=`📍 ${data.lat.toFixed(5)}, ${data.lng.toFixed(5)} | Updated: ${t}`;
+      const icon=L.divIcon({html:'<div style="background:#e65c00;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;box-shadow:0 3px 10px rgba(0,0,0,.3);border:3px solid white">🛵</div>',iconSize:[44,44],iconAnchor:[22,22],className:''});
+      if(!atMarker){
+        atMarker=L.marker([data.lat,data.lng],{icon}).addTo(atMap);
+        atMarker.bindPopup(`<b>${data.boyName||'Delivery Boy'}</b><br>📞 ${data.boyPhone||''}`).openPopup();
+      } else {
+        atMarker.setLatLng([data.lat,data.lng]);
+      }
+      atMap.setView([data.lat,data.lng],15);
+      atMap.invalidateSize();
+    } else {
+      document.getElementById('atBoyInfo').textContent='⚫ Delivery boy offline';
+      document.getElementById('atEta').textContent='No live location available';
+    }
+  });
+}
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}
 </script>
