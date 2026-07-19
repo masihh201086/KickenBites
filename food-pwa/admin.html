@@ -193,6 +193,7 @@ input:checked+.slider:before{transform:translateX(20px);}
 .info-box{background:var(--bp);border-radius:10px;padding:9px 11px;font-size:.76rem;color:#1e40af;margin-bottom:9px;line-height:1.5;}
 .empty{text-align:center;padding:30px 20px;color:var(--muted);}
 
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
 #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:9px 18px;border-radius:50px;font-size:.78rem;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;pointer-events:none;}
 
 @media print{body *{visibility:hidden;}#printArea,#printArea *{visibility:visible;}#printArea{position:fixed;inset:0;background:white;padding:16px;font-size:12px;}}
@@ -404,6 +405,12 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="sg2"><label>New Password</label><input class="si" type="password" id="sPass" placeholder="New password"></div>
       <div class="sg2"><label>Confirm</label><input class="si" type="password" id="sPassC" placeholder="Confirm"></div>
     </div>
+    <div class="card" style="margin-top:9px">
+      <div class="ct">💳 Customer Pay Later Dues</div>
+      <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Customers who have pending payments.</p>
+      <div id="duesList"><p style="font-size:.78rem;color:var(--muted);text-align:center">Loading…</p></div>
+      <button onclick="loadDues()" style="width:100%;padding:9px;background:var(--dark);color:white;border:none;border-radius:var(--radius);font-size:.8rem;font-weight:600;cursor:pointer;margin-top:8px">🔄 Refresh Dues</button>
+    </div>
     <button class="btn btn-o" onclick="saveSetup()">💾 Save Settings</button>
     <button class="btn btn-sec" onclick="doLogout()" style="margin-top:7px">Logout</button>
   </div>
@@ -453,11 +460,79 @@ async function initDash(){
   setMenuDate('today');
   loadDeliveryBoys();
   initDeliveryListener();
+  requestNotificationPermission();
   const today=getTodayDate();
+  let prevOrderIds=new Set();
   if(ordersUnsub)ordersUnsub();
-  ordersUnsub=listenToOrders(today,orders=>{allOrders=orders;updateStats();renderOrders();});
-  // Set AI date default
+  ordersUnsub=listenToOrders(today,orders=>{
+    // Detect new orders for notification
+    orders.forEach(o=>{
+      if(!prevOrderIds.has(o.id)&&o.status==='pending_payment'){
+        if(prevOrderIds.size>0) notifyAdmin(o); // Don't notify on first load
+      }
+      prevOrderIds.add(o.id);
+    });
+    allOrders=orders;updateStats();renderOrders();
+  });
   document.getElementById('aiDate').value=getTodayDate();
+}
+
+function requestNotificationPermission(){
+  if('Notification' in window && Notification.permission==='default'){
+    Notification.requestPermission().then(p=>{
+      if(p==='granted') showToast('✅ Notifications enabled! You will get alerts for new orders.');
+    });
+  }
+}
+
+function notifyAdmin(order){
+  // In-app notification
+  showInAppNotif(`🆕 New Order from ${order.name}! ₹${order.total}`,'new-order');
+  // Browser push notification
+  if('Notification' in window && Notification.permission==='granted'){
+    try{
+      new Notification('🍗 Kicken Bites — New Order!',{
+        body:`${order.name} ordered ₹${order.total} — ${(order.items||[]).map(i=>i.name).join(', ')}`,
+        icon:'https://masihh201086.github.io/KickenBites/food-pwa/icon-192.png',
+        badge:'https://masihh201086.github.io/KickenBites/food-pwa/icon-192.png',
+        tag:'new-order-'+order.id,
+        requireInteraction:true
+      });
+    }catch(e){}
+  }
+  // Sound
+  playNotifSound();
+}
+
+function showInAppNotif(msg, type){
+  let container=document.getElementById('notifContainer');
+  if(!container){
+    container=document.createElement('div');
+    container.id='notifContainer';
+    container.style.cssText='position:fixed;top:55px;right:10px;z-index:9999;display:flex;flex-direction:column;gap:7px;max-width:300px';
+    document.body.appendChild(container);
+  }
+  const notif=document.createElement('div');
+  notif.style.cssText='background:var(--dark);color:white;padding:11px 14px;border-radius:12px;font-size:.8rem;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.3);animation:slideIn .3s ease;cursor:pointer;border-left:4px solid var(--o)';
+  notif.innerHTML=msg+'<div style="font-size:.68rem;opacity:.6;margin-top:2px">Tap to dismiss</div>';
+  notif.onclick=()=>notif.remove();
+  container.appendChild(notif);
+  setTimeout(()=>{try{notif.remove();}catch(e){}},8000);
+}
+
+function playNotifSound(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880,ctx.currentTime);
+    osc.frequency.setValueAtTime(660,ctx.currentTime+0.1);
+    osc.frequency.setValueAtTime(880,ctx.currentTime+0.2);
+    gain.gain.setValueAtTime(0.3,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.5);
+    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.5);
+  }catch(e){}
 }
 
 // ---- STATS ----
@@ -1050,9 +1125,36 @@ window.sw=function(t){
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',all[i]===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
-  if(t==='setup')loadDeliveryBoys();
+  if(t==='setup'){loadDeliveryBoys();setTimeout(loadDues,500);}
   if(t==='ratings')loadRatings();
   if(t==='orders'&&adminMap)setTimeout(()=>adminMap.invalidateSize(),100);
+};
+
+window.loadDues=async function(){
+  const list=document.getElementById('duesList');
+  if(!list)return;
+  try{
+    const snap=await getDocs(collection(db,'wallets'));
+    const dues=snap.docs.map(d=>({id:d.id,...d.data()})).filter(w=>(w.due||0)>0);
+    if(!dues.length){list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">No pending dues 🎉</p>';return;}
+    list.innerHTML=dues.map(w=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #eee">
+        <div><div style="font-weight:700;font-size:.84rem">📞 ${w.phone||w.id}</div><div style="font-size:.72rem;color:var(--muted)">${w.updatedAt?new Date(w.updatedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:800;color:var(--r);font-size:.92rem">₹${w.due}</span>
+          <button onclick="clearDue('${w.id}')" style="padding:5px 10px;background:var(--g);color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">Paid ✓</button>
+        </div>
+      </div>`).join('');
+  }catch(e){list.innerHTML='<p style="font-size:.78rem;color:var(--muted)">Error loading dues</p>';}
+};
+
+window.clearDue=async function(phone){
+  if(!confirm('Mark dues as paid for '+phone+'?'))return;
+  try{
+    await setDoc(doc(db,'wallets',phone),{due:0,clearedAt:new Date().toISOString()},{merge:true});
+    showToast('✅ Dues cleared for '+phone);
+    loadDues();
+  }catch(e){alert('Error');}
 };
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}

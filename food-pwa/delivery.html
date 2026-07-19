@@ -152,16 +152,57 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;min-height:1
     <div class="upd-badge" id="updBadge"></div>
   </div>
 
-  <!-- 3 TABS -->
+  <!-- 4 TABS -->
   <div class="tabs">
     <div class="tab active" id="tab-active-btn" onclick="swTab('active')">🚀 Active (0)</div>
-    <div class="tab" id="tab-delivered-btn" onclick="swTab('delivered')">✅ Delivered (0)</div>
+    <div class="tab" id="tab-delivered-btn" onclick="swTab('delivered')">✅ Done (0)</div>
     <div class="tab" id="tab-all-btn" onclick="swTab('all')">📋 All (0)</div>
+    <div class="tab" id="tab-earnings-btn" onclick="swTab('earnings')">💰 Earnings</div>
   </div>
 
   <div class="panel active" id="tab-active"><div class="empty">Loading…</div></div>
   <div class="panel" id="tab-delivered"><div class="empty">Loading…</div></div>
   <div class="panel" id="tab-all"><div class="empty">Loading…</div></div>
+  <div class="panel" id="tab-earnings">
+    <div style="padding:13px">
+      <!-- TODAY -->
+      <div style="background:linear-gradient(135deg,var(--dark),#0f3460);border-radius:14px;padding:16px;color:white;margin-bottom:11px">
+        <div style="font-size:.7rem;opacity:.65;margin-bottom:4px">TODAY'S EARNINGS</div>
+        <div style="font-size:2.2rem;font-weight:900" id="todayEarn">₹0</div>
+        <div style="font-size:.76rem;opacity:.75;margin-top:3px" id="todayDelCount">0 deliveries</div>
+      </div>
+      <!-- STATS GRID -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px">
+        <div style="background:white;border-radius:12px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px">WEEKLY</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--o)" id="weekEarn">₹0</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px">MONTHLY</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--o)" id="monthEarn">₹0</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px">TOTAL DELIVERIES</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--g)" id="totalDels">0</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px">FIXED SALARY</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--b)">₹1,800</div>
+        </div>
+      </div>
+      <!-- SALARY BREAKDOWN -->
+      <div style="background:white;border-radius:12px;padding:13px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:11px">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px">Monthly Salary Breakdown</div>
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;padding:5px 0;border-bottom:1px solid #eee"><span style="color:var(--muted)">Fixed Salary</span><span style="font-weight:700">₹1,800</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;padding:5px 0;border-bottom:1px solid #eee"><span style="color:var(--muted)">Delivery Charges (this month)</span><span style="font-weight:700" id="monthCharges">₹0</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;padding:5px 0;border-bottom:1px solid #eee"><span style="color:var(--muted)">Incentive/Bonus</span><span style="font-weight:700" id="bonus">₹0</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.92rem;padding:7px 0;font-weight:800"><span>Total Estimated</span><span style="color:var(--o)" id="totalSalary">₹1,800</span></div>
+      </div>
+      <div style="background:#fffbeb;border-radius:10px;padding:10px;font-size:.76rem;color:#92400e;line-height:1.5">
+        💡 Delivery charges earned per order are added to your base salary of ₹1,800/month. Ask admin for exact payout.
+      </div>
+    </div>
+  </div>
 
   <div class="container">
     <button class="logout-btn" onclick="doLogout()">Logout</button>
@@ -287,9 +328,55 @@ function startApp() {
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainApp').style.display='block';
   document.getElementById('loggedAs').textContent = `👤 ${boy?.name||boy?.phone||''}`;
-  // Mark as online
   if (boy?.phone) setDoc(doc(db,'deliveryBoys',boy.phone),{isOnline:true,lastSeen:new Date().toISOString()},{merge:true}).catch(()=>{});
+  requestNotifPerm();
   loadOrders();
+  listenForAssignments();
+}
+
+function requestNotifPerm(){
+  if('Notification' in window && Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+}
+
+function listenForAssignments(){
+  if(!boy?.phone) return;
+  // Listen for orders assigned to this boy
+  const today=getTodayDate();
+  const q=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone),where('date','==',today));
+  let knownIds=new Set();
+  onSnapshot(q,snap=>{
+    snap.docs.forEach(d=>{
+      if(!knownIds.has(d.id)){
+        knownIds.add(d.id);
+        const o=d.data();
+        if(knownIds.size>1||(knownIds.size===1&&o.status!=='delivered')){
+          notifyBoy(`📦 New order assigned! ${o.name} — ₹${o.total}`);
+        }
+      }
+    });
+  });
+}
+
+function notifyBoy(msg){
+  // In-app
+  showToast(msg);
+  // Browser
+  if('Notification' in window && Notification.permission==='granted'){
+    try{
+      new Notification('🍗 Kicken Bites',{body:msg,tag:'assignment'});
+    }catch(e){}
+  }
+  // Sound
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=660;g.gain.setValueAtTime(0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.4);
+    o.start();o.stop(ctx.currentTime+0.4);
+  }catch(e){}
 }
 
 window.doLogout = async function() {
@@ -431,11 +518,46 @@ function setBar(s,t){const b=document.getElementById('gpsBar');b.className='gps-
 
 // --- TABS ---
 window.swTab = function(t) {
-  ['active','delivered','all'].forEach(x=>{
+  ['active','delivered','all','earnings'].forEach(x=>{
     document.getElementById('tab-'+x).classList.toggle('active',x===t);
     document.getElementById('tab-'+x+'-btn').classList.toggle('active',x===t);
   });
+  if(t==='earnings') loadEarnings();
 };
+
+async function loadEarnings(){
+  if(!boy?.phone) return;
+  try{
+    const now=new Date();
+    const todayStr=getTodayDate();
+    const weekAgo=new Date(now-7*86400000);
+    const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
+    // Get all delivered orders assigned to this boy
+    const q=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone),where('status','==','delivered'));
+    const snap=await (async()=>{
+      return new Promise((res,rej)=>{
+        const {getDocs}=window._firestoreFns||{};
+        import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(m=>{
+          m.getDocs(q).then(res).catch(rej);
+        });
+      });
+    })();
+    const orders=snap.docs.map(d=>d.data());
+    const todayOrders=orders.filter(o=>o.date===todayStr);
+    const weekOrders=orders.filter(o=>new Date(o.createdAt||0)>=weekAgo);
+    const monthOrders=orders.filter(o=>new Date(o.createdAt||0)>=monthStart);
+    const earn=arr=>arr.reduce((s,o)=>s+(o.deliveryCharge||0),0);
+    document.getElementById('todayEarn').textContent='₹'+earn(todayOrders);
+    document.getElementById('todayDelCount').textContent=todayOrders.length+' deliveries today';
+    document.getElementById('weekEarn').textContent='₹'+earn(weekOrders);
+    document.getElementById('monthEarn').textContent='₹'+(1800+earn(monthOrders));
+    document.getElementById('totalDels').textContent=orders.length;
+    document.getElementById('monthCharges').textContent='₹'+earn(monthOrders);
+    const bonusAmt=monthOrders.length>=30?200:monthOrders.length>=20?100:0;
+    document.getElementById('bonus').textContent='₹'+bonusAmt;
+    document.getElementById('totalSalary').textContent='₹'+(1800+earn(monthOrders)+bonusAmt);
+  }catch(e){ console.error('Earnings error',e); }
+}
 
 function showToast(msg){let t=document.getElementById('dtoast');if(!t){t=document.createElement('div');t.id='dtoast';t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--g);color:white;padding:10px 20px;border-radius:50px;font-weight:700;font-size:.84rem;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}
 </script>

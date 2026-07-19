@@ -360,6 +360,34 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
       <div class="prof-ph" id="profPhone">Not logged in</div>
     </div>
     <div class="prof-sec">
+      <!-- LOYALTY CARD -->
+      <div id="loyaltyCard" style="background:linear-gradient(135deg,#1a1a2e,#0f3460);border-radius:var(--r);padding:15px;margin-bottom:11px;color:white;display:none">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:.68rem;opacity:.65;margin-bottom:3px">CUSTOMER LEVEL</div>
+            <div style="font-size:1.1rem;font-weight:800" id="loyaltyLevel">🥉 Bronze</div>
+            <div style="font-size:.72rem;opacity:.7;margin-top:2px" id="loyaltyScore">Score: 0/100</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:.68rem;opacity:.65;margin-bottom:3px">TOTAL ORDERS</div>
+            <div style="font-size:1.3rem;font-weight:800" id="loyaltyOrders">0</div>
+          </div>
+        </div>
+        <div style="margin-top:11px">
+          <div style="display:flex;justify-content:space-between;font-size:.68rem;opacity:.65;margin-bottom:4px"><span>Progress to next level</span><span id="loyaltyNext"></span></div>
+          <div style="background:rgba(255,255,255,.2);border-radius:20px;height:7px"><div id="loyaltyBar" style="background:var(--orange);height:7px;border-radius:20px;transition:width .5s;width:0%"></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px">
+          <div style="background:rgba(255,255,255,.1);border-radius:9px;padding:8px;text-align:center">
+            <div style="font-size:1rem;font-weight:800" id="loyaltySpend">₹0</div>
+            <div style="font-size:.65rem;opacity:.7">Total Spent</div>
+          </div>
+          <div style="background:rgba(255,255,255,.1);border-radius:9px;padding:8px;text-align:center">
+            <div style="font-size:1rem;font-weight:800" id="loyaltyFav">—</div>
+            <div style="font-size:.65rem;opacity:.7">Favourite Item</div>
+          </div>
+        </div>
+      </div>
       <div class="prof-card">
         <div class="pct">Personal Details</div>
         <input class="pi" id="piName" placeholder="Full name" type="text">
@@ -934,11 +962,59 @@ function showPayScreen(total){
   const ud=`upi://pay?pa=${encodeURIComponent(uid)}&pn=${encodeURIComponent(uname)}&am=${total}&cu=INR&tn=${encodeURIComponent('Kicken Bites')}`;
   document.getElementById('qrImg').src=`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(ud)}`;
   show('payScreen');window.scrollTo(0,0);
+  setTimeout(loadWalletBalance,300);
 }
 window.copyUpi=function(){
   const uid=menuConfig.upiId||'';
   navigator.clipboard.writeText(uid).then(()=>{document.getElementById('copyBtn').textContent='✅ Copied!';document.getElementById('copyBtn').classList.add('copied');setTimeout(()=>{document.getElementById('copyBtn').textContent='Copy';document.getElementById('copyBtn').classList.remove('copied');},3000);showToast('UPI ID copied! Open your UPI app and paste.');}).catch(()=>{});
 };
+// ---- WALLET / PAY LATER ----
+async function loadWalletBalance(){
+  const phone=lastOrder?.phone||currentProfile?.phone||localStorage.getItem('custPhone');
+  if(!phone)return;
+  try{
+    const snap=await getDoc(doc(db,'wallets',phone));
+    const bal=snap.exists()?(snap.data().balance||0):0;
+    const due=snap.exists()?(snap.data().due||0):0;
+    const ws=document.getElementById('walletSection');
+    const wb=document.getElementById('walletBal');
+    const dl=document.getElementById('dueAmtLabel');
+    if(ws&&wb){ws.style.display=bal>0?'block':'none';wb.textContent='₹'+bal;}
+    if(dl)dl.textContent=due>0?`Current due: ₹${due}`:'No dues';
+  }catch(e){}
+}
+
+window.useWallet=async function(){
+  const phone=lastOrder?.phone||currentProfile?.phone;
+  if(!phone||!currentOrderId)return;
+  try{
+    const snap=await getDoc(doc(db,'wallets',phone));
+    const bal=snap.exists()?(snap.data().balance||0):0;
+    if(bal<currentTotal){alert(`Insufficient wallet balance (₹${bal}). Please pay via UPI.`);return;}
+    // Deduct from wallet
+    await setDoc(doc(db,'wallets',phone),{balance:bal-currentTotal,updatedAt:new Date().toISOString()},{merge:true});
+    await confirmPayment(currentOrderId);
+    hide('payScreen');
+    showToast('✅ Paid from wallet!');
+    showSuccess();
+  }catch(e){alert('Error using wallet: '+e.message);}
+};
+
+window.payLater=async function(){
+  const phone=lastOrder?.phone||currentProfile?.phone||localStorage.getItem('custPhone');
+  if(!phone||!currentOrderId)return;
+  if(!confirm(`Add ₹${currentTotal} to your pay later tab? Please settle before your next order.`))return;
+  try{
+    const snap=await getDoc(doc(db,'wallets',phone));
+    const due=(snap.exists()?snap.data().due||0:0)+currentTotal;
+    await setDoc(doc(db,'wallets',phone),{due,phone,updatedAt:new Date().toISOString()},{merge:true});
+    await setDoc(doc(db,'orders',currentOrderId),{status:'confirmed',payLater:true,confirmedAt:new Date().toISOString()},{merge:true});
+    hide('payScreen');
+    showToast('📋 Order confirmed! ₹'+currentTotal+' added to your tab.');
+    showSuccess();
+  }catch(e){alert('Error: '+e.message);}
+};
+
 window.closePayScreen=function(){hide('payScreen');};
 window.iHavePaid=async function(){
   if(!currentOrderId)return;
@@ -1081,7 +1157,43 @@ window.switchTab=function(t){
     document.getElementById('tab-'+x).classList.toggle('active',x===t);
     document.getElementById('tb-'+x).classList.toggle('active',x===t);
   });
+  if(t==='profile') loadLoyalty();
 };
+
+async function loadLoyalty(){
+  const phone=currentProfile?.phone||localStorage.getItem('custPhone');
+  if(!phone) return;
+  try{
+    const q=query(collection(db,'orders'),where('phone','==',phone));
+    const snap=await new Promise((res,rej)=>{
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(m=>m.getDocs(q).then(res).catch(rej));
+    });
+    const orders=snap.docs.map(d=>d.data()).filter(o=>o.status!=='cancelled');
+    const totalOrders=orders.length;
+    const totalSpend=orders.reduce((s,o)=>s+(o.total||0),0);
+    // Calculate favourite item
+    const itemCount={};
+    orders.forEach(o=>(o.items||[]).forEach(i=>{itemCount[i.name]=(itemCount[i.name]||0)+i.qty;}));
+    const fav=Object.entries(itemCount).sort((a,b)=>b[1]-a[1])[0];
+    // Score calculation
+    let score=Math.min(100,Math.round(totalOrders*5+totalSpend/100));
+    const level=score<=30?'🥉 Bronze':score<=60?'🥈 Silver':score<=85?'🥇 Gold':'💎 Platinum';
+    const nextLevel=score<=30?'Silver':score<=60?'Gold':score<=85?'Platinum':'Max Level';
+    const nextScore=score<=30?31:score<=60?61:score<=85?86:100;
+    const pct=Math.min(100,Math.round((score/nextScore)*100));
+    const card=document.getElementById('loyaltyCard');
+    if(card){
+      card.style.display='block';
+      document.getElementById('loyaltyLevel').textContent=level;
+      document.getElementById('loyaltyScore').textContent=`Score: ${score}/100`;
+      document.getElementById('loyaltyOrders').textContent=totalOrders;
+      document.getElementById('loyaltySpend').textContent='₹'+totalSpend;
+      document.getElementById('loyaltyFav').textContent=fav?fav[0]:'—';
+      document.getElementById('loyaltyNext').textContent=`→ ${nextLevel}`;
+      document.getElementById('loyaltyBar').style.width=pct+'%';
+    }
+  }catch(e){console.error('Loyalty error',e);}
+}
 
 // ---- HELPERS ----
 function show(id){const e=document.getElementById(id);if(e){if(id==='successScreen'||id==='loginScreen')e.style.display='flex';else e.style.display='block';}}
