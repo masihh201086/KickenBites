@@ -71,9 +71,12 @@ export async function updateOrderStatus(orderId,status,extra={}) {
   await updateDoc(doc(db,"orders",orderId),{status,...extra,updatedAt:new Date().toISOString()});
 }
 export function listenToOrders(dateStr,callback) {
-  const q = query(collection(db,"orders"),orderBy("createdAt","desc"));
+  // No orderBy to avoid Firestore index requirement - sort client side
+  const q = query(collection(db,"orders"),where("date","==",dateStr));
   return onSnapshot(q,snap=>{
-    callback(snap.docs.map(d=>({id:d.id,...d.data()})).filter(o=>o.date===dateStr));
+    const orders = snap.docs.map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    callback(orders);
   });
 }
 
