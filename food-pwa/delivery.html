@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#e65c00">
+<title>Delivery Boy — Kicken Bites</title>
+<style>
+:root{--o:#e65c00;--g:#22c55e;--r:#ef4444;--b:#3b82f6;--dark:#1a1a2e;--muted:#666;--r2:14px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;min-height:100vh;}
+.hdr{background:var(--dark);color:white;padding:14px 16px;text-align:center;}
+.hdr h1{font-size:1rem;font-weight:700;}
+.hdr p{font-size:.72rem;opacity:.7;margin-top:2px;}
+
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;background:linear-gradient(160deg,var(--dark),#0f3460);display:flex;align-items:center;justify-content:center;padding:20px;z-index:100;}
+.lb{background:white;border-radius:22px;padding:26px 20px;width:100%;max-width:340px;text-align:center;}
+.lb-logo{font-size:2.5rem;margin-bottom:7px;}
+.lb-title{font-size:1.15rem;font-weight:800;margin-bottom:4px;}
+.lb-sub{color:var(--muted);font-size:.8rem;margin-bottom:16px;line-height:1.5;}
+.li{width:100%;padding:12px 14px;border:2px solid #e5e5e5;border-radius:var(--r2);font-size:1rem;outline:none;font-family:inherit;text-align:center;letter-spacing:.08em;margin-bottom:9px;}
+.li:focus{border-color:var(--o);}
+.lbtn{width:100%;padding:13px;background:linear-gradient(135deg,var(--o),#ff8c42);color:white;border:none;border-radius:var(--r2);font-size:.95rem;font-weight:700;cursor:pointer;margin-bottom:5px;}
+.lerr{background:#fef2f2;color:var(--r);border-radius:8px;padding:8px;font-size:.76rem;margin-bottom:8px;display:none;line-height:1.4;}
+.lsuccess{background:#f0fdf4;color:var(--g);border-radius:8px;padding:8px;font-size:.76rem;margin-bottom:8px;display:none;}
+.forgot{display:block;margin-top:7px;color:var(--b);font-size:.76rem;cursor:pointer;}
+.outline-btn{width:100%;padding:9px;border:2px solid #eee;border-radius:10px;background:white;font-size:.78rem;cursor:pointer;color:var(--muted);margin-top:5px;}
+.otp-box{background:#eff6ff;border-radius:10px;padding:10px;margin-bottom:11px;font-size:.82rem;color:#1e40af;text-align:center;}
+
+/* APP */
+#mainApp{display:none;}
+
+/* GPS BAR */
+.gps-bar{display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:10px;font-size:.78rem;font-weight:600;margin-bottom:10px;}
+.gps-bar.good{background:#f0fdf4;color:var(--g);}
+.gps-bar.bad{background:#fef2f2;color:var(--r);}
+.gps-bar.wait{background:#fffbeb;color:#92400e;}
+.gps-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.gps-dot.good{background:var(--g);animation:blink 1.5s infinite;}
+.gps-dot.bad{background:var(--r);}
+.gps-dot.wait{background:#f59e0b;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* STATUS */
+.status-box{text-align:center;padding:14px;border-radius:var(--r2);margin-bottom:11px;}
+.status-box.active{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:2px solid var(--g);}
+.status-box.inactive{background:#f9f9f9;border:2px solid #eee;}
+.si{font-size:2.4rem;margin-bottom:5px;}
+.st{font-weight:700;font-size:.92rem;}
+.ss{font-size:.72rem;color:var(--muted);margin-top:3px;}
+
+/* BUTTONS */
+.main-btn{width:100%;padding:15px;border:none;border-radius:var(--r2);font-size:.97rem;font-weight:800;cursor:pointer;margin-bottom:8px;}
+.btn-green{background:linear-gradient(135deg,var(--g),#16a34a);color:white;box-shadow:0 4px 14px rgba(34,197,94,.35);}
+.btn-red{background:linear-gradient(135deg,var(--r),#dc2626);color:white;box-shadow:0 4px 14px rgba(239,68,68,.35);}
+
+/* TABS */
+.tabs{background:white;display:flex;border-bottom:2px solid #eee;position:sticky;top:0;z-index:50;}
+.tab{flex:1;padding:10px 5px;text-align:center;font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;}
+.tab.active{color:var(--o);border-bottom-color:var(--o);}
+.panel{display:none;padding:13px;}.panel.active{display:block;}
+
+/* ORDER CARDS */
+.oc{border:2px solid #eee;border-radius:12px;padding:12px;margin-bottom:9px;background:white;}
+.oc.active-del{border-color:var(--o);background:#fff8f0;}
+.oc.delivered{border-color:var(--g);background:#f0fdf4;opacity:.75;}
+.oc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.oc-name{font-weight:700;font-size:.9rem;}
+.oc-stag{font-size:.66rem;font-weight:700;padding:2px 7px;border-radius:20px;}
+.st-confirmed{background:#eff6ff;color:var(--b);}
+.st-preparing{background:#f5f3ff;color:#8b5cf6;}
+.st-ready{background:#fff3e8;color:var(--o);}
+.st-out_for_delivery{background:#fef9c3;color:#92400e;}
+.st-delivered{background:#f0fdf4;color:var(--g);}
+.oc-addr{font-size:.78rem;color:#555;margin:3px 0;line-height:1.4;}
+.oc-items{font-size:.76rem;color:#333;margin:3px 0;}
+.oc-tot{font-weight:700;color:var(--o);font-size:.83rem;margin:3px 0;}
+.oc-notes{font-size:.72rem;color:#8b5cf6;margin:3px 0;}
+.oc-btns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.obtn{padding:7px 11px;border:none;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+.ob-call{background:var(--g);color:white;}
+.ob-maps{background:var(--b);color:white;}
+.ob-pickup{background:var(--o);color:white;}
+.ob-deliver{flex:1;background:linear-gradient(135deg,var(--g),#16a34a);color:white;border-radius:9px;padding:9px;font-size:.82rem;font-weight:800;box-shadow:0 3px 10px rgba(34,197,94,.3);text-align:center;cursor:pointer;border:none;}
+.del-done-tag{flex:1;text-align:center;padding:8px;background:#f0fdf4;color:var(--g);border-radius:9px;font-size:.8rem;font-weight:700;}
+
+.coords{font-size:.68rem;color:#999;text-align:center;margin-top:5px;}
+.upd-badge{font-size:.68rem;color:var(--g);text-align:center;margin-top:3px;}
+.logout-btn{width:100%;padding:10px;background:white;color:var(--r);border:2px solid var(--r);border-radius:var(--r2);font-size:.84rem;font-weight:700;cursor:pointer;margin-top:8px;}
+.empty{text-align:center;padding:30px;color:var(--muted);font-size:.82rem;}
+.container{padding:13px;}
+.card{background:white;border-radius:var(--r2);padding:13px;margin-bottom:11px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.ct{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:9px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="lb">
+    <div class="lb-logo">🛵</div>
+    <div class="lb-title">Delivery Login</div>
+    <div class="lerr" id="lerr"></div>
+    <div class="lsuccess" id="lsucc"></div>
+    <!-- Step 1: Mobile -->
+    <div id="ls1">
+      <div class="lb-sub">Enter your registered mobile number</div>
+      <input class="li" type="tel" id="lph" placeholder="10-digit mobile" maxlength="10" inputmode="numeric">
+      <button class="lbtn" onclick="step1()">Continue →</button>
+    </div>
+    <!-- Step 2: PIN -->
+    <div id="ls2" style="display:none">
+      <div class="lb-sub" id="ls2msg">Enter your 4-digit PIN</div>
+      <div id="pinSec" style="display:none">
+        <input class="li" type="password" id="lpin" placeholder="4-digit PIN" maxlength="4" inputmode="numeric">
+        <button class="lbtn" onclick="verifyPin()">Login →</button>
+        <span class="forgot" onclick="forgotPin()">Forgot PIN? Reset via OTP</span>
+        <button class="outline-btn" onclick="backStep1()">← Change number</button>
+      </div>
+      <div id="newSec" style="display:none">
+        <div style="background:#f0fdf4;border-radius:10px;padding:10px;margin-bottom:11px;font-size:.78rem;color:#166534;line-height:1.5">👋 Welcome! Create your 4-digit PIN.</div>
+        <input class="li" type="password" id="lnpin" placeholder="Create 4-digit PIN" maxlength="4" inputmode="numeric">
+        <input class="li" type="password" id="lnpinc" placeholder="Confirm PIN" maxlength="4" inputmode="numeric">
+        <button class="lbtn" onclick="createPin()">Create Account →</button>
+        <button class="outline-btn" onclick="backStep1()">← Change number</button>
+      </div>
+      <div id="otpSec" style="display:none">
+        <div class="otp-box">Your OTP: <strong id="otpDisp" style="font-size:1.3rem;letter-spacing:.12em"></strong></div>
+        <input class="li" type="number" id="lotp" placeholder="Enter OTP" maxlength="4" inputmode="numeric">
+        <input class="li" type="password" id="lrpin" placeholder="New 4-digit PIN" maxlength="4" inputmode="numeric">
+        <button class="lbtn" onclick="resetPin()">Reset & Login →</button>
+        <button class="outline-btn" onclick="backStep1()">← Back</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+  <div class="hdr">
+    <h1>🛵 Kicken Bites — Delivery</h1>
+    <p id="loggedAs">Delivery Boy</p>
+  </div>
+
+  <div class="container">
+    <!-- GPS + Status -->
+    <div class="gps-bar wait" id="gpsBar"><div class="gps-dot wait"></div><span id="gpsTxt">GPS not started</span></div>
+    <div class="status-box inactive" id="statusBox"><div class="si">😴</div><div class="st">Not Delivering</div><div class="ss">Press Start to share live location</div></div>
+    <button class="main-btn btn-green" id="mainBtn" onclick="toggleGPS()">🟢 Start Delivery & Share Location</button>
+    <div class="coords" id="coordsDisp"></div>
+    <div class="upd-badge" id="updBadge"></div>
+  </div>
+
+  <!-- 4 TABS -->
+  <div class="tabs">
+    <div class="tab active" id="tab-active-btn" onclick="swTab('active')">🚀 Active (0)</div>
+    <div class="tab" id="tab-delivered-btn" onclick="swTab('delivered')">✅ Done (0)</div>
+    <div class="tab" id="tab-all-btn" onclick="swTab('all')">📋 All (0)</div>
+    <div class="tab" id="tab-earnings-btn" onclick="swTab('earnings')">💰 Earnings</div>
+  </div>
+
+  <div class="panel active" id="tab-active"><div class="empty">Loading…</div></div>
+  <div class="panel" id="tab-delivered"><div class="empty">Loading…</div></div>
+  <div class="panel" id="tab-all"><div class="empty">Loading…</div></div>
+  <div class="panel" id="tab-earnings">
+    <div style="padding:13px">
+      <!-- TODAY -->
+      <div style="background:linear-gradient(135deg,var(--dark),#0f3460);border-radius:14px;padding:16px;color:white;margin-bottom:11px">
+        <div style="font-size:.7rem;opacity:.65;margin-bottom:4px">TODAY'S EARNINGS</div>
+        <div style="font-size:2.2rem;font-weight:900" id="todayEarn">₹0</div>
+        <div style="font-size:.76rem;opacity:.75;margin-top:3px" id="todayDelCount">0 deliveries</div>
+      </div>
+      <!-- STATS GRID -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px">
+        <div style="background:white;border-radius:12px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px">WEEKLY</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--o)" id="weekEarn">₹0</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px">MONTHLY</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--o)" id="monthEarn">₹0</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px">TOTAL DELIVERIES</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--g)" id="totalDels">0</div>
+        </div>
+        <div style="background:white;border-radius:12px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+          <div style="font-size:.68rem;color:var(--muted);margin-bottom:3px">FIXED SALARY</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--b)">₹1,800</div>
+        </div>
+      </div>
+      <!-- SALARY BREAKDOWN -->
+      <div style="background:white;border-radius:12px;padding:13px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:11px">
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px">Monthly Salary Breakdown</div>
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;padding:5px 0;border-bottom:1px solid #eee"><span style="color:var(--muted)">Fixed Salary</span><span style="font-weight:700">₹1,800</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;padding:5px 0;border-bottom:1px solid #eee"><span style="color:var(--muted)">Delivery Charges (this month)</span><span style="font-weight:700" id="monthCharges">₹0</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.83rem;padding:5px 0;border-bottom:1px solid #eee"><span style="color:var(--muted)">Incentive/Bonus</span><span style="font-weight:700" id="bonus">₹0</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.92rem;padding:7px 0;font-weight:800"><span>Total Estimated</span><span style="color:var(--o)" id="totalSalary">₹1,800</span></div>
+      </div>
+      <div style="background:#fffbeb;border-radius:10px;padding:10px;font-size:.76rem;color:#92400e;line-height:1.5">
+        💡 Delivery charges earned per order are added to your base salary of ₹1,800/month. Ask admin for exact payout.
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, query, where } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD7in6rCrdL5aiDoY9w8i3k3o9yQXqEWo4",
+  authDomain: "myfood-6487f.firebaseapp.com",
+  projectId: "myfood-6487f",
+  storageBucket: "myfood-6487f.firebasestorage.app",
+  messagingSenderId: "133560849575",
+  appId: "1:133560849575:web:2a7aa07ef8047928beb782"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+function getTodayDate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+let isGPS = false, watchId = null, updateCount = 0;
+let allOrders = [], boy = null, genOtp = '', loginPhone = '';
+
+// --- SESSION CHECK ---
+const sp = localStorage.getItem('boyPhone'), sn = localStorage.getItem('boyName');
+if (sp && sn) { boy = {phone:sp, name:sn}; startApp(); }
+
+function showErr(m){const e=document.getElementById('lerr');e.textContent=m;e.style.display='block';document.getElementById('lsucc').style.display='none';}
+function showSucc(m){const e=document.getElementById('lsucc');e.textContent=m;e.style.display='block';document.getElementById('lerr').style.display='none';}
+function hideMsg(){document.getElementById('lerr').style.display='none';document.getElementById('lsucc').style.display='none';}
+function showStep(id){['ls1','ls2'].forEach(s=>document.getElementById(s).style.display=s===id?'block':'none');}
+
+window.step1 = async function() {
+  hideMsg();
+  const ph = document.getElementById('lph').value.trim();
+  if (!/^\d{10}$/.test(ph)) { showErr('Please enter valid 10-digit mobile'); return; }
+  loginPhone = ph;
+  try {
+    const snap = await getDoc(doc(db,'deliveryBoys',ph));
+    showStep('ls2');
+    if (!snap.exists()) { showErr('Your number is not registered. Ask admin to add you.'); showStep('ls1'); return; }
+    const data = snap.data();
+    if (data.pin) {
+      document.getElementById('ls2msg').textContent = `Welcome back, ${data.name||''}! Enter PIN`;
+      document.getElementById('pinSec').style.display='block';
+      document.getElementById('newSec').style.display='none';
+    } else {
+      document.getElementById('ls2msg').textContent = 'Create your login PIN';
+      document.getElementById('newSec').style.display='block';
+      document.getElementById('pinSec').style.display='none';
+    }
+  } catch(e) { showErr('Error connecting. Check internet.'); }
+};
+
+window.verifyPin = async function() {
+  hideMsg();
+  const pin = document.getElementById('lpin').value.trim();
+  if (pin.length!==4) { showErr('Please enter 4-digit PIN'); return; }
+  try {
+    const snap = await getDoc(doc(db,'deliveryBoys',loginPhone));
+    if (snap.exists() && snap.data().pin===pin) {
+      boy = snap.data();
+      localStorage.setItem('boyPhone', loginPhone);
+      localStorage.setItem('boyName', boy.name||'');
+      startApp();
+    } else { showErr('Wrong PIN. Try again.'); document.getElementById('lpin').value=''; }
+  } catch(e) { showErr('Error. Check internet.'); }
+};
+
+window.createPin = async function() {
+  hideMsg();
+  const pin = document.getElementById('lnpin').value.trim();
+  const pinC = document.getElementById('lnpinc').value.trim();
+  if (pin.length!==4||!/^\d{4}$/.test(pin)) { showErr('PIN must be 4 digits'); return; }
+  if (pin!==pinC) { showErr('PINs do not match'); return; }
+  try {
+    const snap = await getDoc(doc(db,'deliveryBoys',loginPhone));
+    if (!snap.exists()) { showErr('Not registered. Ask admin.'); return; }
+    boy = {...snap.data(), pin, phone:loginPhone};
+    await setDoc(doc(db,'deliveryBoys',loginPhone), {pin}, {merge:true});
+    localStorage.setItem('boyPhone',loginPhone);
+    localStorage.setItem('boyName',boy.name||'');
+    startApp();
+  } catch(e) { showErr('Error creating PIN. Check internet.'); }
+};
+
+window.forgotPin = function() {
+  genOtp = Math.floor(1000+Math.random()*9000).toString();
+  document.getElementById('otpDisp').textContent = genOtp;
+  document.getElementById('pinSec').style.display='none';
+  document.getElementById('otpSec').style.display='block';
+  showSucc('OTP generated! In production this would be sent via SMS.');
+};
+
+window.resetPin = async function() {
+  hideMsg();
+  const otp = document.getElementById('lotp').value.trim();
+  const pin = document.getElementById('lrpin').value.trim();
+  if (otp!==genOtp) { showErr('Wrong OTP'); return; }
+  if (pin.length!==4||!/^\d{4}$/.test(pin)) { showErr('PIN must be 4 digits'); return; }
+  try {
+    await setDoc(doc(db,'deliveryBoys',loginPhone),{pin},{merge:true});
+    const snap = await getDoc(doc(db,'deliveryBoys',loginPhone));
+    boy = snap.data();
+    localStorage.setItem('boyPhone',loginPhone);
+    localStorage.setItem('boyName',boy.name||'');
+    startApp();
+  } catch(e) { showErr('Error resetting PIN.'); }
+};
+
+window.backStep1 = function() {
+  hideMsg(); showStep('ls1');
+  ['pinSec','newSec','otpSec'].forEach(s=>document.getElementById(s).style.display='none');
+};
+
+function startApp() {
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  document.getElementById('loggedAs').textContent = `👤 ${boy?.name||boy?.phone||''}`;
+  if (boy?.phone) setDoc(doc(db,'deliveryBoys',boy.phone),{isOnline:true,lastSeen:new Date().toISOString()},{merge:true}).catch(()=>{});
+  requestNotifPerm();
+  loadOrders();
+  listenForAssignments();
+}
+
+function requestNotifPerm(){
+  if('Notification' in window && Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+}
+
+function listenForAssignments(){
+  if(!boy?.phone) return;
+  // Listen for orders assigned to this boy
+  const today=getTodayDate();
+  const q=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone),where('date','==',today));
+  let knownIds=new Set();
+  onSnapshot(q,snap=>{
+    snap.docs.forEach(d=>{
+      if(!knownIds.has(d.id)){
+        knownIds.add(d.id);
+        const o=d.data();
+        if(knownIds.size>1||(knownIds.size===1&&o.status!=='delivered')){
+          notifyBoy(`📦 New order assigned! ${o.name} — ₹${o.total}`);
+        }
+      }
+    });
+  });
+}
+
+function notifyBoy(msg){
+  // In-app
+  showToast(msg);
+  // Browser
+  if('Notification' in window && Notification.permission==='granted'){
+    try{
+      new Notification('🍗 Kicken Bites',{body:msg,tag:'assignment'});
+    }catch(e){}
+  }
+  // Sound
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=660;g.gain.setValueAtTime(0.3,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.4);
+    o.start();o.stop(ctx.currentTime+0.4);
+  }catch(e){}
+}
+
+window.doLogout = async function() {
+  if (!confirm('Logout?')) return;
+  if (isGPS) await stopGPS();
+  if (boy?.phone) await setDoc(doc(db,'deliveryBoys',boy.phone),{isOnline:false},{merge:true}).catch(()=>{});
+  localStorage.removeItem('boyPhone'); localStorage.removeItem('boyName');
+  location.reload();
+};
+
+// --- ORDERS ---
+function loadOrders() {
+  const today = getTodayDate();
+  const q = query(collection(db,'orders'), where('date','==',today));
+  onSnapshot(q, snap => {
+    allOrders = snap.docs.map(d=>({id:d.id,...d.data()}))
+      .filter(o => o.orderType==='delivery')
+      .sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
+    renderAllTabs();
+  }, err => {
+    document.getElementById('tab-active').innerHTML = '<div class="empty">⚠️ Error loading orders. Refresh.</div>';
+  });
+}
+
+function renderAllTabs() {
+  const active = allOrders.filter(o=>['confirmed','preparing','ready','out_for_delivery'].includes(o.status));
+  const delivered = allOrders.filter(o=>o.status==='delivered');
+  const all = allOrders.filter(o=>['confirmed','preparing','ready','out_for_delivery','delivered'].includes(o.status));
+  // Update tab counts
+  document.getElementById('tab-active-btn').textContent = `🚀 Active (${active.length})`;
+  document.getElementById('tab-delivered-btn').textContent = `✅ Delivered (${delivered.length})`;
+  document.getElementById('tab-all-btn').textContent = `📋 All (${all.length})`;
+  // Render each tab
+  document.getElementById('tab-active').innerHTML = active.length ? active.map(o=>orderCard(o)).join('') : '<div class="empty">No active delivery orders</div>';
+  document.getElementById('tab-delivered').innerHTML = delivered.length ? delivered.map(o=>orderCard(o)).join('') : '<div class="empty">No delivered orders yet today</div>';
+  document.getElementById('tab-all').innerHTML = all.length ? all.map(o=>orderCard(o)).join('') : '<div class="empty">No delivery orders today</div>';
+}
+
+function orderCard(o) {
+  const sl = {confirmed:'✅ Confirmed',preparing:'👨‍🍳 Preparing',ready:'📦 Ready',out_for_delivery:'🛵 Out for Delivery',delivered:'🎉 Delivered'};
+  const t = o.createdAt ? new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+  const isOut = o.status==='out_for_delivery';
+  const isDone = o.status==='delivered';
+  const mapsUrl = o.address ? `https://www.google.com/maps/search/${encodeURIComponent(o.address)}` : '#';
+  return `<div class="oc ${isDone?'delivered':isOut?'active-del':''}">
+    <div class="oc-top">
+      <div class="oc-name">#${o.id.slice(-5).toUpperCase()} — ${o.name}</div>
+      <span class="oc-stag st-${o.status}">${sl[o.status]||o.status}</span>
+    </div>
+    <div class="oc-addr">📍 ${o.address}</div>
+    <div class="oc-items">🍛 ${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ')}</div>
+    <div class="oc-tot">💰 ₹${o.total} | ⏰ ${t}</div>
+    ${o.notes?`<div class="oc-notes">📝 ${o.notes}</div>`:''}
+    <div class="oc-btns">
+      <a class="obtn ob-call" href="tel:${o.phone}">📞 Call</a>
+      <a class="obtn ob-maps" href="${mapsUrl}" target="_blank">🗺️ Maps</a>
+      ${!isDone&&!isOut?`<button class="obtn ob-pickup" onclick="markPickedUp('${o.id}')">🛵 Picked Up</button>`:''}
+      ${isOut?`<button class="ob-deliver" onclick="markDelivered('${o.id}','${o.name}')">✅ Mark as Delivered</button>`:''}
+      ${isDone?`<div class="del-done-tag">✅ Delivered Successfully!</div>`:''}
+    </div>
+  </div>`;
+}
+
+window.markPickedUp = async function(id) {
+  try { await updateDoc(doc(db,'orders',id),{status:'out_for_delivery',pickedUpAt:new Date().toISOString()}); showToast('🛵 Picked up! Customer can now track you.'); }
+  catch(e) { alert('Error. Check internet.'); }
+};
+
+window.markDelivered = async function(id, name) {
+  if (!confirm(`Confirm delivery to ${name}?`)) return;
+  try {
+    await updateDoc(doc(db,'orders',id),{status:'delivered',deliveredAt:new Date().toISOString()});
+    showToast(`✅ Delivered to ${name}!`);
+  } catch(e) { alert('Error. Check internet.'); }
+};
+
+// --- GPS ---
+window.toggleGPS = function() { isGPS ? stopGPS() : startGPS(); };
+
+function startGPS() {
+  if (!navigator.geolocation) { alert('GPS not supported. Use Chrome on Android.'); return; }
+  setBar('wait','Requesting GPS permission…');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      isGPS = true; updateUI(true);
+      savePos(pos);
+      watchId = navigator.geolocation.watchPosition(p=>savePos(p), e=>setBar('bad','GPS Error: '+e.message), {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+    },
+    err => {
+      const msgs = ['','GPS denied! Allow location in browser settings.','GPS unavailable.','GPS timeout. Try again.'];
+      alert(msgs[err.code]||'GPS error'); setBar('bad','GPS failed');
+    },
+    {enableHighAccuracy:true,timeout:10000}
+  );
+}
+
+async function stopGPS() {
+  if (watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  isGPS=false; updateCount=0;
+  try{await setDoc(doc(db,'delivery','status'),{isDelivering:false,lat:null,lng:null,boyName:'',boyPhone:'',deliveryStarted:false,updatedAt:new Date().toISOString()});}catch(e){}
+  setBar('wait','GPS stopped');
+  document.getElementById('coordsDisp').textContent='';
+  document.getElementById('updBadge').textContent='';
+  updateUI(false);
+}
+
+async function savePos(pos) {
+  updateCount++;
+  const lat=pos.coords.latitude, lng=pos.coords.longitude;
+  setBar('good',`GPS Active — Accuracy: ${Math.round(pos.coords.accuracy)}m`);
+  document.getElementById('coordsDisp').textContent=`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  document.getElementById('updBadge').textContent=`✅ Updated ${updateCount} times`;
+  try {
+    await setDoc(doc(db,'delivery','status'),{
+      isDelivering:true, lat, lng,
+      boyName:boy?.name||'Delivery Boy',
+      boyPhone:boy?.phone||'',
+      accuracy:pos.coords.accuracy,
+      updatedAt:new Date().toISOString()
+      // deliveryStarted is controlled by admin only
+    },{merge:true});
+  } catch(e){console.error(e);}
+}
+
+function updateUI(active) {
+  const btn=document.getElementById('mainBtn'), box=document.getElementById('statusBox');
+  if (active) {
+    btn.className='main-btn btn-red'; btn.textContent='🔴 Stop Delivery & Tracking';
+    box.className='status-box active';
+    box.innerHTML='<div class="si">🛵</div><div class="st" style="color:var(--g)">Delivery Active!</div><div class="ss">Sharing live location · Admin can see you</div>';
+  } else {
+    btn.className='main-btn btn-green'; btn.textContent='🟢 Start Delivery & Share Location';
+    box.className='status-box inactive';
+    box.innerHTML='<div class="si">😴</div><div class="st">Not Delivering</div><div class="ss">Press Start to share live location</div>';
+  }
+}
+
+function setBar(s,t){const b=document.getElementById('gpsBar');b.className='gps-bar '+s;b.innerHTML=`<div class="gps-dot ${s}"></div><span>${t}</span>`;}
+
+// --- TABS ---
+window.swTab = function(t) {
+  ['active','delivered','all','earnings'].forEach(x=>{
+    document.getElementById('tab-'+x).classList.toggle('active',x===t);
+    document.getElementById('tab-'+x+'-btn').classList.toggle('active',x===t);
+  });
+  if(t==='earnings') loadEarnings();
+};
+
+async function loadEarnings(){
+  if(!boy?.phone) return;
+  try{
+    const now=new Date();
+    const todayStr=getTodayDate();
+    const weekAgo=new Date(now-7*86400000);
+    const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
+    // Get all delivered orders assigned to this boy
+    const q=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone),where('status','==','delivered'));
+    const snap=await (async()=>{
+      return new Promise((res,rej)=>{
+        const {getDocs}=window._firestoreFns||{};
+        import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(m=>{
+          m.getDocs(q).then(res).catch(rej);
+        });
+      });
+    })();
+    const orders=snap.docs.map(d=>d.data());
+    const todayOrders=orders.filter(o=>o.date===todayStr);
+    const weekOrders=orders.filter(o=>new Date(o.createdAt||0)>=weekAgo);
+    const monthOrders=orders.filter(o=>new Date(o.createdAt||0)>=monthStart);
+    const earn=arr=>arr.reduce((s,o)=>s+(o.deliveryCharge||0),0);
+    document.getElementById('todayEarn').textContent='₹'+earn(todayOrders);
+    document.getElementById('todayDelCount').textContent=todayOrders.length+' deliveries today';
+    document.getElementById('weekEarn').textContent='₹'+earn(weekOrders);
+    document.getElementById('monthEarn').textContent='₹'+(1800+earn(monthOrders));
+    document.getElementById('totalDels').textContent=orders.length;
+    document.getElementById('monthCharges').textContent='₹'+earn(monthOrders);
+    const bonusAmt=monthOrders.length>=30?200:monthOrders.length>=20?100:0;
+    document.getElementById('bonus').textContent='₹'+bonusAmt;
+    document.getElementById('totalSalary').textContent='₹'+(1800+earn(monthOrders)+bonusAmt);
+  }catch(e){ console.error('Earnings error',e); }
+}
+
+function showToast(msg){let t=document.getElementById('dtoast');if(!t){t=document.createElement('div');t.id='dtoast';t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--g);color:white;padding:10px 20px;border-radius:50px;font-weight:700;font-size:.84rem;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}
+</script>
+</body>
+</html>
