@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#e65c00">
+<title>Track Order — Kicken Bites</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--o:#e65c00;--op:#fff3e8;--g:#22c55e;--gp:#f0fdf4;--dark:#1a1a2e;--muted:#666;--r:14px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f5f5f5;min-height:100vh;}
+.hdr{background:var(--dark);color:white;padding:13px 16px;display:flex;align-items:center;gap:9px;position:sticky;top:0;z-index:200;}
+.hdr h1{font-size:.95rem;font-weight:700;}
+
+#map{width:100%;height:55vh;background:#e5e5e5;z-index:1;}
+.info-card{background:white;border-radius:20px 20px 0 0;padding:18px 16px 40px;margin-top:-16px;position:relative;z-index:10;box-shadow:0 -4px 20px rgba(0,0,0,.1);}
+
+/* BADGES */
+.live-badge{display:inline-flex;align-items:center;gap:6px;background:var(--g);color:white;padding:6px 14px;border-radius:20px;font-size:.76rem;font-weight:700;margin-bottom:12px;}
+.pulse{width:8px;height:8px;border-radius:50%;background:white;animation:p 1.5s infinite;}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.4}}
+.prep-badge{display:inline-flex;align-items:center;gap:6px;background:var(--op);color:var(--o);border:2px solid var(--o);padding:7px 14px;border-radius:20px;font-size:.8rem;font-weight:700;margin-bottom:12px;}
+.del-badge{display:inline-flex;align-items:center;gap:6px;background:var(--gp);color:var(--g);border:2px solid var(--g);padding:7px 14px;border-radius:20px;font-size:.8rem;font-weight:700;margin-bottom:12px;}
+
+/* ETA */
+.eta-card{background:linear-gradient(135deg,var(--dark),#0f3460);border-radius:var(--r);padding:13px 15px;margin-bottom:12px;color:white;display:flex;justify-content:space-between;align-items:center;}
+.eta-lbl{font-size:.7rem;opacity:.65;margin-bottom:3px;}
+.eta-val{font-size:1.5rem;font-weight:900;}
+.eta-dist{font-size:.78rem;opacity:.75;}
+
+/* BOY CARD */
+.boy-card{background:var(--op);border-radius:var(--r);padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.boy-av{width:44px;height:44px;border-radius:50%;background:var(--o);color:white;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
+.boy-name{font-weight:700;font-size:.9rem;}
+.boy-role{font-size:.72rem;color:var(--muted);}
+.call-btn{margin-left:auto;padding:7px 12px;background:var(--g);color:white;border:none;border-radius:9px;font-weight:700;font-size:.74rem;text-decoration:none;flex-shrink:0;}
+
+/* INFO */
+.oinfo{background:#f9f9f9;border-radius:var(--r);padding:12px;margin-bottom:12px;}
+.orow{display:flex;justify-content:space-between;font-size:.82rem;padding:4px 0;border-bottom:1px solid #eee;}
+.orow:last-child{border:none;}
+.orow .l{color:var(--muted);}
+.orow .v{font-weight:600;}
+
+/* DEL BOX */
+.del-box{text-align:center;padding:20px 14px;}
+.del-icon{font-size:3.5rem;margin-bottom:10px;}
+.del-title{font-size:1.2rem;font-weight:800;color:var(--g);margin-bottom:4px;}
+.del-sub{color:var(--muted);font-size:.82rem;line-height:1.5;}
+
+/* NS BOX */
+.ns-box{text-align:center;padding:26px 14px;}
+.ns-icon{font-size:3rem;margin-bottom:9px;}
+.ns-title{font-size:.95rem;font-weight:700;color:#333;margin-bottom:5px;}
+.ns-sub{color:var(--muted);font-size:.78rem;line-height:1.5;}
+.refresh-btn{margin-top:12px;padding:9px 22px;background:var(--o);color:white;border:none;border-radius:10px;font-weight:700;font-size:.83rem;cursor:pointer;}
+
+/* BUTTONS */
+.maps-btn{width:100%;padding:12px;background:#1a73e8;color:white;border:none;border-radius:var(--r);font-size:.86rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:9px;}
+.wa-btn{width:100%;padding:12px;background:#25d366;color:white;border:none;border-radius:var(--r);font-size:.86rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 4px 12px rgba(37,211,102,.25);}
+
+/* LOADING */
+#mapLoad{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:var(--muted);}
+.spin{width:30px;height:30px;border:3px solid #eee;border-top-color:var(--o);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 8px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#mapWrap{position:relative;height:55vh;}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <span style="font-size:1.3rem">🍗</span>
+  <div><h1>Track Your Delivery</h1><div style="font-size:.68rem;opacity:.7">Kicken Bites</div></div>
+</div>
+
+<div id="mapWrap">
+  <div id="map"></div>
+  <div id="mapLoad"><div class="spin"></div><p style="font-size:.78rem">Loading map…</p></div>
+</div>
+
+<div class="info-card">
+  <div id="trackContent">
+    <div class="ns-box"><div class="ns-icon">🔄</div><div class="ns-title">Loading tracking…</div></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const app = initializeApp({
+  apiKey:"AIzaSyD7in6rCrdL5aiDoY9w8i3k3o9yQXqEWo4",
+  authDomain:"myfood-6487f.firebaseapp.com",
+  projectId:"myfood-6487f",
+  storageBucket:"myfood-6487f.firebasestorage.app",
+  messagingSenderId:"133560849575",
+  appId:"1:133560849575:web:2a7aa07ef8047928beb782"
+});
+const db = getFirestore(app);
+
+const p = new URLSearchParams(window.location.search);
+const orderId = p.get('order');
+const orderTotal = p.get('total')||'';
+const orderAddr = decodeURIComponent(p.get('addr')||'');
+const orderItems = decodeURIComponent(p.get('items')||'');
+
+let map=null, boyMarker=null, custMarker=null, routeLine=null;
+let boyLat=null, boyLng=null;
+
+// Init Leaflet map
+function initMap(lat, lng) {
+  if (map) return;
+  document.getElementById('mapLoad').style.display='none';
+  map = L.map('map', {zoomControl:true, attributionControl:false}).setView([lat||26.64, lng||79.49], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap', maxZoom:19
+  }).addTo(map);
+}
+
+// Custom icons
+function boyIcon() {
+  return L.divIcon({
+    html:`<div style="background:#e65c00;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;box-shadow:0 3px 12px rgba(0,0,0,.35);border:3px solid white;animation:bounce 1s infinite alternate">🛵</div>
+    <style>@keyframes bounce{from{transform:scale(1)}to{transform:scale(1.1)}}</style>`,
+    iconSize:[46,46], iconAnchor:[23,23], className:''
+  });
+}
+function custIcon() {
+  return L.divIcon({
+    html:`<div style="background:#22c55e;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;box-shadow:0 3px 12px rgba(0,0,0,.3);border:3px solid white">🏠</div>`,
+    iconSize:[40,40], iconAnchor:[20,20], className:''
+  });
+}
+
+// Geocode address to coordinates using Nominatim (free, no key)
+async function geocodeAddress(addr) {
+  try {
+    const q = encodeURIComponent(addr + ', Auraiya, Uttar Pradesh, India');
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`);
+    const d = await r.json();
+    if (d.length) return {lat:parseFloat(d[0].lat), lng:parseFloat(d[0].lon)};
+  } catch(e) {}
+  return null;
+}
+
+// Draw route line between two points using OSRM (free routing)
+async function drawRoute(fromLat, fromLng, toLat, toLng) {
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.routes && d.routes[0]) {
+      if (routeLine) map.removeLayer(routeLine);
+      routeLine = L.geoJSON(d.routes[0].geometry, {
+        style:{color:'#e65c00', weight:5, opacity:.8, dashArray:'8,4'}
+      }).addTo(map);
+      // ETA from OSRM
+      const secs = d.routes[0].duration;
+      const dist = (d.routes[0].distance/1000).toFixed(1);
+      const mins = Math.ceil(secs/60);
+      return {mins, dist};
+    }
+  } catch(e) {}
+  return {mins:'15-25', dist:'~3'};
+}
+
+function updateBoyPos(lat, lng) {
+  boyLat=lat; boyLng=lng;
+  if (!map) { initMap(lat,lng); }
+  if (!boyMarker) {
+    boyMarker = L.marker([lat,lng], {icon:boyIcon(), zIndexOffset:1000}).addTo(map);
+    boyMarker.bindPopup('<b>🛵 Delivery Boy</b><br>On the way!').openPopup();
+  } else {
+    boyMarker.setLatLng([lat,lng]);
+    boyMarker.getPopup().update();
+  }
+}
+
+// State
+let custGeocoded = false, etaShown = false;
+
+async function showCustOnMap() {
+  if (custGeocoded || !orderAddr || !map) return;
+  custGeocoded = true;
+  const pos = await geocodeAddress(orderAddr);
+  if (pos) {
+    if (!custMarker) {
+      custMarker = L.marker([pos.lat,pos.lng], {icon:custIcon()}).addTo(map);
+      custMarker.bindPopup('<b>🏠 Your Location</b>').openPopup();
+    }
+    if (boyLat && boyLng) {
+      const eta = await drawRoute(boyLat, boyLng, pos.lat, pos.lng);
+      map.fitBounds([[boyLat,boyLng],[pos.lat,pos.lng]], {padding:[30,30]});
+      updateETACard(eta.mins, eta.dist);
+      etaShown = true;
+    }
+  }
+}
+
+function updateETACard(mins, dist) {
+  const etaEl = document.getElementById('etaCard');
+  if (etaEl) {
+    etaEl.innerHTML = `
+      <div><div class="eta-lbl">ESTIMATED ARRIVAL</div><div class="eta-val">${typeof mins==='number'?mins+' min':mins+' min'}</div></div>
+      <div style="text-align:right"><div class="eta-lbl">DISTANCE</div><div class="eta-dist">📍 ${dist} km away</div></div>`;
+  }
+}
+
+// Listen to order
+if (!orderId) {
+  document.getElementById('trackContent').innerHTML = '<div class="ns-box"><div class="ns-icon">❌</div><div class="ns-title">Invalid tracking link</div></div>';
+} else {
+  onSnapshot(doc(db,'orders',orderId), snap => {
+    if (!snap.exists()) return;
+    const o = snap.data();
+    if (o.status==='delivered') showDelivered(o);
+  });
+
+  onSnapshot(doc(db,'delivery','status'), snap => {
+    if (!snap.exists()) { showNotStarted(); return; }
+    const d = snap.data();
+    if (!d.isDelivering || !d.deliveryStarted) { showNotStarted(); return; }
+    if (!d.lat || !d.lng) { showNotStarted('Waiting for GPS…'); return; }
+    updateBoyPos(d.lat, d.lng);
+    showLiveUI(d);
+    showCustOnMap(); // Draw route
+  });
+}
+
+function showLiveUI(d) {
+  const t = d.updatedAt ? new Date(d.updatedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+  document.getElementById('trackContent').innerHTML = `
+    <div class="live-badge"><span class="pulse"></span>Live Tracking Active</div>
+    <div class="eta-card" id="etaCard">
+      <div><div class="eta-lbl">ESTIMATED ARRIVAL</div><div class="eta-val">—</div></div>
+      <div style="text-align:right"><div class="eta-lbl">DISTANCE</div><div class="eta-dist">📍 Calculating…</div></div>
+    </div>
+    <div class="boy-card">
+      <div class="boy-av">🧑</div>
+      <div><div class="boy-name">${d.boyName||'Delivery Boy'}</div><div class="boy-role">🛵 On the way to you!</div></div>
+      ${d.boyPhone?`<a class="call-btn" href="tel:${d.boyPhone}">📞 Call</a>`:''}
+    </div>
+    <button class="maps-btn" onclick="openGoogleMaps()">
+      🗺️ Open in Google Maps App
+    </button>
+    <div class="oinfo">
+      <div class="orow"><span class="l">Status</span><span class="v" style="color:var(--g)">🚀 Out for Delivery</span></div>
+      <div class="orow"><span class="l">Delivery Boy</span><span class="v">${d.boyName||'—'}</span></div>
+      ${d.boyPhone?`<div class="orow"><span class="l">Phone</span><span class="v">${d.boyPhone}</span></div>`:''}
+      ${orderItems?`<div class="orow"><span class="l">Items</span><span class="v">${orderItems}</span></div>`:''}
+      ${orderTotal?`<div class="orow"><span class="l">Total Paid</span><span class="v">₹${orderTotal}</span></div>`:''}
+      <div class="orow"><span class="l">Last Update</span><span class="v">${t}</span></div>
+    </div>
+    <button class="wa-btn" onclick="shareWA()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Share Tracking on WhatsApp
+    </button>`;
+}
+
+function showDelivered(order) {
+  document.getElementById('mapWrap').innerHTML = '<div style="height:120px;background:var(--g);display:flex;align-items:center;justify-content:center;color:white;font-size:1.5rem;font-weight:800">🎉 DELIVERED!</div>';
+  const dt = order.deliveredAt ? new Date(order.deliveredAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
+  document.getElementById('trackContent').innerHTML = `
+    <div class="del-box">
+      <div class="del-icon">🎉</div>
+      <div class="del-badge">✅ Order Delivered!</div>
+      <div class="del-title">Delivered Successfully!</div>
+      <div class="del-sub">Your order was delivered${dt?' at '+dt:''}.<br>Thank you for ordering from Kicken Bites! 🍗</div>
+    </div>
+    <div class="oinfo">
+      ${orderItems?`<div class="orow"><span class="l">Items</span><span class="v">${orderItems}</span></div>`:''}
+      ${orderTotal?`<div class="orow"><span class="l">Total Paid</span><span class="v">₹${orderTotal}</span></div>`:''}
+      ${dt?`<div class="orow"><span class="l">Delivered At</span><span class="v">${dt}</span></div>`:''}
+    </div>
+    <button class="wa-btn" onclick="shareWA()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Share Order Details
+    </button>`;
+}
+
+function showNotStarted(msg) {
+  if (!map) {
+    initMap(26.64, 79.49);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  }
+  document.getElementById('mapLoad').style.display = 'none';
+  document.getElementById('trackContent').innerHTML = `
+    <div class="ns-box">
+      <div class="ns-icon">🍳</div>
+      <div class="prep-badge">📦 Preparing Your Order</div>
+      <div class="ns-title">Delivery not started yet</div>
+      <div class="ns-sub">${msg||'Your order is being freshly prepared!<br>Tracking appears when delivery starts.<br>Page updates automatically.'}</div>
+      <button class="refresh-btn" onclick="location.reload()">🔄 Refresh</button>
+    </div>
+    ${orderItems||orderTotal?`<div class="oinfo">
+      ${orderItems?`<div class="orow"><span class="l">Items</span><span class="v">${orderItems}</span></div>`:''}
+      ${orderTotal?`<div class="orow"><span class="l">Total Paid</span><span class="v">₹${orderTotal}</span></div>`:''}
+      ${orderAddr?`<div class="orow"><span class="l">Deliver To</span><span class="v">${orderAddr}</span></div>`:''}
+    </div>`:''}`;
+}
+
+window.openGoogleMaps = function() {
+  if (boyLat && boyLng) {
+    const dest = encodeURIComponent(orderAddr || 'Auraiya, UP');
+    window.open(`https://www.google.com/maps/dir/${boyLat},${boyLng}/${dest}`,'_blank');
+  }
+};
+
+window.shareWA = function() {
+  const url = window.location.href;
+  const msg = `🍗 *Kicken Bites Order Tracking*\n${orderItems?'📦 '+orderItems+'\n':''}${orderTotal?'💰 ₹'+orderTotal+'\n':''}${orderAddr?'📍 '+orderAddr+'\n':''}\n🔗 Track here:\n${url}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
+};
+</script>
+</body>
+</html>
