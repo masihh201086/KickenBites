@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#1a1a2e">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <title>Kicken Bites — Admin</title>
 <style>
@@ -475,15 +476,33 @@ window.doLogin=function(){
 };
 
 window.downloadCollage = function(){
-  if(!window._collageDataUrl){
-    showToast('Take a screenshot of the collage to save it!');
-    return;
-  }
-  var a=document.createElement('a');
-  a.href=window._collageDataUrl;
-  a.download='kickenbites-menu-'+getTodayDate()+'.jpg';
-  a.click();
-  showToast('Downloaded! Attach in WhatsApp group.');
+  var section = document.getElementById('collageSection');
+  showToast('⏳ Preparing download...');
+  // Use html2canvas to screenshot the collage (bypasses CORS)
+  html2canvas(section.querySelector('canvas'), {
+    useCORS: true,
+    allowTaint: true,
+    scale: 2
+  }).then(function(c){
+    var url = c.toDataURL('image/jpeg', 0.95);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'kickenbites-menu-'+getTodayDate()+'.jpg';
+    a.click();
+    window._collageDataUrl = url;
+    showToast('✅ Downloaded! Now attach in WhatsApp.');
+  }).catch(function(){
+    // Direct canvas fallback
+    var canvas = document.getElementById('menuCollage');
+    try{
+      var url = canvas.toDataURL('image/jpeg',0.92);
+      var a = document.createElement('a');
+      a.href = url; a.download = 'kickenbites-menu-'+getTodayDate()+'.jpg';
+      a.click();
+    }catch(e){
+      showToast('Long press the collage image to save it!');
+    }
+  });
 };
 
 window.forwardWAMsg=function(){
@@ -504,11 +523,21 @@ window.copyWAMsg=function(){
 };
 
 window.shareCollageWA=function(){
+  // Step 1: Download the collage image
   downloadCollage();
+  // Step 2: Copy the text message
+  var msg = window._waMsgText || '';
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(msg).catch(function(){});
+  }
+  // Step 3: Open WhatsApp after short delay
   setTimeout(function(){
-    var msg=window._waMsgText||'';
-    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
-  },1000);
+    // Show instructions
+    showToast('Image downloaded! In WhatsApp: Attach image → paste text → Send');
+    setTimeout(function(){
+      window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+    }, 1500);
+  }, 1000);
 };
 
 // Auto-restore session on page load
@@ -1825,12 +1854,10 @@ window.generateCollage = async function(){
   // Try to get dataURL - may fail if images caused canvas taint
   try{
     window._collageDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    showToast('Collage ready! Download and attach in WhatsApp.');
   } catch(e){
-    // Canvas tainted by CORS - show collage but disable download
-    showToast('Collage shown! Screenshot it to save (CORS restriction).');
-    window._collageDataUrl = null;
+    window._collageDataUrl = null; // Will use html2canvas on download
   }
+  showToast('✅ Collage ready! Tap Download Image to save.');
   // Scroll to collage
   setTimeout(function(){
     document.getElementById('collageSection').scrollIntoView({behavior:'smooth', block:'start'});
