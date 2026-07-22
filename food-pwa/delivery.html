@@ -415,17 +415,34 @@ window.doLogout = async function() {
 };
 
 // --- ORDERS ---
-function loadOrders() {
-  const today = getTodayDate();
-  const q = query(collection(db,'orders'), where('date','==',today));
-  onSnapshot(q, snap => {
-    allOrders = snap.docs.map(d=>({id:d.id,...d.data()}))
-      .filter(o => o.orderType==='delivery')
-      .sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
-    renderAllTabs();
-  }, err => {
-    document.getElementById('tab-active').innerHTML = '<div class="empty">⚠️ Error loading orders. Refresh.</div>';
-  });
+function loadOrders(){
+  if(!boy?.phone)return;
+  const today=getTodayDate();
+  const q=query(collection(db,'orders'),where('date','==',today));
+  onSnapshot(q,
+    snap=>{
+      allOrders=snap.docs.map(d=>({id:d.id,...d.data()}))
+        .filter(o=>o.orderType==='delivery')
+        .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+      // Cache for offline
+      try{localStorage.setItem('kb_offline_orders',JSON.stringify(allOrders));}catch(e){}
+      // Update summary using orders assigned to THIS boy
+      var myOrders=allOrders.filter(o=>!o.assignedBoyPhone||o.assignedBoyPhone===boy.phone);
+      updateTodaySummary(myOrders);
+      // Save delivered to history
+      myOrders.filter(o=>o.status==='delivered').forEach(saveToHistory);
+      renderAllTabs();
+    },
+    err=>{
+      console.error('Orders error:',err);
+      // Load offline cache
+      try{
+        var cached=localStorage.getItem('kb_offline_orders');
+        if(cached){allOrders=JSON.parse(cached);renderAllTabs();showToast('Offline mode');}
+      }catch(e){}
+      document.getElementById('tab-active').innerHTML='<div class="empty">⚠️ Error loading. Showing cached.</div>';
+    }
+  );
 }
 
 function renderAllTabs() {
@@ -460,9 +477,10 @@ function orderCard(o) {
     <div class="oc-btns">
       <a class="obtn ob-call" href="tel:${o.phone}">📞 Call</a>
       <a class="obtn ob-maps" href="${mapsUrl}" target="_blank">🗺️ Maps</a>
+      <button class="obtn ob-wa" onclick="waMsgDelay('${o.phone}','${(o.name||'').replace(/'/g,'')}')">💬 WA</button>
       ${!isDone&&!isOut?`<button class="obtn ob-pickup" onclick="markPickedUp('${o.id}')">🛵 Picked Up</button>`:''}
-      ${isOut?`<button class="ob-deliver" onclick="markDelivered('${o.id}','${o.name}')">✅ Mark as Delivered</button>`:''}
-      ${isDone?`<div class="del-done-tag">✅ Delivered Successfully!</div>`:''}
+      ${isOut?`<button class="ob-deliver" onclick="markDelivered('${o.id}','${o.name.replace(/'/g,'')}')">✅ Delivered</button>`:''}
+      ${isDone?`<div class="del-done-tag">✅ Delivered!</div>`:''}
     </div>
   </div>`;
 }
@@ -582,12 +600,20 @@ async function loadEarnings(){
     const {getDocs:gd} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
 
     // Query ALL delivered orders for this boy (no compound query = no index needed)
-    const q=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone));
-    const snap=await gd(q);
-    const allOrders=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Query all today's delivered orders (since assignedBoyPhone may not always be set)
+    const q1=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone));
+    const q2=query(collection(db,'orders'),where('date','==',todayStr),where('status','==','delivered'));
+    const [snap1,snap2]=await Promise.all([gd(q1),gd(q2)]);
+    const allOrdersMap={};
+    snap1.docs.forEach(d=>{allOrdersMap[d.id]={id:d.id,...d.data()};});
+    snap2.docs.forEach(d=>{allOrdersMap[d.id]={id:d.id,...d.data()};});
+    const allOrdersList=Object.values(allOrdersMap);
+
+    // Also get from localStorage history
+    const historyOrders=JSON.parse(localStorage.getItem('kb_delivery_history')||'[]');
 
     // Filter delivered only
-    const orders=allOrders.filter(o=>o.status==='delivered');
+    const orders=allOrdersList.filter(o=>o.status==='delivered');
     const todayOrders=orders.filter(o=>o.date===todayStr);
     const weekOrders=orders.filter(o=>{
       const d=new Date(o.deliveredAt||o.createdAt||0);
@@ -599,7 +625,15 @@ async function loadEarnings(){
     });
 
     // Earn = deliveryCharge per order (fallback to 15 if not set)
-    const earn=arr=>arr.reduce((s,o)=>s+(Number(o.deliveryCharge)||Number(o.delivery)||15),0);
+    const earn=arr=>arr.reduce((s,o)=>{
+      var charge=Number(o.deliveryCharge)||Number(o.delivery)||0;
+      if(!charge){
+        // Use location-based default if no charge set
+        var loc=o.address||o.location||'';
+        charge=loc.includes('PATA')?50:15; // PATA Gate = 50, others = 15
+      }
+      return s+charge;
+    },0);
 
     document.getElementById('todayEarn').textContent='₹'+earn(todayOrders);
     document.getElementById('todayDelCount').textContent=todayOrders.length+' deliveries today';
@@ -650,7 +684,11 @@ window.showRoute=function(){
 function updateTodaySummary(orders){
   var delivered=orders.filter(function(o){return o.status==='delivered';});
   var pending=orders.filter(function(o){return ['confirmed','preparing','ready','out_for_delivery'].includes(o.status);});
-  var earned=delivered.reduce(function(s,o){return s+(Number(o.deliveryCharge)||Number(o.delivery)||15);},0);
+  var earned=delivered.reduce(function(s,o){
+    var c=Number(o.deliveryCharge)||Number(o.delivery)||0;
+    if(!c){var loc=o.address||'';c=loc.includes('PATA')?50:15;}
+    return s+c;
+  },0);
   var bar=document.getElementById('todaySummaryBar');
   if(bar) bar.style.display='block';
   var so=document.getElementById('sumOrders');
