@@ -329,9 +329,8 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div id="collageSection" style="display:none;margin-bottom:8px">
       <div style="font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:7px">🖼️ Menu Collage (attach this in WhatsApp)</div>
       <canvas id="menuCollage" style="width:100%;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1)"></canvas>
-      <div style="display:flex;gap:7px;margin-top:8px">
-        <button onclick="downloadCollage()" style="flex:1;padding:10px;background:var(--dark);color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.8rem">⬇️ Download Image</button>
-        <button onclick="shareCollageWA()" style="flex:1;padding:10px;background:#25d366;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.8rem">📤 Share on WhatsApp</button>
+      <div style="margin-top:8px">
+        <button onclick="downloadCollage()" style="width:100%;padding:11px;background:var(--dark);color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.84rem">⬇️ Download Collage Image</button>
       </div>
     </div>
     <div style="display:flex;gap:8px">
@@ -1752,12 +1751,15 @@ window.generateCollage = async function(){
   ctx.font = 'bold 34px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('KICKEN BITES', canvas.width/2, 44);
-  var dateStr = selMenuDate
-    ? new Date(selMenuDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})
-    : new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+  var todayD=getTodayDate();
+  var tomorrowD=new Date(new Date().getTime()+86400000).toISOString().split('T')[0];
+  var dateStr;
+  if(selMenuDate===todayD) dateStr="Today Menu";
+  else if(selMenuDate===tomorrowD) dateStr="Tomorrow Menu";
+  else dateStr=selMenuDate?new Date(selMenuDate+"T00:00:00").toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long"})+" Menu":"Today Menu";
   ctx.font = '18px sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.88)';
-  ctx.fillText(dateStr + ' Menu', canvas.width/2, 72);
+  ctx.fillText(dateStr, canvas.width/2, 72);
 
   // Load images with timeout
   // Load images via CORS proxy so canvas stays clean (downloadable)
@@ -1835,7 +1837,7 @@ window.generateCollage = async function(){
       ctx.fillStyle = 'white';
       ctx.font = 'bold 13px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(item.availableQty+' left', x+CELL_W-48, y+25);
+      ctx.fillText(item.availableQty+' avail', x+CELL_W-48, y+25);
     }
 
     // Item name
