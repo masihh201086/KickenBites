@@ -150,6 +150,29 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;min-height:1
     <button class="main-btn btn-green" id="mainBtn" onclick="toggleGPS()">🟢 Start Delivery & Share Location</button>
     <div class="coords" id="coordsDisp"></div>
     <div class="upd-badge" id="updBadge"></div>
+    <div style="display:flex;gap:7px;margin-top:8px">
+      <button onclick="showRoute()" style="flex:1;padding:9px;background:#8b5cf6;color:white;border:none;border-radius:10px;font-size:.78rem;font-weight:700;cursor:pointer">🗺️ Optimize Route</button>
+      <button onclick="showHistory()" style="flex:1;padding:9px;background:var(--dark);color:white;border:none;border-radius:10px;font-size:.78rem;font-weight:700;cursor:pointer">📅 History</button>
+    </div>
+  </div>
+
+  <!-- TODAY SUMMARY BAR -->
+  <div id="todaySummaryBar" style="display:none;background:white;border-radius:12px;padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Today's Summary</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+      <div style="background:#f0fdf4;border-radius:9px;padding:8px">
+        <div style="font-size:1.3rem;font-weight:900;color:var(--g)" id="sumOrders">0</div>
+        <div style="font-size:.65rem;color:var(--muted)">Delivered</div>
+      </div>
+      <div style="background:#fff7ed;border-radius:9px;padding:8px">
+        <div style="font-size:1.3rem;font-weight:900;color:var(--o)" id="sumEarned">₹0</div>
+        <div style="font-size:.65rem;color:var(--muted)">Earned</div>
+      </div>
+      <div style="background:#eff6ff;border-radius:9px;padding:8px">
+        <div style="font-size:1.3rem;font-weight:900;color:var(--b)" id="sumPending">0</div>
+        <div style="font-size:.65rem;color:var(--muted)">Pending</div>
+      </div>
+    </div>
   </div>
 
   <!-- 4 TABS -->
@@ -328,25 +351,10 @@ function startApp() {
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainApp').style.display='block';
   document.getElementById('loggedAs').textContent = `👤 ${boy?.name||boy?.phone||''}`;
-  if (boy?.phone) setDoc(doc(db,'deliveryBoys',boy.phone),{isOnline:true,lastSeen:new Date().toISOString()},{merge:true}).catch(()=>{});
-  // Set offline when page closes
-  window.addEventListener('beforeunload',()=>{
-    if(boy?.phone) navigator.sendBeacon&&navigator.sendBeacon(
-      `https://firestore.googleapis.com/v1/projects/myfood-6487f/databases/(default)/documents/deliveryBoys/${boy.phone}?updateMask.fieldPaths=isOnline`,
-      JSON.stringify({fields:{isOnline:{booleanValue:false}}})
-    );
-  });
-  // Set offline when page hidden for > 3 minutes
-  let hiddenTimer=null;
-  document.addEventListener('visibilitychange',()=>{
-    if(document.hidden){
-      hiddenTimer=setTimeout(async()=>{
-        if(boy?.phone) await setDoc(doc(db,'deliveryBoys',boy.phone),{isOnline:false,lastSeen:new Date().toISOString()},{merge:true}).catch(()=>{});
-      },3*60*1000);
-    } else {
-      clearTimeout(hiddenTimer);
-      if(boy?.phone) setDoc(doc(db,'deliveryBoys',boy.phone),{isOnline:true,lastSeen:new Date().toISOString()},{merge:true}).catch(()=>{});
-    }
+  // NOT setting isOnline here - only set when GPS actually starts
+  // Mark as offline on page close (using Firebase directly, sendBeacon doesn't work with Firestore)
+  window.addEventListener('beforeunload', async ()=>{
+    try{ await setOnlineStatus(false); }catch(e){}
   });
   requestNotifPerm();
   loadOrders();
@@ -473,14 +481,23 @@ window.markDelivered = async function(id, name) {
 };
 
 // --- GPS ---
+// Helper to update online status
+async function setOnlineStatus(online){
+  if(!boy?.phone) return;
+  await setDoc(doc(db,'deliveryBoys',boy.phone),{
+    isOnline:online, lastSeen:new Date().toISOString()
+  },{merge:true}).catch(()=>{});
+}
+
 window.toggleGPS = function() { isGPS ? stopGPS() : startGPS(); };
 
 function startGPS() {
   if (!navigator.geolocation) { alert('GPS not supported. Use Chrome on Android.'); return; }
   setBar('wait','Requesting GPS permission…');
   navigator.geolocation.getCurrentPosition(
-    pos => {
+    async pos => {
       isGPS = true; updateUI(true);
+      await setOnlineStatus(true); // Set online only when GPS actually starts
       savePos(pos);
       watchId = navigator.geolocation.watchPosition(p=>savePos(p), e=>setBar('bad','GPS Error: '+e.message), {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
     },
@@ -495,7 +512,10 @@ function startGPS() {
 async function stopGPS() {
   if (watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
   isGPS=false; updateCount=0;
-  try{await setDoc(doc(db,'delivery','status'),{isDelivering:false,lat:null,lng:null,boyName:'',boyPhone:'',deliveryStarted:false,updatedAt:new Date().toISOString()});}catch(e){}
+  try{
+    await setDoc(doc(db,'delivery','status'),{isDelivering:false,lat:null,lng:null,boyName:'',boyPhone:'',deliveryStarted:false,updatedAt:new Date().toISOString()});
+    await setOnlineStatus(false); // Mark offline when GPS stops
+  }catch(e){}
   setBar('wait','GPS stopped');
   document.getElementById('coordsDisp').textContent='';
   document.getElementById('updBadge').textContent='';
@@ -550,26 +570,37 @@ window.swTab = function(t) {
 
 async function loadEarnings(){
   if(!boy?.phone) return;
+  const earningsEl=document.getElementById('todayEarn');
+  if(earningsEl) earningsEl.textContent='Loading...';
   try{
     const now=new Date();
     const todayStr=getTodayDate();
     const weekAgo=new Date(now-7*86400000);
     const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
-    // Get all delivered orders assigned to this boy
-    const q=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone),where('status','==','delivered'));
-    const snap=await (async()=>{
-      return new Promise((res,rej)=>{
-        const {getDocs}=window._firestoreFns||{};
-        import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(m=>{
-          m.getDocs(q).then(res).catch(rej);
-        });
-      });
-    })();
-    const orders=snap.docs.map(d=>d.data());
+
+    // Use getDocs from firebase module (already imported at top)
+    const {getDocs:gd} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+    // Query ALL delivered orders for this boy (no compound query = no index needed)
+    const q=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone));
+    const snap=await gd(q);
+    const allOrders=snap.docs.map(d=>({id:d.id,...d.data()}));
+
+    // Filter delivered only
+    const orders=allOrders.filter(o=>o.status==='delivered');
     const todayOrders=orders.filter(o=>o.date===todayStr);
-    const weekOrders=orders.filter(o=>new Date(o.createdAt||0)>=weekAgo);
-    const monthOrders=orders.filter(o=>new Date(o.createdAt||0)>=monthStart);
-    const earn=arr=>arr.reduce((s,o)=>s+(o.deliveryCharge||0),0);
+    const weekOrders=orders.filter(o=>{
+      const d=new Date(o.deliveredAt||o.createdAt||0);
+      return d>=weekAgo;
+    });
+    const monthOrders=orders.filter(o=>{
+      const d=new Date(o.deliveredAt||o.createdAt||0);
+      return d>=monthStart;
+    });
+
+    // Earn = deliveryCharge per order (fallback to 15 if not set)
+    const earn=arr=>arr.reduce((s,o)=>s+(Number(o.deliveryCharge)||Number(o.delivery)||15),0);
+
     document.getElementById('todayEarn').textContent='₹'+earn(todayOrders);
     document.getElementById('todayDelCount').textContent=todayOrders.length+' deliveries today';
     document.getElementById('weekEarn').textContent='₹'+earn(weekOrders);
@@ -579,7 +610,105 @@ async function loadEarnings(){
     const bonusAmt=monthOrders.length>=30?200:monthOrders.length>=20?100:0;
     document.getElementById('bonus').textContent='₹'+bonusAmt;
     document.getElementById('totalSalary').textContent='₹'+(1800+earn(monthOrders)+bonusAmt);
-  }catch(e){ console.error('Earnings error',e); }
+    console.log('Earnings loaded: '+orders.length+' delivered orders');
+  }catch(e){
+    console.error('Earnings error',e);
+    document.getElementById('todayEarn').textContent='Error';
+  }
+}
+
+// ---- WA DELAY MESSAGE ----
+window.waMsgDelay=function(phone, name){
+  var msgs=[
+    'Hi '+name+', your Kicken Bites order is on the way! Slight delay due to traffic. Arriving in ~15 mins. Sorry for the wait! 🙏',
+    'Hi '+name+', your Kicken Bites order is just around the corner! Will be there in 5-10 mins. 🛵',
+    'Hi '+name+', we are running a bit late today. Your order will arrive in ~20 mins. Thanks for your patience! 🍗'
+  ];
+  var choice=prompt('Select delay message (1/2/3):\n1. 15 min delay\n2. Almost there\n3. 20 min delay');
+  if(!choice)return;
+  var idx=parseInt(choice)-1;
+  if(idx<0||idx>2)idx=0;
+  var url='https://wa.me/91'+phone+'?text='+encodeURIComponent(msgs[idx]);
+  location.href=url;
+};
+
+// ---- ROUTE OPTIMIZER ----
+window.showRoute=function(){
+  var activeOrds=allOrders.filter(function(o){return o.status==='out_for_delivery'||o.status==='ready'||o.status==='confirmed'||o.status==='preparing';});
+  if(!activeOrds.length){showToast('No active deliveries');return;}
+  // Build Google Maps waypoints URL
+  var addresses=activeOrds.map(function(o){return (o.address||'')+(o.address&&o.address!=='Takeaway'?' GAIL Pata Auraiya':'');}).filter(function(a){return a.trim();});
+  if(!addresses.length){showToast('No delivery addresses');return;}
+  var origin='GAIL Pata+Auraiya+UP';
+  var dest=encodeURIComponent(addresses[addresses.length-1]);
+  var waypoints=addresses.slice(0,-1).map(function(a){return encodeURIComponent(a);}).join('|');
+  var url='https://www.google.com/maps/dir/?api=1&origin='+origin+'&destination='+dest+(waypoints?'&waypoints='+waypoints:'')+'&travelmode=driving';
+  location.href=url;
+};
+
+// ---- UPDATE TODAY SUMMARY ----
+function updateTodaySummary(orders){
+  var delivered=orders.filter(function(o){return o.status==='delivered';});
+  var pending=orders.filter(function(o){return ['confirmed','preparing','ready','out_for_delivery'].includes(o.status);});
+  var earned=delivered.reduce(function(s,o){return s+(Number(o.deliveryCharge)||Number(o.delivery)||15);},0);
+  var bar=document.getElementById('todaySummaryBar');
+  if(bar) bar.style.display='block';
+  var so=document.getElementById('sumOrders');
+  var se=document.getElementById('sumEarned');
+  var sp=document.getElementById('sumPending');
+  if(so) so.textContent=delivered.length;
+  if(se) se.textContent='₹'+earned;
+  if(sp) sp.textContent=pending.length;
+  // Performance badge
+  if(delivered.length>=10){
+    showToast('🏆 Amazing! 10+ deliveries today! Great work!');
+  }
+}
+
+// ---- OFFLINE CACHE ----
+function cacheOrdersOffline(orders){
+  try{localStorage.setItem('kb_offline_orders',JSON.stringify(orders));}catch(e){}
+}
+function loadOfflineOrders(){
+  try{
+    var saved=localStorage.getItem('kb_offline_orders');
+    if(saved) return JSON.parse(saved);
+  }catch(e){}
+  return [];
+}
+
+// ---- DELIVERY HISTORY CALENDAR ----
+window.showHistory=function(){
+  var deliveredAll=JSON.parse(localStorage.getItem('kb_delivery_history')||'[]');
+  if(!deliveredAll.length){showToast('No delivery history saved yet');return;}
+  // Group by date
+  var byDate={};
+  deliveredAll.forEach(function(o){
+    var d=o.date||o.createdAt?.split('T')[0]||'';
+    if(!d)return;
+    if(!byDate[d])byDate[d]={count:0,earned:0};
+    byDate[d].count++;
+    byDate[d].earned+=(Number(o.deliveryCharge)||15);
+  });
+  var html='📅 DELIVERY HISTORY\n\n';
+  Object.keys(byDate).sort().reverse().slice(0,14).forEach(function(d){
+    var b=byDate[d];
+    var badge=b.count>=10?'🏆':b.count>=5?'⭐':'';
+    html+=d+': '+b.count+' deliveries | ₹'+b.earned+' '+badge+'\n';
+  });
+  alert(html);
+};
+
+// Save delivered orders to history
+function saveToHistory(order){
+  try{
+    var history=JSON.parse(localStorage.getItem('kb_delivery_history')||'[]');
+    if(!history.find(function(o){return o.id===order.id;})){
+      history.push(order);
+      if(history.length>200) history=history.slice(-200);
+      localStorage.setItem('kb_delivery_history',JSON.stringify(history));
+    }
+  }catch(e){}
 }
 
 function showToast(msg){let t=document.getElementById('dtoast');if(!t){t=document.createElement('div');t.id='dtoast';t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--g);color:white;padding:10px 20px;border-radius:50px;font-weight:700;font-size:.84rem;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}
