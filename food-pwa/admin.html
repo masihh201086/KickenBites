@@ -317,14 +317,25 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div id="todayList"></div>
     </div>
     <button class="btn btn-o" onclick="saveTodayMenu()">💾 Save & Publish Menu</button>
-    <button class="btn btn-wa" onclick="genWAMessage()" style="margin-top:7px">📱 Generate WhatsApp Menu Message</button>
+    <div style="display:flex;gap:8px;margin-top:7px">
+      <button class="btn btn-wa" onclick="genWAMessage();generateCollage()" style="flex:1;margin-top:0">📱 Generate Menu + Collage</button>
+    </div>
     <div id="waMsgBox" style="display:none;margin-top:9px">
       <div class="ct">WhatsApp Message (Copy & Post)</div>
       <div class="wa-msg-box" id="waMsgContent"></div>
       <div id="waImgBox" style="display:none;background:#f9f9f9;border-radius:10px;padding:11px;margin-bottom:8px"></div>
+    <!-- COLLAGE SECTION -->
+    <div id="collageSection" style="display:none;margin-bottom:8px">
+      <div style="font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:7px">🖼️ Menu Collage (attach this in WhatsApp)</div>
+      <canvas id="menuCollage" style="width:100%;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1)"></canvas>
+      <div style="display:flex;gap:7px;margin-top:8px">
+        <button onclick="downloadCollage()" style="flex:1;padding:10px;background:var(--dark);color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.8rem">⬇️ Download Image</button>
+        <button onclick="shareCollageWA()" style="flex:1;padding:10px;background:#25d366;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.8rem">📤 Share on WhatsApp</button>
+      </div>
+    </div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-g" onclick="copyWAMsg()" style="flex:1;margin-top:0">📋 Copy Message</button>
-      <button class="btn btn-wa" onclick="forwardWAMsg()" style="flex:1;margin-top:0">📤 Open in WhatsApp</button>
+      <button class="btn btn-g" onclick="copyWAMsg()" style="flex:1;margin-top:0">📋 Copy Text</button>
+      <button class="btn btn-wa" onclick="forwardWAMsg()" style="flex:1;margin-top:0">📤 Open WhatsApp</button>
     </div>
     </div>
   </div>
@@ -395,11 +406,10 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="sg2"><label>UPI Display Name</label><input class="si" id="sUpiName" placeholder="e.g. Kicken Bites Pvt Ltd"></div>
       <div class="sg2"><label>ImgBB API Key (for image uploads)</label><input class="si" id="sImgbb" placeholder="Get free key from imgbb.com/api"></div>
       <div class="sg2">
-        <label>CallMeBot API Key (for WhatsApp notifications)</label>
-        <input class="si" id="sCallMeBot" placeholder="Get free key — send 'I allow callmebot to send me messages' to +34 644 65 21 69 on WhatsApp">
+        <label>Admin WhatsApp Number (for order notifications)</label>
+        <input class="si" id="sAdminPhone" placeholder="e.g. 9712951947" type="tel" inputmode="numeric" maxlength="10">
         <div style="font-size:.7rem;color:var(--muted);margin-top:4px;line-height:1.5">
-          📱 Admin number: <b>9795482664</b> | 
-          <a href="https://wa.me/34644652169?text=I+allow+callmebot+to+send+me+messages" target="_blank" style="color:var(--b)">Click to register now →</a>
+          📱 When customer pays → WhatsApp opens with order details to this number
         </div>
       </div>
     </div>
@@ -721,15 +731,11 @@ window.viewOrdersTab=function(){
 // ---- WHATSAPP NOTIFICATIONS ----
 const ADMIN_PHONE = '919712951947'; // Testing number - change to actual admin when live
 
-// Send WhatsApp to admin via CallMeBot
-async function sendAdminWA(message){
-  const apiKey = cfg.callMeBotKey || localStorage.getItem('callMeBotKey') || '';
-  if(!apiKey){ console.log('CallMeBot key not set'); return; }
-  try{
-    const url = 'https://api.callmebot.com/whatsapp.php?phone='+ADMIN_PHONE+'&text='+encodeURIComponent(message)+'&apikey='+apiKey;
-    await fetch(url, {mode:'no-cors'});
-    console.log('Admin WA sent');
-  }catch(e){ console.error('WA send error:', e); }
+// Send WhatsApp to admin - opens wa.me with order details
+function sendAdminWA(message){
+  // Open WhatsApp to admin number with order details
+  var adminNum = window.ADMIN_PHONE_DYNAMIC || ADMIN_PHONE;
+  window.open('https://wa.me/'+adminNum+'?text='+encodeURIComponent(message),'_blank');
 }
 
 // Send WhatsApp confirmation to customer
@@ -1431,7 +1437,8 @@ function loadSetupFields(){
   document.getElementById('sUpi').value=cfg.upiId||'';
   document.getElementById('sUpiName').value=cfg.upiName||'';
   document.getElementById('sImgbb').value=cfg.imgbbKey||localStorage.getItem('imgbbKey')||'';
-  document.getElementById('sCallMeBot').value=cfg.callMeBotKey||localStorage.getItem('callMeBotKey')||'';
+  document.getElementById('sAdminPhone').value=cfg.adminPhone||'9712951947';
+  if(cfg.adminPhone) window.ADMIN_PHONE_DYNAMIC='91'+cfg.adminPhone;
 }
 
 window.saveSetup=async function(){
@@ -1439,9 +1446,9 @@ window.saveSetup=async function(){
   if(np){if(np!==nc){alert('Passwords do not match');return;}localStorage.setItem(PK,np);}
   const imgbbKey=document.getElementById('sImgbb').value.trim();
   if(imgbbKey){IMGBB=imgbbKey;localStorage.setItem('imgbbKey',imgbbKey);}
-  const callMeBotKey=document.getElementById('sCallMeBot').value.trim();
-  if(callMeBotKey)localStorage.setItem('callMeBotKey',callMeBotKey);
-  cfg={...cfg,shopName:document.getElementById('sName').value,upiId:document.getElementById('sUpi').value,upiName:document.getElementById('sUpiName').value,imgbbKey:imgbbKey||cfg.imgbbKey||'',callMeBotKey:callMeBotKey||cfg.callMeBotKey||''};
+  const adminPhone=document.getElementById('sAdminPhone').value.trim();
+  if(adminPhone) window.ADMIN_PHONE_DYNAMIC='91'+adminPhone;
+  cfg={...cfg,shopName:document.getElementById('sName').value,upiId:document.getElementById('sUpi').value,upiName:document.getElementById('sUpiName').value,imgbbKey:imgbbKey||cfg.imgbbKey||'',adminPhone:adminPhone||cfg.adminPhone||''};
   try{await saveConfig(cfg);showToast('✅ Settings saved!');}catch(e){alert('Error: '+e.message);}
 };
 
