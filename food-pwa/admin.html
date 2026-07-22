@@ -434,6 +434,15 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div id="duesList"><p style="font-size:.78rem;color:var(--muted);text-align:center">Loading…</p></div>
       <button onclick="loadDues()" style="width:100%;padding:9px;background:var(--dark);color:white;border:none;border-radius:var(--radius);font-size:.8rem;font-weight:600;cursor:pointer;margin-top:8px">🔄 Refresh Dues</button>
     </div>
+    <!-- DEFAULT DELIVERY BOY -->
+    <div class="card" style="margin-top:9px">
+      <div class="ct">🛵 Default Delivery Boy</div>
+      <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">All new orders auto-assigned to this boy unless you change manually.</p>
+      <select id="sDefaultBoy" style="width:100%;padding:10px;border:2px solid #eee;border-radius:10px;font-size:.88rem;margin-bottom:7px">
+        <option value="">— No default (assign manually) —</option>
+      </select>
+      <div id="defaultBoyStatus" style="font-size:.73rem;color:var(--muted)"></div>
+    </div>
     <button class="btn btn-o" onclick="saveSetup()">💾 Save Settings</button>
     <button class="btn btn-sec" onclick="doLogout()" style="margin-top:7px">Logout</button>
   </div>
@@ -596,6 +605,8 @@ async function initDash(){
         // TRIGGER 1: Customer paid OR pay later selected
         if(!prevPaid && o.customerPaid===true){
           notifyAdmin(o, o.payLater ? 'paylater' : 'paid');
+          // Auto-assign default delivery boy
+          autoAssignDefaultBoy(o);
         }
 
         // TRIGGER 2: Order delivered
@@ -1067,7 +1078,8 @@ function renderOrders(){
         ${o.status==='out_for_delivery'?`<button class="sb2 sb-del" onclick="chgStatus('${o.id}','delivered')">✅ Delivered</button>`:''}
         ${o.orderType==='delivery'&&!o.assignedBoy&&deliveryBoys.length>0?`<button class="sb2 sb-assign" onclick="assignBoy('${o.id}')">👤 Assign Boy</button>`:''}
         ${['pending_payment','confirmed','preparing'].includes(o.status)?`<button class="sb2 sb-cancel" onclick="chgStatus('${o.id}','cancelled')">✗ Cancel</button>`:''}
-        <button class="sb2" onclick="waOrderSummary('${o.id}')" style="background:#25d366;color:white">📱 WhatsApp</button>
+        <button class="sb2" onclick="waOrderSummary('${o.id}')" style="background:#25d366;color:white">📱 WA</button>
+        ${o.orderType==='delivery'?`<button class="sb2" onclick="assignBoy('${o.id}')" style="background:#8b5cf6;color:white">🛵 ${o.assignedBoyName||'Assign'}</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1459,6 +1471,25 @@ function renderDeliveryBoys(){
     </div>`;
   }).join('');
   list.innerHTML=html;
+  // Update default boy dropdown
+  var sel=document.getElementById('sDefaultBoy');
+  if(sel){
+    var curVal=sel.value;
+    sel.innerHTML='<option value="">— No default (assign manually) —</option>';
+    deliveryBoys.forEach(function(b){
+      var ph=b.phone||b.id;
+      var opt=document.createElement('option');
+      opt.value=ph;
+      opt.textContent=(b.name||ph)+(b.isOnline?' 🟢':'⚫');
+      sel.appendChild(opt);
+    });
+    sel.value=cfg.defaultBoyPhone||curVal||'';
+    var status=document.getElementById('defaultBoyStatus');
+    if(status&&sel.value){
+      var db2=deliveryBoys.find(function(b){return (b.phone||b.id)===sel.value;});
+      if(db2) status.textContent='Selected: '+db2.name+' | '+sel.value;
+    }
+  }
 }
 
 window.addDeliveryBoy=async function(){
@@ -1506,6 +1537,10 @@ function loadSetupFields(){
   document.getElementById('sImgbb').value=cfg.imgbbKey||localStorage.getItem('imgbbKey')||'';
   document.getElementById('sAdminPhone').value=cfg.adminPhone||'9712951947';
   if(cfg.adminPhone) window.ADMIN_PHONE_DYNAMIC='91'+cfg.adminPhone;
+  if(cfg.defaultBoyPhone){
+    var dSel=document.getElementById('sDefaultBoy');
+    if(dSel) dSel.value=cfg.defaultBoyPhone;
+  }
 }
 
 window.saveSetup=async function(){
@@ -1515,7 +1550,8 @@ window.saveSetup=async function(){
   if(imgbbKey){IMGBB=imgbbKey;localStorage.setItem('imgbbKey',imgbbKey);}
   const adminPhone=document.getElementById('sAdminPhone').value.trim();
   if(adminPhone) window.ADMIN_PHONE_DYNAMIC='91'+adminPhone;
-  cfg={...cfg,shopName:document.getElementById('sName').value,upiId:document.getElementById('sUpi').value,upiName:document.getElementById('sUpiName').value,imgbbKey:imgbbKey||cfg.imgbbKey||'',adminPhone:adminPhone||cfg.adminPhone||''};
+  const defaultBoyPhone=document.getElementById('sDefaultBoy')?.value||'';
+  cfg={...cfg,shopName:document.getElementById('sName').value,upiId:document.getElementById('sUpi').value,upiName:document.getElementById('sUpiName').value,imgbbKey:imgbbKey||cfg.imgbbKey||'',adminPhone:adminPhone||cfg.adminPhone||'',defaultBoyPhone:defaultBoyPhone};
   try{await saveConfig(cfg);showToast('✅ Settings saved!');}catch(e){alert('Error: '+e.message);}
 };
 
@@ -1588,6 +1624,25 @@ window.sw=function(t){
   if(t==='orders'&&adminMap)setTimeout(()=>adminMap.invalidateSize(),100);
 };
 
+// AUTO-ASSIGN DEFAULT DELIVERY BOY
+async function autoAssignDefaultBoy(order){
+  var defaultPhone = cfg.defaultBoyPhone||'';
+  if(!defaultPhone) return; // No default set
+  if(order.assignedBoyPhone) return; // Already assigned
+  if(order.orderType!=='delivery') return; // Takeaway - no delivery needed
+  try{
+    var boy = deliveryBoys.find(function(b){return (b.phone||b.id)===defaultPhone;});
+    if(!boy) return;
+    await setDoc(doc(db,'orders',order.id),{
+      assignedBoyPhone: defaultPhone,
+      assignedBoyName: boy.name||defaultPhone,
+      assignedAt: new Date().toISOString()
+    },{merge:true});
+    showToast('🛵 Auto-assigned to '+boy.name);
+    console.log('Auto-assigned order '+order.id+' to '+boy.name);
+  }catch(e){console.error('Auto-assign error:',e);}
+}
+
 // R6: WhatsApp order summary
 window.waOrderSummary=function(orderId){
   var o=allOrders.find(function(x){return x.id===orderId;});
@@ -1607,6 +1662,30 @@ window.waOrderSummary=function(orderId){
     nl+'Thank you for ordering from Kicken Bites!';
   var phone=o.phone?'91'+o.phone:'';
   window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg),'_blank');
+};
+
+// Manually assign delivery boy to order
+window.assignBoy=async function(orderId){
+  if(!deliveryBoys.length){alert('No delivery boys added yet');return;}
+  var opts=deliveryBoys.map(function(b,i){return (i+1)+'. '+(b.name||b.phone)+(b.isOnline?' 🟢':'⚫');}).join('\n');
+  var input=prompt('Select delivery boy:\n'+opts+'\n\n0. Remove assignment');
+  if(input===null)return;
+  var idx=parseInt(input)-1;
+  if(input==='0'){
+    await setDoc(doc(db,'orders',orderId),{assignedBoyPhone:'',assignedBoyName:'',assignedAt:''},{merge:true});
+    showToast('Assignment removed');return;
+  }
+  if(isNaN(idx)||idx<0||idx>=deliveryBoys.length){alert('Invalid choice');return;}
+  var boy=deliveryBoys[idx];
+  var phone=boy.phone||boy.id;
+  try{
+    await setDoc(doc(db,'orders',orderId),{
+      assignedBoyPhone:phone,
+      assignedBoyName:boy.name||phone,
+      assignedAt:new Date().toISOString()
+    },{merge:true});
+    showToast('✅ Assigned to '+boy.name);
+  }catch(e){alert('Error: '+e.message);}
 };
 
 window.loadDues=async function(){
