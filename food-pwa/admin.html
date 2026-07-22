@@ -726,20 +726,27 @@ function showInAppNotif(cfg, orderData){
   var headline=cfg.headline||'NOTIFICATION';
   var sub=cfg.sub||'';
 
+  // Add animation styles (once)
+  if(!document.getElementById('kbNotifStyles')){
+    var st=document.createElement('style');
+    st.id='kbNotifStyles';
+    st.textContent='@keyframes kbCardPulse{0%,100%{transform:scale(1);box-shadow:0 20px 60px rgba(0,0,0,.6)}50%{transform:scale(1.03);box-shadow:0 24px 80px '+color+'88}}@keyframes kbEmojiBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}@keyframes kbBgBlink{0%,100%{background:rgba(0,0,0,0.85)}50%{background:rgba(230,92,0,0.35)}}';
+    document.head.appendChild(st);
+  }
   // Create overlay
   var overlay=document.createElement('div');
   overlay.id='orderAlert';
-  overlay.setAttribute('style','position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.85)');
+  overlay.setAttribute('style','position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.85);animation:kbBgBlink 1.2s ease infinite');
   overlay.addEventListener('click',function(e){if(e.target===overlay)closeOrderAlert();});
 
   // Create card
   var card=document.createElement('div');
-  card.setAttribute('style','position:relative;background:white;border-radius:22px;width:100%;max-width:370px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6)');
+  card.setAttribute('style','position:relative;background:white;border-radius:22px;width:100%;max-width:370px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:kbCardPulse 1.2s ease infinite');
 
   // Header
   var header=document.createElement('div');
   header.setAttribute('style','background:'+color+';padding:20px;text-align:center;color:white');
-  header.innerHTML='<div style="font-size:3rem">'+emoji+'</div><div style="font-size:1.15rem;font-weight:900;margin-top:8px">'+headline+'</div><div style="font-size:.78rem;opacity:.85;margin-top:4px">'+sub+'</div>';
+  header.innerHTML='<div style="font-size:3rem;animation:kbEmojiBounce 0.9s ease infinite">'+emoji+'</div><div style="font-size:1.15rem;font-weight:900;margin-top:8px">'+headline+'</div><div style="font-size:.78rem;opacity:.85;margin-top:4px">'+sub+'</div>';
   card.appendChild(header);
 
   // Body
