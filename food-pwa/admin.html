@@ -476,33 +476,35 @@ window.doLogin=function(){
 };
 
 window.downloadCollage = function(){
-  var section = document.getElementById('collageSection');
-  showToast('⏳ Preparing download...');
-  // Use html2canvas to screenshot the collage (bypasses CORS)
-  html2canvas(section.querySelector('canvas'), {
-    useCORS: true,
-    allowTaint: true,
-    scale: 2
-  }).then(function(c){
-    var url = c.toDataURL('image/jpeg', 0.95);
+  var canvas = document.getElementById('menuCollage');
+  if(!canvas){showToast('Generate collage first');return;}
+  try{
+    var url = canvas.toDataURL('image/jpeg', 0.92);
+    window._collageDataUrl = url;
     var a = document.createElement('a');
     a.href = url;
     a.download = 'kickenbites-menu-'+getTodayDate()+'.jpg';
+    document.body.appendChild(a);
     a.click();
-    window._collageDataUrl = url;
-    showToast('✅ Downloaded! Now attach in WhatsApp.');
-  }).catch(function(){
-    // Direct canvas fallback
-    var canvas = document.getElementById('menuCollage');
-    try{
-      var url = canvas.toDataURL('image/jpeg',0.92);
-      var a = document.createElement('a');
-      a.href = url; a.download = 'kickenbites-menu-'+getTodayDate()+'.jpg';
-      a.click();
-    }catch(e){
-      showToast('Long press the collage image to save it!');
-    }
-  });
+    document.body.removeChild(a);
+    showToast('✅ Downloading! Check your Downloads folder.');
+  }catch(e){
+    // Canvas tainted - regenerate with proxy
+    showToast('⏳ Reloading images for download...');
+    window._forceProxy = true;
+    generateCollage().then(function(){
+      setTimeout(function(){
+        try{
+          var url2 = canvas.toDataURL('image/jpeg',0.92);
+          var a2 = document.createElement('a');
+          a2.href=url2; a2.download='kickenbites-menu-'+getTodayDate()+'.jpg';
+          document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
+          showToast('✅ Downloaded!');
+        }catch(e2){showToast('Error: '+e2.message);}
+        window._forceProxy = false;
+      },500);
+    });
+  }
 };
 
 window.forwardWAMsg=function(){
@@ -1758,26 +1760,32 @@ window.generateCollage = async function(){
   ctx.fillText(dateStr + ' Menu', canvas.width/2, 72);
 
   // Load images with timeout
-  // Load images - try without CORS first (for canvas drawing)
+  // Load images via CORS proxy so canvas stays clean (downloadable)
   function loadImg(url){
     return new Promise(function(res){
       if(!url){res(null);return;}
-      // Try without crossOrigin (no CORS restriction but may taint canvas)
-      var img = new Image();
-      var done = false;
+      var done=false;
       function finish(r){if(!done){done=true;res(r);}}
-      img.onload = function(){finish(img);};
-      img.onerror = function(){
-        // Try with crossOrigin as fallback
-        var img2 = new Image();
-        img2.crossOrigin = 'anonymous';
-        img2.onload = function(){finish(img2);};
-        img2.onerror = function(){finish(null);};
-        setTimeout(function(){finish(null);}, 3000);
-        img2.src = url+'?t='+Date.now(); // Cache bust
-      };
-      setTimeout(function(){finish(null);}, 6000);
-      img.src = url;
+      // Try direct with crossOrigin first (works if server allows CORS)
+      function tryDirect(){
+        var img=new Image();
+        img.crossOrigin='anonymous';
+        img.onload=function(){finish(img);};
+        img.onerror=function(){tryProxy();};
+        setTimeout(function(){if(!done)tryProxy();},3000);
+        img.src=url;
+      }
+      // Try via CORS proxy as fallback
+      function tryProxy(){
+        var proxyUrl='https://corsproxy.io/?'+encodeURIComponent(url);
+        var img=new Image();
+        img.crossOrigin='anonymous';
+        img.onload=function(){finish(img);};
+        img.onerror=function(){finish(null);};
+        setTimeout(function(){finish(null);},4000);
+        img.src=proxyUrl;
+      }
+      if(window._forceProxy) tryProxy(); else tryDirect();
     });
   }
 
