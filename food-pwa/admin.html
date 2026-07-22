@@ -63,16 +63,25 @@ window.generateCollage = async function(){
   ctx.fillText(dateStr + ' Menu', canvas.width/2, 72);
 
   // Load images with timeout
+  // Load images - try without CORS first (for canvas drawing)
   function loadImg(url){
     return new Promise(function(res){
       if(!url){res(null);return;}
+      // Try without crossOrigin (no CORS restriction but may taint canvas)
       var img = new Image();
-      img.crossOrigin = 'anonymous';
       var done = false;
-      function finish(result){if(!done){done=true;res(result);}}
-      img.onload  = function(){finish(img);};
-      img.onerror = function(){finish(null);};
-      setTimeout(function(){finish(null);}, 5000);
+      function finish(r){if(!done){done=true;res(r);}}
+      img.onload = function(){finish(img);};
+      img.onerror = function(){
+        // Try with crossOrigin as fallback
+        var img2 = new Image();
+        img2.crossOrigin = 'anonymous';
+        img2.onload = function(){finish(img2);};
+        img2.onerror = function(){finish(null);};
+        setTimeout(function(){finish(null);}, 3000);
+        img2.src = url+'?t='+Date.now(); // Cache bust
+      };
+      setTimeout(function(){finish(null);}, 6000);
       img.src = url;
     });
   }
@@ -147,8 +156,19 @@ window.generateCollage = async function(){
   ctx.fillText('Order online: '+link, canvas.width/2, fy+20);
 
   document.getElementById('collageSection').style.display = 'block';
-  window._collageDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-  showToast('Collage ready! Download and attach in WhatsApp.');
+  // Try to get dataURL - may fail if images caused canvas taint
+  try{
+    window._collageDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    showToast('Collage ready! Download and attach in WhatsApp.');
+  } catch(e){
+    // Canvas tainted by CORS - show collage but disable download
+    showToast('Collage shown! Screenshot it to save (CORS restriction).');
+    window._collageDataUrl = null;
+  }
+  // Scroll to collage
+  setTimeout(function(){
+    document.getElementById('collageSection').scrollIntoView({behavior:'smooth', block:'start'});
+  }, 300);
 };
 </script>
 <title>Kicken Bites — Admin</title>
@@ -617,6 +637,43 @@ window.doLogin=function(){
     document.getElementById('app').style.display='block';
     initDash();
   }else alert('Wrong password!');
+};
+
+window.downloadCollage = function(){
+  if(!window._collageDataUrl){
+    showToast('Take a screenshot of the collage to save it!');
+    return;
+  }
+  var a=document.createElement('a');
+  a.href=window._collageDataUrl;
+  a.download='kickenbites-menu-'+getTodayDate()+'.jpg';
+  a.click();
+  showToast('Downloaded! Attach in WhatsApp group.');
+};
+
+window.forwardWAMsg=function(){
+  var msg=window._waMsgText||document.getElementById('waMsgContent').textContent||'';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+};
+
+window.copyWAMsg=function(){
+  var msg=window._waMsgText||document.getElementById('waMsgContent').textContent||'';
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(msg).then(function(){showToast('Copied! Paste in WhatsApp.');});
+  } else {
+    var ta=document.createElement('textarea');
+    ta.value=msg;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');ta.remove();
+    showToast('Copied!');
+  }
+};
+
+window.shareCollageWA=function(){
+  downloadCollage();
+  setTimeout(function(){
+    var msg=window._waMsgText||'';
+    window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+  },1000);
 };
 
 // Auto-restore session on page load
