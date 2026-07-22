@@ -1127,7 +1127,21 @@ function sendCustomerConfirmWA(){
   var phone=lastOrder.phone||currentProfile?.phone||localStorage.getItem('custPhone');
   if(!phone) return;
   var nl='\n';
-  var items=(lastOrder.items||[]).map(function(i){return '  - '+i.name+' x'+i.qty+' = Rs'+i.subtotal;}).join(nl);
+  var items=(lastOrder.items||[]).map(function(i){
+    var price=i.subtotal||(i.price*i.qty)||i.price||0;
+    return '  - '+i.name+' x'+i.qty+' = Rs'+price;
+  }).join(nl);
+  var isDelivery = lastOrder.orderType==='delivery' || (lastOrder.address && lastOrder.address!=='Takeaway');
+  var trackLink = 'https://masihh201086.github.io/KickenBites/food-pwa/track.html?order='+currentOrderId;
+  var locationLine = isDelivery
+    ? '📍 Deliver to: '+lastOrder.address
+    : '📍 Pickup from: Kicken Bites, Netaji Kunj 2027, GAIL Pata';
+  var deliveryLine = isDelivery
+    ? (nl+'🗺️ Track your delivery:'+nl+trackLink)
+    : (nl+'⏰ Pickup time: 30-45 minutes');
+  var payLine = lastOrder.payLater
+    ? '💳 Payment: Cash on Delivery'
+    : '💳 Payment: Received ✅';
   var msg=
     '🍗 *KICKEN BITES*'+nl+
     '✅ *Order Confirmed!*'+nl+nl+
@@ -1136,13 +1150,11 @@ function sendCustomerConfirmWA(){
     '*Order Details:*'+nl+
     items+nl+nl+
     '💰 *Total: Rs '+lastOrder.total+'*'+
-    (lastOrder.delivery?' (incl. Rs '+lastOrder.delivery+' delivery)':'')+nl+
-    '📍 Deliver to: '+lastOrder.address+nl+
-    '💳 Payment: Received ✅'+nl+nl+
-    '⏰ Estimated delivery: 30-45 minutes'+nl+nl+
-    'Track your order here:'+nl+
-    'https://masihh201086.github.io/KickenBites/food-pwa/customer.html'+nl+nl+
-    'Thank you for ordering! 🙏';
+    (lastOrder.delivery&&lastOrder.delivery>0?' (incl. Rs '+lastOrder.delivery+' delivery)':'')+nl+
+    locationLine+nl+
+    payLine+
+    deliveryLine+nl+nl+
+    'Thank you for ordering from Kicken Bites! 🙏';
   window.open('https://wa.me/91'+phone+'?text='+encodeURIComponent(msg),'_blank');
 }
 
@@ -1188,10 +1200,7 @@ window.submitAllRatings=async function(){
 };
 
 window.shareWA=function(){
-  const{total}=getTotal();
-  const items=lastOrder.items.map(i=>`• ${i.name} ×${i.qty} = ₹${i.subtotal}`).join('\n');
-  const msg=`🍗 *Kicken Bites — Order Confirmed!*\nOrder: *${currentOrderId.slice(-8).toUpperCase()}*\n\n${items}\n\n*Total: ₹${total}*\n📍 ${lastOrder.address}\n\n✅ Being prepared freshly!\nThank you 🙏`;
-  window.open(`https://wa.me/91${lastOrder.phone}?text=${encodeURIComponent(msg)}`,'_blank');
+  sendCustomerConfirmWA();
 };
 
 window.openTracking=function(){
