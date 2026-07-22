@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
 window.generateCollage = async function(){
+  try{
   const active = masterItems.filter(function(i){return i.todayActive;});
   if(!active.length){alert('Please save today menu first');return;}
   showToast('⏳ Generating collage...');
@@ -169,6 +170,11 @@ window.generateCollage = async function(){
   setTimeout(function(){
     document.getElementById('collageSection').scrollIntoView({behavior:'smooth', block:'start'});
   }, 300);
+  } catch(err){
+    console.error('Collage error:', err);
+    showToast('Error: ' + err.message);
+    alert('Collage error: ' + err.message);
+  }
 };
 </script>
 <title>Kicken Bites — Admin</title>
