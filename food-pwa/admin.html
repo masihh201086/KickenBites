@@ -5,178 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#1a1a2e">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-window.generateCollage = async function(){
-  try{
-  const active = masterItems.filter(function(i){return i.todayActive;});
-  if(!active.length){alert('Please save today menu first');return;}
-  showToast('⏳ Generating collage...');
-
-  const canvas = document.getElementById('menuCollage');
-  const ctx = canvas.getContext('2d');
-
-  // Helper: draw rounded rectangle (works on all browsers)
-  function rRect(x,y,w,h,r){
-    ctx.beginPath();
-    ctx.moveTo(x+r,y);
-    ctx.lineTo(x+w-r,y);
-    ctx.arcTo(x+w,y,x+w,y+r,r);
-    ctx.lineTo(x+w,y+h-r);
-    ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
-    ctx.lineTo(x+r,y+h);
-    ctx.arcTo(x,y+h,x,y+h-r,r);
-    ctx.lineTo(x,y+r);
-    ctx.arcTo(x,y,x+r,y,r);
-    ctx.closePath();
-  }
-
-  // Layout
-  const COLS = 2;
-  const ROWS = Math.ceil(active.length/COLS);
-  const CELL_W = 380;
-  const CELL_H = 300;
-  const PAD = 10;
-  const HEADER_H = 90;
-  const FOOTER_H = 44;
-
-  canvas.width  = COLS*CELL_W + (COLS+1)*PAD;
-  canvas.height = HEADER_H + ROWS*(CELL_H+PAD) + PAD + FOOTER_H;
-
-  // BG
-  var bg = ctx.createLinearGradient(0,0,0,canvas.height);
-  bg.addColorStop(0,'#1a1a2e');
-  bg.addColorStop(1,'#16213e');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  // HEADER
-  ctx.fillStyle = '#e65c00';
-  ctx.fillRect(0,0,canvas.width,HEADER_H);
-  ctx.fillStyle = 'white';
-  ctx.font = 'bold 34px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('KICKEN BITES', canvas.width/2, 44);
-  var dateStr = selMenuDate
-    ? new Date(selMenuDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})
-    : new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
-  ctx.font = '18px sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.88)';
-  ctx.fillText(dateStr + ' Menu', canvas.width/2, 72);
-
-  // Load images with timeout
-  // Load images - try without CORS first (for canvas drawing)
-  function loadImg(url){
-    return new Promise(function(res){
-      if(!url){res(null);return;}
-      // Try without crossOrigin (no CORS restriction but may taint canvas)
-      var img = new Image();
-      var done = false;
-      function finish(r){if(!done){done=true;res(r);}}
-      img.onload = function(){finish(img);};
-      img.onerror = function(){
-        // Try with crossOrigin as fallback
-        var img2 = new Image();
-        img2.crossOrigin = 'anonymous';
-        img2.onload = function(){finish(img2);};
-        img2.onerror = function(){finish(null);};
-        setTimeout(function(){finish(null);}, 3000);
-        img2.src = url+'?t='+Date.now(); // Cache bust
-      };
-      setTimeout(function(){finish(null);}, 6000);
-      img.src = url;
-    });
-  }
-
-  var images = await Promise.all(active.map(function(i){return loadImg(i.imageUrl);}));
-
-  // Draw each item
-  active.forEach(function(item, idx){
-    var col = idx % COLS;
-    var row = Math.floor(idx / COLS);
-    var x = PAD + col*(CELL_W+PAD);
-    var y = HEADER_H + PAD + row*(CELL_H+PAD);
-    var IMG_H = 210;
-    var INFO_H = CELL_H - IMG_H;
-
-    // Card white bg
-    ctx.fillStyle = 'white';
-    rRect(x,y,CELL_W,CELL_H,14);
-    ctx.fill();
-
-    // Image area
-    var img = images[idx];
-    if(img){
-      ctx.save();
-      rRect(x,y,CELL_W,IMG_H,14);
-      ctx.clip();
-      var scale = Math.max(CELL_W/img.width, IMG_H/img.height);
-      var dw = img.width*scale;
-      var dh = img.height*scale;
-      ctx.drawImage(img, x+(CELL_W-dw)/2, y+(IMG_H-dh)/2, dw, dh);
-      ctx.restore();
-    } else {
-      // Placeholder
-      ctx.fillStyle = '#fff3e0';
-      rRect(x,y,CELL_W,IMG_H,14);
-      ctx.fill();
-      ctx.font = '64px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('🍛', x+CELL_W/2, y+IMG_H/2+22);
-    }
-
-    // Qty badge (top right)
-    if(item.availableQty>0){
-      var badgeColor = item.availableQty<=5 ? '#ef4444':'#22c55e';
-      ctx.fillStyle = badgeColor;
-      rRect(x+CELL_W-88, y+8, 80, 26, 13);
-      ctx.fill();
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 13px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(item.availableQty+' left', x+CELL_W-48, y+25);
-    }
-
-    // Item name
-    ctx.fillStyle = '#111';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(item.name||'Item', x+CELL_W/2, y+IMG_H+28);
-
-    // Price
-    ctx.fillStyle = '#e65c00';
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText('Rs '+item.price, x+CELL_W/2, y+IMG_H+56);
-  });
-
-  // FOOTER
-  var fy = HEADER_H + ROWS*(CELL_H+PAD) + PAD + 10;
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.font = '14px sans-serif';
-  ctx.textAlign = 'center';
-  var link = window.location.href.replace('admin.html','customer.html');
-  ctx.fillText('Order online: '+link, canvas.width/2, fy+20);
-
-  document.getElementById('collageSection').style.display = 'block';
-  // Try to get dataURL - may fail if images caused canvas taint
-  try{
-    window._collageDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    showToast('Collage ready! Download and attach in WhatsApp.');
-  } catch(e){
-    // Canvas tainted by CORS - show collage but disable download
-    showToast('Collage shown! Screenshot it to save (CORS restriction).');
-    window._collageDataUrl = null;
-  }
-  // Scroll to collage
-  setTimeout(function(){
-    document.getElementById('collageSection').scrollIntoView({behavior:'smooth', block:'start'});
-  }, 300);
-  } catch(err){
-    console.error('Collage error:', err);
-    showToast('Error: ' + err.message);
-    alert('Collage error: ' + err.message);
-  }
-};
-</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <title>Kicken Bites — Admin</title>
 <style>
 :root{--o:#e65c00;--op:#fff3e8;--ol:#ff8c42;--g:#22c55e;--gp:#f0fdf4;--r:#ef4444;--rp:#fef2f2;
@@ -1841,6 +1670,177 @@ function initAdminTrackMap(){
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}
 
+
+window.generateCollage = async function(){
+  try{
+  const active = masterItems.filter(function(i){return i.todayActive;});
+  if(!active.length){alert('Please save today menu first');return;}
+  showToast('⏳ Generating collage...');
+
+  const canvas = document.getElementById('menuCollage');
+  const ctx = canvas.getContext('2d');
+
+  // Helper: draw rounded rectangle (works on all browsers)
+  function rRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.lineTo(x+w-r,y);
+    ctx.arcTo(x+w,y,x+w,y+r,r);
+    ctx.lineTo(x+w,y+h-r);
+    ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+    ctx.lineTo(x+r,y+h);
+    ctx.arcTo(x,y+h,x,y+h-r,r);
+    ctx.lineTo(x,y+r);
+    ctx.arcTo(x,y,x+r,y,r);
+    ctx.closePath();
+  }
+
+  // Layout
+  const COLS = 2;
+  const ROWS = Math.ceil(active.length/COLS);
+  const CELL_W = 380;
+  const CELL_H = 300;
+  const PAD = 10;
+  const HEADER_H = 90;
+  const FOOTER_H = 44;
+
+  canvas.width  = COLS*CELL_W + (COLS+1)*PAD;
+  canvas.height = HEADER_H + ROWS*(CELL_H+PAD) + PAD + FOOTER_H;
+
+  // BG
+  var bg = ctx.createLinearGradient(0,0,0,canvas.height);
+  bg.addColorStop(0,'#1a1a2e');
+  bg.addColorStop(1,'#16213e');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // HEADER
+  ctx.fillStyle = '#e65c00';
+  ctx.fillRect(0,0,canvas.width,HEADER_H);
+  ctx.fillStyle = 'white';
+  ctx.font = 'bold 34px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('KICKEN BITES', canvas.width/2, 44);
+  var dateStr = selMenuDate
+    ? new Date(selMenuDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})
+    : new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+  ctx.font = '18px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  ctx.fillText(dateStr + ' Menu', canvas.width/2, 72);
+
+  // Load images with timeout
+  // Load images - try without CORS first (for canvas drawing)
+  function loadImg(url){
+    return new Promise(function(res){
+      if(!url){res(null);return;}
+      // Try without crossOrigin (no CORS restriction but may taint canvas)
+      var img = new Image();
+      var done = false;
+      function finish(r){if(!done){done=true;res(r);}}
+      img.onload = function(){finish(img);};
+      img.onerror = function(){
+        // Try with crossOrigin as fallback
+        var img2 = new Image();
+        img2.crossOrigin = 'anonymous';
+        img2.onload = function(){finish(img2);};
+        img2.onerror = function(){finish(null);};
+        setTimeout(function(){finish(null);}, 3000);
+        img2.src = url+'?t='+Date.now(); // Cache bust
+      };
+      setTimeout(function(){finish(null);}, 6000);
+      img.src = url;
+    });
+  }
+
+  var images = await Promise.all(active.map(function(i){return loadImg(i.imageUrl);}));
+
+  // Draw each item
+  active.forEach(function(item, idx){
+    var col = idx % COLS;
+    var row = Math.floor(idx / COLS);
+    var x = PAD + col*(CELL_W+PAD);
+    var y = HEADER_H + PAD + row*(CELL_H+PAD);
+    var IMG_H = 210;
+    var INFO_H = CELL_H - IMG_H;
+
+    // Card white bg
+    ctx.fillStyle = 'white';
+    rRect(x,y,CELL_W,CELL_H,14);
+    ctx.fill();
+
+    // Image area
+    var img = images[idx];
+    if(img){
+      ctx.save();
+      rRect(x,y,CELL_W,IMG_H,14);
+      ctx.clip();
+      var scale = Math.max(CELL_W/img.width, IMG_H/img.height);
+      var dw = img.width*scale;
+      var dh = img.height*scale;
+      ctx.drawImage(img, x+(CELL_W-dw)/2, y+(IMG_H-dh)/2, dw, dh);
+      ctx.restore();
+    } else {
+      // Placeholder
+      ctx.fillStyle = '#fff3e0';
+      rRect(x,y,CELL_W,IMG_H,14);
+      ctx.fill();
+      ctx.font = '64px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🍛', x+CELL_W/2, y+IMG_H/2+22);
+    }
+
+    // Qty badge (top right)
+    if(item.availableQty>0){
+      var badgeColor = item.availableQty<=5 ? '#ef4444':'#22c55e';
+      ctx.fillStyle = badgeColor;
+      rRect(x+CELL_W-88, y+8, 80, 26, 13);
+      ctx.fill();
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(item.availableQty+' left', x+CELL_W-48, y+25);
+    }
+
+    // Item name
+    ctx.fillStyle = '#111';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(item.name||'Item', x+CELL_W/2, y+IMG_H+28);
+
+    // Price
+    ctx.fillStyle = '#e65c00';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText('Rs '+item.price, x+CELL_W/2, y+IMG_H+56);
+  });
+
+  // FOOTER
+  var fy = HEADER_H + ROWS*(CELL_H+PAD) + PAD + 10;
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font = '14px sans-serif';
+  ctx.textAlign = 'center';
+  var link = window.location.href.replace('admin.html','customer.html');
+  ctx.fillText('Order online: '+link, canvas.width/2, fy+20);
+
+  document.getElementById('collageSection').style.display = 'block';
+  // Try to get dataURL - may fail if images caused canvas taint
+  try{
+    window._collageDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    showToast('Collage ready! Download and attach in WhatsApp.');
+  } catch(e){
+    // Canvas tainted by CORS - show collage but disable download
+    showToast('Collage shown! Screenshot it to save (CORS restriction).');
+    window._collageDataUrl = null;
+  }
+  // Scroll to collage
+  setTimeout(function(){
+    document.getElementById('collageSection').scrollIntoView({behavior:'smooth', block:'start'});
+  }, 300);
+  } catch(err){
+    console.error('Collage error:', err);
+    showToast('Error: ' + err.message);
+    alert('Collage error: ' + err.message);
+  }
+};
 </script>
 </body>
 </html>
