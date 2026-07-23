@@ -457,6 +457,13 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div id="duesList"><p style="font-size:.78rem;color:var(--muted);text-align:center">Loading…</p></div>
       <button onclick="loadDues()" style="width:100%;padding:9px;background:var(--dark);color:white;border:none;border-radius:var(--radius);font-size:.8rem;font-weight:600;cursor:pointer;margin-top:8px">🔄 Refresh Dues</button>
     </div>
+    <!-- ALL CUSTOMERS -->
+    <div class="card" style="margin-top:9px">
+      <div class="ct">👥 All Registered Customers</div>
+      <button class="btn btn-sec" onclick="loadAllCustomers()" style="margin-bottom:8px">🔄 Load Customers</button>
+      <div id="allCustList" style="max-height:400px;overflow-y:auto"></div>
+    </div>
+
     <!-- DEFAULT DELIVERY BOY -->
     <div class="card" style="margin-top:9px">
       <div class="ct">🛵 Default Delivery Boy</div>
@@ -1662,6 +1669,36 @@ setTimeout(function(){
     if(sv&&sv!=='orders'&&document.getElementById('tab-'+sv))sw(sv);
   }catch(e){}
 },600);
+
+// ---- ALL CUSTOMERS ----
+window.loadAllCustomers=async function(){
+  const list=document.getElementById('allCustList');
+  list.innerHTML='<div style="text-align:center;padding:15px;color:#999">⏳ Loading…</div>';
+  try{
+    const {getDocs:gd}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap=await gd(collection(db,'customers'));
+    const custs=snap.docs.map(d=>({phone:d.id,...d.data()}));
+    if(!custs.length){list.innerHTML='<div style="text-align:center;padding:15px;color:#999">No customers yet</div>';return;}
+    // Sort by name
+    custs.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    let html='<div style="font-size:.78rem;font-weight:700;color:var(--g);margin-bottom:8px">Total: '+custs.length+' customers</div>';
+    custs.forEach(c=>{
+      html+='<div style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid #f0f0f0;border-radius:10px;margin-bottom:6px">'+
+        '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--orange),#c94a00);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">'+((c.name||'?')[0]||'?').toUpperCase()+'</div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-weight:700;font-size:.84rem">'+(c.name||'—')+'</div>'+
+          '<div style="font-size:.7rem;color:#888">📞 '+c.phone+(c.location?' | 📍 '+c.location:'')+(c.houseNo?' — '+c.houseNo:'')+'</div>'+
+        '</div>'+
+        '<a href="https://wa.me/91'+c.phone+'" target="_blank" style="background:#25d366;color:white;border-radius:8px;padding:6px 9px;font-size:.7rem;font-weight:700;text-decoration:none">💬</a>'+
+        '<a href="tel:'+c.phone+'" style="background:#3b82f6;color:white;border-radius:8px;padding:6px 9px;font-size:.7rem;font-weight:700;text-decoration:none">📞</a>'+
+      '</div>';
+    });
+    list.innerHTML=html;
+  }catch(e){
+    console.error(e);
+    list.innerHTML='<div style="text-align:center;padding:15px;color:#e33">Error loading customers</div>';
+  }
+};
 
 // ---- ADMIN WISHLIST ----
 let adminWishDate='';
