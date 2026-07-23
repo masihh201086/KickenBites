@@ -258,7 +258,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
   </div>
   <div class="tbar">
     <div class="ti active" id="tb-order" onclick="switchTab('order')">🛒 Order</div>
-    <div class="ti" id="tb-party" onclick="location.href='party.html'">🎉 Party</div>
+    <div class="ti" id="tb-party" onclick="switchTab('party')">🎉 Party</div>
     <div class="ti" id="tb-myorders" onclick="switchTab('myorders')">📋 Orders</div>
     <div class="ti" id="tb-profile" onclick="switchTab('profile')">👤 Profile</div>
   </div>
@@ -354,6 +354,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
   </div>
 
   <!-- PROFILE TAB -->
+    <!-- PARTY TAB -->
+  <div class="panel" id="tab-party" style="padding:0">
+    <iframe src="party.html" style="width:100%;height:calc(100vh - 130px);border:none;display:block" title="Party Planner"></iframe>
+  </div>
+
   <div class="panel" id="tab-profile">
     <div class="prof-hdr">
       <div class="prof-av" id="profAv">👤</div>
@@ -1307,9 +1312,11 @@ window.placeNext=function(){
 
 // ---- TABS ----
 window.switchTab=function(t){
-  ['order','myorders','profile'].forEach(x=>{
-    document.getElementById('tab-'+x).classList.toggle('active',x===t);
-    document.getElementById('tb-'+x).classList.toggle('active',x===t);
+  ['order','party','myorders','profile'].forEach(x=>{
+    const panel=document.getElementById('tab-'+x);
+    const tab=document.getElementById('tb-'+x);
+    if(panel)panel.classList.toggle('active',x===t);
+    if(tab)tab.classList.toggle('active',x===t);
   });
   if(t==='profile') loadLoyalty();
 };
