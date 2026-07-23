@@ -286,10 +286,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
         <div class="stt">Select Order Date</div>
         <div id="orderDayChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px"></div>
         <div class="date-lbl" id="dateLbl"></div>
-        <div id="myOrderDates" style="display:none;margin:6px 0 4px">
-          <div style="font-size:.68rem;font-weight:700;color:var(--muted);margin-bottom:5px">📌 Your upcoming order dates (tap to view):</div>
-          <div id="myOrderDatesChips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-        </div>
         <div class="stt" style="margin-top:4px">Menu</div>
         <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px">
           <button class="sort-btn active" id="sort-default" onclick="sortMenu('default')">🍛 All</button>
@@ -734,27 +730,15 @@ function loadMyOrders(phone) {
   }catch(e){}
 }
 
+let myOrderDateSet=new Set();
 function renderOrderDateChips(orders){
-  const wrap=document.getElementById('myOrderDates');
-  const chips=document.getElementById('myOrderDatesChips');
-  if(!wrap||!chips)return;
   const todayStr=getTodayDate();
-  // Unique dates today or future, excluding cancelled
-  const dates=[...new Set(orders
+  myOrderDateSet=new Set(orders
     .filter(o=>/^\d{4}-\d{2}-\d{2}$/.test(o.date||'')&&o.date>=todayStr&&o.status!=='cancelled')
-    .map(o=>o.date))].sort()
-    .filter(d=>!isNaN(new Date(d+'T00:00:00').getTime()));
-  if(!dates.length){wrap.style.display='none';return;}
-  wrap.style.display='block';
-  chips.innerHTML=dates.map(d=>{
-    const dt=new Date(d+'T00:00:00');
-    if(isNaN(dt.getTime()))return '';
-    const disp=d===todayStr?'Today':dt.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
-    if(/invalid/i.test(disp))return '';
-    const active=selectedDate===d;
-    return '<button onclick="selectDate(\'custom\',\''+d+'\')" style="padding:6px 11px;border-radius:9px;border:2px solid '+(active?'var(--orange)':'#f0d9c4')+';background:'+(active?'#fff3e6':'#fffaf5')+';color:var(--orange);font-size:.74rem;font-weight:800;cursor:pointer;font-family:inherit">🛒 '+disp+'</button>';
-  }).join('');
+    .map(o=>o.date));
+  renderOrderDayChips();
 }
+
 
 function renderMyOrders(orders) {
   const el=document.getElementById('myOrdersList');
@@ -985,9 +969,12 @@ function renderOrderDayChips(){
   wrap.innerHTML=next7Days().map(d=>{
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
     const sel=selectedDate===d.date;
-    return '<button class="dbtn'+(sel?' active':'')+'" style="flex-shrink:0;min-width:62px" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
+    const hasOrder=myOrderDateSet.has(d.date);
+    return '<button class="dbtn'+(sel?' active':'')+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
       (lbl?'<div style="font-size:.58rem;opacity:.85">'+lbl+'</div>':'')+
-      '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div></button>';
+      '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
+      (hasOrder?'<div style="position:absolute;top:4px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--green,#22c55e)" title="You have an order this day"></div>':'')+
+      '</button>';
   }).join('');
 }
 window.selectDate=async function(which,val){
@@ -1256,16 +1243,16 @@ window.sendCustomerConfirmWA=function(){
   var nl='\n';
   var items=(lastOrder.items||[]).map(function(i){
     var price=i.subtotal||(i.price*i.qty)||i.price||0;
-    return '  - '+i.name+' x'+i.qty+' = Rs'+price;
+    return '  • *'+i.name+'* x'+i.qty+' = Rs'+price;
   }).join(nl);
   var isDelivery = lastOrder.orderType==='delivery' || (lastOrder.address && lastOrder.address!=='Takeaway');
   var trackLink = 'https://masihh201086.github.io/KickenBites/food-pwa/track.html?order='+currentOrderId;
   var locationLine = isDelivery
     ? '📍 Deliver to: '+lastOrder.address
-    : '📍 Pickup from: Kicken Bites, Netaji Kunj 2027, GAIL Pata';
+    : '📍 *Pickup from:* Kicken Bites, Netaji Kunj 2027, GAIL Pata';
   var deliveryLine = isDelivery
-    ? (nl+'🗺️ Track your delivery:'+nl+trackLink)
-    : (nl+'⏰ Pickup time: 30-45 minutes');
+    ? (nl+'👇 *CLICK TO TRACK YOUR ORDER* 👇'+nl+trackLink)
+    : (nl+'⏰ *Pickup time:* 30-45 minutes');
   var payLine = lastOrder.payLater
     ? '💳 Payment: Cash on Delivery'
     : '💳 Payment: Received ✅';
@@ -1295,7 +1282,7 @@ function showSuccess(){
   document.getElementById('succOrderId').textContent=currentOrderId.slice(-8).toUpperCase();
   const{total,delivery}=getTotal();
   let s=`<b>${lastOrder.name}</b> | 📞 ${lastOrder.phone}<br>`;
-  lastOrder.items.forEach(i=>{s+=`${i.name} ×${i.qty} = ₹${i.subtotal}<br>`;});
+  lastOrder.items.forEach(i=>{s+=`<b>${i.name}</b> ×${i.qty} = ₹${i.subtotal}<br>`;});
   if(delivery)s+=`Delivery: ₹${delivery}<br>`;
   s+=`<b>Total: ₹${total}</b><br>📍 ${lastOrder.address}`;
   if(lastOrder.notes)s+=`<br>📝 ${lastOrder.notes}`;

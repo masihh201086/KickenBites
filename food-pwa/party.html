@@ -454,7 +454,7 @@ window.sendPartyWA=function(){
 
   const dateDisp=new Date(partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   const nl='\n';
-  const itemLines=selected.map(s=>'  • '+s.name+' × '+s.qty+' = ₹'+s.sub).join(nl);
+  const itemLines=selected.map(s=>'  • *'+s.name+'* × '+s.qty+' = ₹'+s.sub).join(nl);
 
   const msg=
     '🎉 *PARTY ORDER REQUEST — KICKEN BITES*'+nl+

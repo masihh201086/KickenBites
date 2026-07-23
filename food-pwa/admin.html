@@ -199,13 +199,15 @@ input:checked+.slider:before{transform:translateX(20px);}
 
 @media print{body *{visibility:hidden;}#printArea,#printArea *{visibility:visible;}#printArea{position:fixed;inset:0;background:white;padding:16px;font-size:12px;}}
 .dbtn{flex:1;padding:9px;border:2px solid #eee;border-radius:10px;background:white;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;}
-.dbtn.active{border-color:var(--orange);background:#fff7ed;color:var(--orange);}
+.dbtn.active{border-color:var(--o);background:#fff7ed;color:var(--o);}
 .aw-item{display:flex;align-items:center;gap:10px;padding:10px;border:2px solid #f3f3f3;border-radius:11px;margin-bottom:8px;}
 .aw-img{width:46px;height:46px;border-radius:9px;object-fit:cover;background:#fff8f0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
 .aw-bar{height:8px;background:#f3f3f3;border-radius:5px;overflow:hidden;margin-top:4px;}
 .aw-fill{height:100%;background:linear-gradient(90deg,#f59e0b,#e65c00);border-radius:5px;}
 .wd-tog{width:34px;height:30px;border-radius:8px;border:2px solid #e5e5e5;background:white;font-size:.68rem;font-weight:800;cursor:pointer;color:#999;font-family:inherit;}
 .wd-tog.on{border-color:var(--g);background:#f0fdf4;color:var(--g);}
+.cta-btn{display:inline-block;background:linear-gradient(135deg,#22c55e,#16a34a);color:white!important;font-weight:800;font-size:.85rem;padding:11px 22px;border-radius:11px;text-decoration:none;text-align:center;margin-top:8px;box-shadow:0 2px 8px rgba(34,197,94,.35);letter-spacing:.02em;}
+.cta-btn:active{transform:scale(.97);}
 </style>
 </head>
 <body>
@@ -299,6 +301,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="info-box">📅 Set menu for today or any future date. Customer page shows correct menu automatically.</div>
       <div id="menuDayChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px"></div>
       <div id="dateTag"></div>
+      <div id="menuActionBtns" style="display:flex;gap:7px;margin-top:9px"></div>
     </div>
     <div class="card">
       <div class="ct">Shop Open / Accept Orders</div>
@@ -383,7 +386,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="ct">🌟 Customer Wishlist Votes</div>
       <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">See which items customers want. Plan your menu accordingly!</p>
       <div id="awDayChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:9px"></div>
-      <div id="awDateShow" style="font-size:.78rem;color:var(--orange);font-weight:700;margin-bottom:9px"></div>
+      <div id="awDateShow" style="font-size:.78rem;color:var(--o);font-weight:700;margin-bottom:9px"></div>
       <div id="adminWishList"><div style="text-align:center;padding:25px;color:#999">Select date to see votes</div></div>
     </div>
   </div>
@@ -489,10 +492,10 @@ input:checked+.slider:before{transform:translateX(20px);}
 <div id="toast"></div>
 
 <script type="module">
-import { db, getTodayDate, formatDisplayDate, getConfig, saveConfig, saveDailyMenu, getDailyMenu, listenToOrders, updateOrderStatus, listenToDelivery, setDeliveryStatus, collection, doc, setDoc, getDoc, getDocs, onSnapshot, where, query } from './src/utils/firebase.js';
+import { db, getTodayDate, formatDisplayDate, getConfig, saveConfig, saveDailyMenu, getDailyMenu, listenToOrders, updateOrderStatus, listenToDelivery, setDeliveryStatus, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, where, query } from './src/utils/firebase.js';
 
 const PK='adminPwd_v4';
-let cfg={}, masterItems=[], allOrders=[], curFilter='all', selMenuDate='', adminMap=null, adminMarker=null;
+let cfg={}, masterItems=[], allOrders=[], curFilter='all', selMenuDate='', selMenuHasOverride=false, adminMap=null, adminMarker=null;
 let deliveryBoys=[], IMGBB='', curImgIdx=null, ordersUnsub=null, deliveryUnsub=null;
 
 // ---- LOGIN ----
@@ -1187,8 +1190,10 @@ window.loadMenuDate=async function(ds){
   const cls=isToday?'dt-today':isFuture?'dt-future':'dt-past';
   const lbl=isToday?'TODAY':isFuture?'FUTURE':'PAST';
   const existing=await getDailyMenu(ds);
-  const srcLbl=(existing&&!existing.isDefault)?' | ✏️ CUSTOM':' | 🗓️ DEFAULT';
+  selMenuHasOverride=!!(existing&&!existing.isDefault);
+  const srcLbl=selMenuHasOverride?' | ✏️ CUSTOM':' | 🗓️ DEFAULT';
   document.getElementById('dateTag').innerHTML=`<span class="date-tag ${cls}">${lbl} — ${formatDisplayDate(ds)}${srcLbl}</span>`;
+  renderMenuActionBtns();
   if(existing&&!existing.isDefault){
     document.getElementById('shopOpen').checked=existing.isOpen!==false;
     const lc=existing.locationCharges||{};
@@ -1217,6 +1222,56 @@ window.loadMenuDate=async function(ds){
   }
   renderToday();
   renderMenuDayChips();
+};
+
+// ===== RESET TO DEFAULT / SET AS NEW DEFAULT =====
+function renderMenuActionBtns(){
+  const wrap=document.getElementById('menuActionBtns');
+  if(!wrap)return;
+  if(selMenuHasOverride){
+    wrap.innerHTML='<button class="btn btn-sec" style="flex:1;margin-top:0;font-size:.78rem;padding:9px" onclick="resetToDefault()">🔄 Reset to Default</button>'+
+      '<button class="btn btn-g" style="flex:1;margin-top:0;font-size:.78rem;padding:9px" onclick="setAsNewDefault()">⭐ Set as New Default</button>';
+  }else{
+    wrap.innerHTML='<button class="btn btn-g" style="flex:1;margin-top:0;font-size:.78rem;padding:9px" onclick="setAsNewDefault()">⭐ Update Weekly Default</button>';
+  }
+}
+
+// Remove this date's custom override → menu falls back to the weekday's default template
+window.resetToDefault=async function(){
+  if(!selMenuDate)return;
+  if(!confirm('Remove custom menu for '+formatDisplayDate(selMenuDate)+' and go back to the usual '+weekdayKey(selMenuDate).toUpperCase()+' default?'))return;
+  try{
+    await deleteDoc(doc(db,'dailyMenu',selMenuDate));
+    showToast('✅ Reset — back to weekday default');
+    await loadMenuDate(selMenuDate);
+  }catch(e){alert('Error: '+e.message);}
+};
+
+// Take today's on-screen selection and make it the permanent weekly default for this weekday.
+// Also clears this date's override (it's now identical to the default, so no override needed).
+window.setAsNewDefault=async function(){
+  if(!selMenuDate)return;
+  const wd=weekdayKey(selMenuDate);
+  const wdLabel=wd[0].toUpperCase()+wd.slice(1);
+  if(!confirm('Make today\'s selection the new default for every '+wdLabel+'? This changes the weekly template.'))return;
+  // Read current on-screen toggles/qty (same fields saveTodayMenu reads)
+  masterItems.forEach((item,idx)=>{
+    const qe=document.getElementById('tq_'+idx);
+    const on=!!document.getElementById('tt_'+idx)?.checked;
+    const qty=qe?(parseInt(qe.value)||0):0;
+    if(!item.weekdays)item.weekdays={};
+    if(on){item.weekdays[wd]=true;item.defaultQty=qty;}
+    else{delete item.weekdays[wd];}
+  });
+  try{
+    cfg.masterItems=masterItems;
+    await saveConfig(cfg);
+    // Clear this date's override so it now reads from the (matching) default
+    await deleteDoc(doc(db,'dailyMenu',selMenuDate));
+    showToast('⭐ '+wdLabel+' default updated!');
+    await loadMenuDate(selMenuDate);
+    renderMaster();
+  }catch(e){alert('Error: '+e.message);}
 };
 
 function renderToday(){
@@ -1265,12 +1320,26 @@ window.genWAMessage=function(){
   if(!active.length){alert('Please save today menu first');return;}
   const date=selMenuDate?new Date(selMenuDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}):'Today';
   const link=window.location.href.replace('admin.html','customer.html');
+  // Plain text version (asterisks = WhatsApp bold) — this is what gets copied/sent
   let msg=`🍗 *KICKEN BITES*\n📅 *${date}'s Menu*\n\n`;
-  active.forEach(i=>{msg+=`• ${i.name} — ₹${i.price}${i.availableQty>0?' ('+i.availableQty+' plates)':''}\n`;});
-  msg+=`\n🔥 Limited Quantity Available\n🛒 Order Here:\n${link}`;
-  document.getElementById('waMsgContent').textContent=msg;
+  active.forEach(i=>{msg+=`• *${i.name}* — ₹${i.price}${i.availableQty>0?' ('+i.availableQty+' plates)':''}\n`;});
+  msg+=`\n🔥 *Limited Quantity Available!*\n👇 *CLICK TO ORDER* 👇\n${link}`;
+  window._waMsgText=msg;
+  document.getElementById('waMsgContent').innerHTML=formatWAPreview(msg,link);
   document.getElementById('waMsgBox').style.display='block';
 };
+
+// Turns *bold* WhatsApp text into a readable in-app preview with a green CTA button for the link
+function formatWAPreview(text,link){
+  let esc=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  esc=esc.replace(/\*([^*\n]+)\*/g,'<b>$1</b>'); // *bold* -> <b>
+  if(link){
+    esc=esc.split(link).join(
+      '<a href="'+link+'" target="_blank" class="cta-btn">🛒 CLICK TO ORDER</a>'
+    );
+  }
+  return esc;
+}
 // (duplicate copyWAMsg removed)
 
 
@@ -1698,7 +1767,7 @@ window.loadAllCustomers=async function(){
     let html='<div style="font-size:.78rem;font-weight:700;color:var(--g);margin-bottom:8px">Total: '+custs.length+' customers</div>';
     custs.forEach(c=>{
       html+='<div style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid #f0f0f0;border-radius:10px;margin-bottom:6px">'+
-        '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--orange),#c94a00);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">'+((c.name||'?')[0]||'?').toUpperCase()+'</div>'+
+        '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--o),#c94a00);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">'+((c.name||'?')[0]||'?').toUpperCase()+'</div>'+
         '<div style="flex:1;min-width:0">'+
           '<div style="font-weight:700;font-size:.84rem">'+(c.name||'—')+'</div>'+
           '<div style="font-size:.7rem;color:#888">📞 '+c.phone+(c.location?' | 📍 '+c.location:'')+(c.houseNo?' — '+c.houseNo:'')+'</div>'+
@@ -1775,7 +1844,7 @@ window.loadAdminWish=async function(){
           '<div class="aw-bar"><div class="aw-fill" style="width:'+pct+'%"></div></div>'+
           '<div style="font-size:.66rem;color:#888;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+names+'</div>'+
         '</div>'+
-        '<div style="font-weight:900;color:var(--orange);font-size:1.05rem">🔥 '+cnt+'</div>'+
+        '<div style="font-weight:900;color:var(--o);font-size:1.05rem">🔥 '+cnt+'</div>'+
       '</div>';
     });
     list.innerHTML=html;
@@ -1809,15 +1878,15 @@ window.waOrderSummary=function(orderId){
   var o=allOrders.find(function(x){return x.id===orderId;});
   if(!o)return;
   var nl='\n';
-  var itemLines=(o.items||[]).map(function(i){return '  - '+i.name+' x'+i.qty+' = Rs'+(i.subtotal||i.qty*i.price);}).join(nl);
+  var itemLines=(o.items||[]).map(function(i){return '  • *'+i.name+'* x'+i.qty+' = Rs'+(i.subtotal||i.qty*i.price);}).join(nl);
   var statusMap={pending_payment:'Awaiting Payment',confirmed:'Confirmed',preparing:'Preparing',ready:'Ready',out_for_delivery:'Out for Delivery',delivered:'Delivered'};
   var status=statusMap[o.status]||o.status;
   var msg='KICKEN BITES - Order Summary'+nl+nl+
-    'Customer: '+o.name+nl+
+    '*Customer:* '+o.name+nl+
     'Phone: '+o.phone+nl+
     'Address: '+(o.address||'Takeaway')+nl+nl+
     'Items:'+nl+itemLines+nl+nl+
-    'Total: Rs '+o.total+(o.deliveryCharge?' (incl. Rs '+o.deliveryCharge+' delivery)':'')+nl+
+    '💰 *Total: Rs '+o.total+'*'+(o.deliveryCharge?' (incl. Rs '+o.deliveryCharge+' delivery)':'')+nl+
     'Status: '+status+nl+
     (o.notes?'Notes: '+o.notes+nl:'')+
     nl+'Thank you for ordering from Kicken Bites!';
