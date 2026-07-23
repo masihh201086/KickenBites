@@ -532,7 +532,7 @@ let ordersUnsub=null, menuUnsub=null, itemRatings={};
 
 const today = getTodayDate();
 document.getElementById('todayLbl').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
-document.getElementById('datePicker').min = today;
+// datePicker removed (7-day chips now)
 
 // ---- INIT ----
 async function init() {
