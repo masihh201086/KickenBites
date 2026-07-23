@@ -198,6 +198,12 @@ input:checked+.slider:before{transform:translateX(20px);}
 #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:9px 18px;border-radius:50px;font-size:.78rem;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;pointer-events:none;}
 
 @media print{body *{visibility:hidden;}#printArea,#printArea *{visibility:visible;}#printArea{position:fixed;inset:0;background:white;padding:16px;font-size:12px;}}
+.dbtn{flex:1;padding:9px;border:2px solid #eee;border-radius:10px;background:white;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.dbtn.active{border-color:var(--orange);background:#fff7ed;color:var(--orange);}
+.aw-item{display:flex;align-items:center;gap:10px;padding:10px;border:2px solid #f3f3f3;border-radius:11px;margin-bottom:8px;}
+.aw-img{width:46px;height:46px;border-radius:9px;object-fit:cover;background:#fff8f0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
+.aw-bar{height:8px;background:#f3f3f3;border-radius:5px;overflow:hidden;margin-top:4px;}
+.aw-fill{height:100%;background:linear-gradient(90deg,#f59e0b,#e65c00);border-radius:5px;}
 </style>
 </head>
 <body>
@@ -225,6 +231,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div class="tab" onclick="sw('master')">🗂️ Master</div>
     <div class="tab" onclick="sw('print')">🖨️ Print</div>
     <div class="tab" onclick="sw('ratings')">⭐ Ratings</div>
+    <div class="tab" onclick="sw('wish')">🌟 Wish</div>
     <div class="tab" onclick="sw('ai')">🤖 AI</div>
     <div class="tab" onclick="sw('setup')">⚙️ Setup</div>
   </div>
@@ -372,6 +379,22 @@ input:checked+.slider:before{transform:translateX(20px);}
   </div>
 
   <!-- AI DEMAND -->
+  <!-- WISHLIST PANEL -->
+  <div class="panel" id="tab-wish">
+    <div class="card">
+      <div class="ct">🌟 Customer Wishlist Votes</div>
+      <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">See which items customers want. Plan your menu accordingly!</p>
+      <div style="display:flex;gap:7px;margin-bottom:9px">
+        <button class="dbtn active" id="awToday" onclick="setAdminWishDate('today')">Today</button>
+        <button class="dbtn" id="awTom" onclick="setAdminWishDate('tomorrow')">Tomorrow</button>
+        <button class="dbtn" id="awPick" onclick="document.getElementById('awDatePicker').showPicker?document.getElementById('awDatePicker').showPicker():document.getElementById('awDatePicker').focus()">📅 Pick</button>
+      </div>
+      <input type="date" id="awDatePicker" style="position:absolute;opacity:0;height:0;pointer-events:none" onchange="adminWishDatePicked(this.value)">
+      <div id="awDateShow" style="font-size:.78rem;color:var(--orange);font-weight:700;margin-bottom:9px"></div>
+      <div id="adminWishList"><div style="text-align:center;padding:25px;color:#999">Select date to see votes</div></div>
+    </div>
+  </div>
+
   <div class="panel" id="tab-ai">
     <div class="ai-card">
       <div class="ai-title">🤖 AI Demand Prediction</div>
@@ -1623,12 +1646,13 @@ window.hideRating = async function(ratingId) {
 
 window.sw=function(t){
   try{localStorage.setItem('kb_adm_tab',t);}catch(e){}
-  const all=['orders','today','master','print','ratings','ai','setup'];
+  const all=['orders','today','master','print','ratings','wish','ai','setup'];
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',all[i]===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
   if(t==='setup'){loadDeliveryBoys();setTimeout(loadDues,500);}
   if(t==='ratings')loadRatings();
+  if(t==='wish')loadAdminWish();
   if(t==='orders'&&adminMap)setTimeout(()=>adminMap.invalidateSize(),100);
 };
 // Restore last tab on load
@@ -1638,6 +1662,78 @@ setTimeout(function(){
     if(sv&&sv!=='orders'&&document.getElementById('tab-'+sv))sw(sv);
   }catch(e){}
 },600);
+
+// ---- ADMIN WISHLIST ----
+let adminWishDate='';
+window.setAdminWishDate=function(which){
+  const t=new Date();
+  if(which==='today')adminWishDate=getTodayDate();
+  else if(which==='tomorrow')adminWishDate=new Date(t.getTime()+86400000).toISOString().split('T')[0];
+  document.getElementById('awToday').classList.toggle('active',which==='today');
+  document.getElementById('awTom').classList.toggle('active',which==='tomorrow');
+  document.getElementById('awPick').classList.remove('active');
+  updateAWDateShow();
+  loadAdminWish();
+};
+window.adminWishDatePicked=function(v){
+  if(!v)return;
+  adminWishDate=v;
+  document.getElementById('awToday').classList.remove('active');
+  document.getElementById('awTom').classList.remove('active');
+  document.getElementById('awPick').classList.add('active');
+  updateAWDateShow();
+  loadAdminWish();
+};
+function updateAWDateShow(){
+  const el=document.getElementById('awDateShow');
+  if(el&&adminWishDate)el.textContent='📅 '+new Date(adminWishDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+}
+window.loadAdminWish=async function(){
+  if(!adminWishDate){adminWishDate=getTodayDate();updateAWDateShow();}
+  const list=document.getElementById('adminWishList');
+  list.innerHTML='<div style="text-align:center;padding:20px;color:#999">⏳ Loading votes…</div>';
+  try{
+    const {getDocs:gd}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap=await gd(query(collection(db,'wishlist'),where('date','==',adminWishDate)));
+    const counts={},voters={};
+    let totalVoters=0;
+    snap.docs.forEach(d=>{
+      const data=d.data();
+      totalVoters++;
+      (data.items||[]).forEach(id=>{
+        counts[id]=(counts[id]||0)+1;
+        if(!voters[id])voters[id]=[];
+        voters[id].push(data.name||data.phone||'?');
+      });
+    });
+    if(!Object.keys(counts).length){
+      list.innerHTML='<div style="text-align:center;padding:25px;color:#999">🗳️ No votes yet for this date</div>';
+      return;
+    }
+    const maxVotes=Math.max(...Object.values(counts));
+    // Sort items by votes desc
+    const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    let html='<div style="font-size:.78rem;font-weight:700;color:var(--g);margin-bottom:9px">👥 '+totalVoters+' customer'+(totalVoters>1?'s':'')+' voted</div>';
+    sorted.forEach(([id,cnt])=>{
+      const item=masterItems.find(i=>i.id===id)||{name:id,emoji:'🍛'};
+      const img=item.imageUrl?'<img class="aw-img" src="'+item.imageUrl+'">':'<div class="aw-img">'+(item.emoji||'🍛')+'</div>';
+      const pct=Math.round(cnt/maxVotes*100);
+      const names=(voters[id]||[]).slice(0,5).join(', ')+((voters[id]||[]).length>5?' +'+(voters[id].length-5)+' more':'');
+      html+='<div class="aw-item">'+img+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-weight:700;font-size:.86rem">'+item.name+'</div>'+
+          '<div class="aw-bar"><div class="aw-fill" style="width:'+pct+'%"></div></div>'+
+          '<div style="font-size:.66rem;color:#888;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+names+'</div>'+
+        '</div>'+
+        '<div style="font-weight:900;color:var(--orange);font-size:1.05rem">🔥 '+cnt+'</div>'+
+      '</div>';
+    });
+    list.innerHTML=html;
+  }catch(e){
+    console.error(e);
+    list.innerHTML='<div style="text-align:center;padding:20px;color:#e33">Error loading votes</div>';
+  }
+};
 
 // AUTO-ASSIGN DEFAULT DELIVERY BOY
 async function autoAssignDefaultBoy(order){
