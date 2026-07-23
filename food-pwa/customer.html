@@ -757,7 +757,10 @@ function renderOrderDateChips(orders){
   if(!dates.length){wrap.style.display='none';return;}
   wrap.style.display='block';
   chips.innerHTML=dates.map(d=>{
-    const disp=d===todayStr?'Today':new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+    const dt=new Date(d+'T00:00:00');
+    if(isNaN(dt.getTime()))return '';
+    const disp=d===todayStr?'Today':dt.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+    if(/invalid/i.test(disp))return '';
     const active=selectedDate===d;
     return '<button onclick="selectDate(\'custom\',\''+d+'\')" style="padding:6px 11px;border-radius:9px;border:2px solid '+(active?'var(--orange)':'#f0d9c4')+';background:'+(active?'#fff3e6':'#fffaf5')+';color:var(--orange);font-size:.74rem;font-weight:800;cursor:pointer;font-family:inherit">🛒 '+disp+'</button>';
   }).join('');
