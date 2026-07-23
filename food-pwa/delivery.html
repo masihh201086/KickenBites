@@ -585,7 +585,15 @@ window.swTab = function(t) {
     document.getElementById('tab-'+x+'-btn').classList.toggle('active',x===t);
   });
   if(t==='earnings') loadEarnings();
+  try{localStorage.setItem('kb_del_tab',t);}catch(e){}
 };
+// Restore tab on load
+setTimeout(function(){
+  try{
+    var sv=localStorage.getItem('kb_del_tab');
+    if(sv&&sv!=='active'&&document.getElementById('tab-'+sv))swTab(sv);
+  }catch(e){}
+},800);
 
 async function loadEarnings(){
   if(!boy?.phone) return;

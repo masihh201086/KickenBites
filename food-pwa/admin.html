@@ -1622,6 +1622,7 @@ window.hideRating = async function(ratingId) {
 };
 
 window.sw=function(t){
+  try{localStorage.setItem('kb_adm_tab',t);}catch(e){}
   const all=['orders','today','master','print','ratings','ai','setup'];
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',all[i]===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -1630,6 +1631,13 @@ window.sw=function(t){
   if(t==='ratings')loadRatings();
   if(t==='orders'&&adminMap)setTimeout(()=>adminMap.invalidateSize(),100);
 };
+// Restore last tab on load
+setTimeout(function(){
+  try{
+    var sv=localStorage.getItem('kb_adm_tab');
+    if(sv&&sv!=='orders'&&document.getElementById('tab-'+sv))sw(sv);
+  }catch(e){}
+},600);
 
 // AUTO-ASSIGN DEFAULT DELIVERY BOY
 async function autoAssignDefaultBoy(order){

@@ -206,6 +206,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
 #toast{position:fixed;bottom:75px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:9px 18px;border-radius:50px;font-size:.78rem;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center;pointer-events:none;}
 @media(min-width:600px){#mainApp,#payScreen,#successScreen{max-width:600px;margin:0 auto;}
   #payScreen{left:50%;right:auto;transform:translateX(-50%);}}
+.wchip{flex:1;padding:9px;border:2px solid #eee;border-radius:10px;background:white;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.wchip.active{border-color:#f59e0b;background:#fffbeb;color:#d97706;}
+.wish-item{display:flex;align-items:center;gap:10px;padding:10px;border:2px solid #f3f3f3;border-radius:11px;margin-bottom:8px;cursor:pointer;transition:.15s;}
+.wish-item.voted{border-color:#f59e0b;background:#fffbeb;}
+.wish-img{width:46px;height:46px;border-radius:9px;object-fit:cover;background:#fff8f0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
+.wish-name{flex:1;font-weight:700;font-size:.86rem;}
+.wish-votes{font-size:.7rem;color:#d97706;font-weight:700;}
+.wish-check{font-size:1.2rem;}
 </style>
 </head>
 <body>
@@ -259,6 +267,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
   <div class="tbar">
     <div class="ti active" id="tb-order" onclick="switchTab('order')">🛒 Order</div>
     <div class="ti" id="tb-party" onclick="switchTab('party')">🎉 Party</div>
+    <div class="ti" id="tb-wish" onclick="switchTab('wish')">⭐ Wish</div>
     <div class="ti" id="tb-myorders" onclick="switchTab('myorders')">📋 Orders</div>
     <div class="ti" id="tb-profile" onclick="switchTab('profile')">👤 Profile</div>
   </div>
@@ -354,7 +363,33 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
   </div>
 
   <!-- PROFILE TAB -->
-    <!-- PARTY TAB -->
+    <!-- WISHLIST TAB -->
+  <div class="panel" id="tab-wish">
+    <div style="padding:13px">
+      <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:14px;padding:14px;color:white;margin-bottom:12px">
+        <div style="font-weight:800;font-size:1rem">⭐ Menu Wishlist</div>
+        <div style="font-size:.75rem;opacity:.9;margin-top:3px">Vote for items you want on the menu! Shop will try to make popular items.</div>
+      </div>
+      <div style="background:white;border-radius:13px;padding:13px;margin-bottom:11px">
+        <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#d97706;margin-bottom:8px">📅 Wish for which day?</div>
+        <div style="display:flex;gap:7px">
+          <button class="wchip active" id="wcToday" onclick="setWishDate('today')">Today</button>
+          <button class="wchip" id="wcTom" onclick="setWishDate('tomorrow')">Tomorrow</button>
+          <button class="wchip" id="wcPick" onclick="document.getElementById('wishDatePicker').showPicker?document.getElementById('wishDatePicker').showPicker():document.getElementById('wishDatePicker').focus()">📅 Pick</button>
+        </div>
+        <input type="date" id="wishDatePicker" style="position:absolute;opacity:0;height:0;pointer-events:none" onchange="wishDatePicked(this.value)">
+        <div id="wishDateShow" style="font-size:.78rem;color:#d97706;font-weight:700;margin-top:7px"></div>
+      </div>
+      <div style="background:white;border-radius:13px;padding:13px">
+        <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#d97706;margin-bottom:4px">🍗 Tap items to vote</div>
+        <div style="font-size:.7rem;color:#888;margin-bottom:9px">Your votes help shop plan the menu</div>
+        <div id="wishList" style="min-height:100px"><div style="text-align:center;padding:30px;color:#999">⏳ Loading menu…</div></div>
+        <button id="wishSaveBtn" onclick="saveWishlist()" style="width:100%;padding:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:11px;font-weight:800;font-size:.88rem;cursor:pointer;margin-top:10px">⭐ Submit My Votes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARTY TAB -->
   <div class="panel" id="tab-party" style="padding:0">
     <iframe src="party.html" style="width:100%;height:calc(100vh - 130px);border:none;display:block" title="Party Planner"></iframe>
   </div>
@@ -545,7 +580,11 @@ function showApp() {
   show('mainApp');
   if (currentProfile) { updateProfileUI(currentProfile); autoFill(currentProfile); if(currentProfile.phone) loadMyOrders(currentProfile.phone); }
   loadMenu();
-  // Track button always visible after ordering - shows map with or without delivery started
+  // Restore last active tab (refresh stays on same tab)
+  try{
+    const savedTab=localStorage.getItem('kb_cust_tab');
+    if(savedTab&&savedTab!=='order')switchTab(savedTab);
+  }catch(e){}
 }
 
 // ---- LOGIN ----
@@ -1312,13 +1351,124 @@ window.placeNext=function(){
 
 // ---- TABS ----
 window.switchTab=function(t){
-  ['order','party','myorders','profile'].forEach(x=>{
+  ['order','party','wish','myorders','profile'].forEach(x=>{
     const panel=document.getElementById('tab-'+x);
     const tab=document.getElementById('tb-'+x);
     if(panel)panel.classList.toggle('active',x===t);
     if(tab)tab.classList.toggle('active',x===t);
   });
   if(t==='profile') loadLoyalty();
+  if(t==='wish') initWishTab();
+  // Persist tab so refresh stays on same tab
+  try{localStorage.setItem('kb_cust_tab',t);}catch(e){}
+};
+
+// ---- WISHLIST ----
+let wishDate='', wishItems=[], wishVotes={}, wishMaster=[], wishCounts={};
+
+async function initWishTab(){
+  if(!wishDate){wishDate=getTodayDate();updateWishDateShow();}
+  if(!wishMaster.length){
+    try{
+      const snap=await getDoc(doc(db,'config','menu'));
+      const cfg=snap.exists()?snap.data():{};
+      wishMaster=(cfg.masterItems||[]).filter(i=>i.name&&i.price>0);
+    }catch(e){console.error(e);}
+  }
+  await loadWishVotes();
+  renderWishList();
+}
+
+window.setWishDate=function(which){
+  const t=new Date();
+  if(which==='today')wishDate=getTodayDate();
+  else if(which==='tomorrow')wishDate=new Date(t.getTime()+86400000).toISOString().split('T')[0];
+  document.getElementById('wcToday').classList.toggle('active',which==='today');
+  document.getElementById('wcTom').classList.toggle('active',which==='tomorrow');
+  document.getElementById('wcPick').classList.remove('active');
+  updateWishDateShow();
+  loadWishVotes().then(renderWishList);
+};
+
+window.wishDatePicked=function(v){
+  if(!v)return;
+  wishDate=v;
+  document.getElementById('wcToday').classList.remove('active');
+  document.getElementById('wcTom').classList.remove('active');
+  document.getElementById('wcPick').classList.add('active');
+  updateWishDateShow();
+  loadWishVotes().then(renderWishList);
+};
+
+function updateWishDateShow(){
+  const el=document.getElementById('wishDateShow');
+  if(el&&wishDate)el.textContent='📅 '+new Date(wishDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+}
+
+async function loadWishVotes(){
+  wishVotes={};wishCounts={};
+  const phone=currentProfile?.phone||localStorage.getItem('custPhone')||'';
+  try{
+    // My votes for this date
+    if(phone){
+      const mySnap=await getDoc(doc(db,'wishlist',wishDate+'_'+phone));
+      if(mySnap.exists())(mySnap.data().items||[]).forEach(id=>{wishVotes[id]=true;});
+    }
+    // All votes count for this date
+    const {getDocs}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const allSnap=await getDocs(query(collection(db,'wishlist'),where('date','==',wishDate)));
+    allSnap.docs.forEach(d=>{
+      (d.data().items||[]).forEach(id=>{wishCounts[id]=(wishCounts[id]||0)+1;});
+    });
+  }catch(e){console.error('wish load',e);}
+}
+
+function renderWishList(){
+  const list=document.getElementById('wishList');
+  if(!wishMaster.length){list.innerHTML='<div style="text-align:center;padding:20px;color:#999">Menu not available</div>';return;}
+  list.innerHTML=wishMaster.map(item=>{
+    const voted=wishVotes[item.id]?'voted':'';
+    const cnt=wishCounts[item.id]||0;
+    const img=item.imageUrl?`<img class="wish-img" src="${item.imageUrl}">`:`<div class="wish-img">${item.emoji||'🍛'}</div>`;
+    return `<div class="wish-item ${voted}" onclick="toggleWish('${item.id}')">
+      ${img}
+      <div style="flex:1">
+        <div class="wish-name">${item.name}</div>
+        ${cnt>0?`<div class="wish-votes">🔥 ${cnt} vote${cnt>1?'s':''}</div>`:''}
+      </div>
+      <div class="wish-check">${wishVotes[item.id]?'⭐':'☆'}</div>
+    </div>`;
+  }).join('');
+}
+
+window.toggleWish=function(id){
+  if(wishVotes[id])delete wishVotes[id];
+  else wishVotes[id]=true;
+  renderWishList();
+};
+
+window.saveWishlist=async function(){
+  const phone=currentProfile?.phone||localStorage.getItem('custPhone');
+  if(!phone){alert('Please login first');return;}
+  const items=Object.keys(wishVotes);
+  const btn=document.getElementById('wishSaveBtn');
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    await setDoc(doc(db,'wishlist',wishDate+'_'+phone),{
+      date:wishDate,
+      phone:phone,
+      name:currentProfile?.name||'',
+      items:items,
+      updatedAt:new Date().toISOString()
+    });
+    await loadWishVotes();
+    renderWishList();
+    btn.textContent='✅ Votes Saved!';
+    setTimeout(()=>{btn.textContent='⭐ Submit My Votes';btn.disabled=false;},1500);
+  }catch(e){
+    alert('Error saving votes');
+    btn.textContent='⭐ Submit My Votes';btn.disabled=false;
+  }
 };
 
 async function loadLoyalty(){
