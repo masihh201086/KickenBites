@@ -231,7 +231,7 @@ input:checked+.slider:before{transform:translateX(20px);}
   </div>
   <div class="tabs">
     <div class="tab active" onclick="sw('orders')">📋 Orders</div>
-    <div class="tab" onclick="sw('today')">📅 Today</div>
+    <div class="tab" onclick="sw('today')">📅 Menu</div>
     <div class="tab" onclick="sw('master')">🗂️ Master</div>
     <div class="tab" onclick="sw('print')">🖨️ Print</div>
     <div class="tab" onclick="sw('ratings')">⭐ Ratings</div>
@@ -307,8 +307,9 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="ct">Shop Open / Accept Orders</div>
       <div class="dc-row">
         <span style="font-size:.86rem;font-weight:600">Accept orders on this date?</span>
-        <label class="switch"><input type="checkbox" id="shopOpen" checked><span class="slider"></span></label>
+        <label class="switch"><input type="checkbox" id="shopOpen" checked onchange="toggleShopOpen()"><span class="slider"></span></label>
       </div>
+      <p style="font-size:.7rem;color:var(--muted);margin-top:6px">Saves instantly — stays as set for this date until you switch it again.</p>
     </div>
     <div class="card">
       <div class="ct">Delivery Charges by Location (₹)</div>
@@ -456,7 +457,11 @@ input:checked+.slider:before{transform:translateX(20px);}
     <!-- ALL CUSTOMERS -->
     <div class="card" style="margin-top:9px">
       <div class="ct">👥 All Registered Customers</div>
-      <button class="btn btn-sec" onclick="loadAllCustomers()" style="margin-bottom:8px">🔄 Load Customers</button>
+      <p style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Tap any customer to see their full profile — orders, spend, favorite item, address.</p>
+      <div style="display:flex;gap:7px;margin-bottom:8px">
+        <button class="btn btn-sec" onclick="loadAllCustomers()" style="margin:0;flex-shrink:0;width:auto;padding:10px 14px">🔄 Load</button>
+        <input type="text" placeholder="🔍 Search name, phone, area…" oninput="filterCustList(this.value)" style="flex:1;padding:10px 12px;border:2px solid #eee;border-radius:10px;font-size:.85rem">
+      </div>
       <div id="allCustList" style="max-height:400px;overflow-y:auto"></div>
     </div>
 
@@ -486,6 +491,16 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div style="padding:11px 14px;flex-shrink:0">
       <div id="atEta" style="font-size:.82rem;color:var(--muted)">Loading live location…</div>
     </div>
+  </div>
+</div>
+<!-- CUSTOMER PROFILE MODAL -->
+<div id="custProfileModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;padding:12px;overflow-y:auto">
+  <div style="background:white;border-radius:20px;max-width:480px;margin:0 auto;overflow:hidden">
+    <div style="background:linear-gradient(135deg,var(--o),#c94a00);color:white;padding:16px;display:flex;justify-content:space-between;align-items:flex-start">
+      <div id="cpHeader" style="flex:1"></div>
+      <button onclick="document.getElementById('custProfileModal').style.display='none'" style="background:rgba(255,255,255,.25);border:none;color:white;width:30px;height:30px;border-radius:50%;font-size:1rem;cursor:pointer;flex-shrink:0">✕</button>
+    </div>
+    <div id="cpBody" style="padding:16px">⏳ Loading…</div>
   </div>
 </div>
 <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="handleImgUpload(event)">
@@ -1297,6 +1312,25 @@ window.togWD=function(idx,wd){
 };
 window.togToday=function(idx){masterItems[idx].todayActive=!!document.getElementById('tt_'+idx).checked;renderToday();};
 
+window.toggleShopOpen=async function(){
+  if(!selMenuDate)return;
+  const isOpen=document.getElementById('shopOpen').checked;
+  // Snapshot current on-screen items/qty so nothing gets lost (same fields saveTodayMenu uses)
+  masterItems.forEach((item,idx)=>{const qe=document.getElementById('tq_'+idx);if(qe)item.availableQty=parseInt(qe.value)||0;item.todayActive=!!document.getElementById('tt_'+idx)?.checked;});
+  const active=masterItems.filter(i=>i.todayActive);
+  const lc={'NTPC Township':Number(document.getElementById('lcNTPC').value)||0,'GAIL Gaon':Number(document.getElementById('lcGAIL').value)||0,'PATA Gate':Number(document.getElementById('lcPATA').value)||0,'GAIL Vihar':Number(document.getElementById('lcGVIHAR').value)||0,'Others':Number(document.getElementById('lcOTHERS').value)||0};
+  try{
+    await saveDailyMenu(selMenuDate,{date:selMenuDate,isOpen,locationCharges:lc,shopName:cfg.shopName||'Kicken Bites',upiId:cfg.upiId||'',upiName:cfg.upiName||'',imgbbKey:cfg.imgbbKey||'',items:active});
+    showToast(isOpen?'✅ Orders ON for '+formatDisplayDate(selMenuDate)+' — stays on until you change it':'🚫 Orders CLOSED for '+formatDisplayDate(selMenuDate)+' — stays closed until you reopen it');
+    selMenuHasOverride=true;
+    // Refresh tag + Reset/Set-Default buttons to reflect the new saved (CUSTOM) state
+    const cls=selMenuDate===getTodayDate()?'dt-today':selMenuDate>getTodayDate()?'dt-future':'dt-past';
+    const lbl=selMenuDate===getTodayDate()?'TODAY':selMenuDate>getTodayDate()?'FUTURE':'PAST';
+    document.getElementById('dateTag').innerHTML=`<span class="date-tag ${cls}">${lbl} — ${formatDisplayDate(selMenuDate)} | ✏️ CUSTOM</span>`;
+    renderMenuActionBtns();
+  }catch(e){alert('Error: '+e.message);document.getElementById('shopOpen').checked=!isOpen;}
+};
+
 window.saveTodayMenu=async function(){
   if(!selMenuDate){alert('Please select a date');return;}
   masterItems.forEach((item,idx)=>{const qe=document.getElementById('tq_'+idx);if(qe)item.availableQty=parseInt(qe.value)||0;item.todayActive=!!document.getElementById('tt_'+idx)?.checked;});
@@ -1754,6 +1788,7 @@ setTimeout(function(){
 },600);
 
 // ---- ALL CUSTOMERS ----
+let _allCustCache=[];
 window.loadAllCustomers=async function(){
   const list=document.getElementById('allCustList');
   list.innerHTML='<div style="text-align:center;padding:15px;color:#999">⏳ Loading…</div>';
@@ -1761,25 +1796,107 @@ window.loadAllCustomers=async function(){
     const {getDocs:gd}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap=await gd(collection(db,'customers'));
     const custs=snap.docs.map(d=>({phone:d.id,...d.data()}));
+    _allCustCache=custs;
     if(!custs.length){list.innerHTML='<div style="text-align:center;padding:15px;color:#999">No customers yet</div>';return;}
-    // Sort by name
     custs.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-    let html='<div style="font-size:.78rem;font-weight:700;color:var(--g);margin-bottom:8px">Total: '+custs.length+' customers</div>';
-    custs.forEach(c=>{
-      html+='<div style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid #f0f0f0;border-radius:10px;margin-bottom:6px">'+
-        '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--o),#c94a00);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">'+((c.name||'?')[0]||'?').toUpperCase()+'</div>'+
-        '<div style="flex:1;min-width:0">'+
-          '<div style="font-weight:700;font-size:.84rem">'+(c.name||'—')+'</div>'+
-          '<div style="font-size:.7rem;color:#888">📞 '+c.phone+(c.location?' | 📍 '+c.location:'')+(c.houseNo?' — '+c.houseNo:'')+'</div>'+
-        '</div>'+
-        '<a href="https://wa.me/91'+c.phone+'" target="_blank" style="background:#25d366;color:white;border-radius:8px;padding:6px 9px;font-size:.7rem;font-weight:700;text-decoration:none">💬</a>'+
-        '<a href="tel:'+c.phone+'" style="background:#3b82f6;color:white;border-radius:8px;padding:6px 9px;font-size:.7rem;font-weight:700;text-decoration:none">📞</a>'+
-      '</div>';
-    });
-    list.innerHTML=html;
+    renderCustList(custs);
   }catch(e){
     console.error(e);
     list.innerHTML='<div style="text-align:center;padding:15px;color:#e33">Error loading customers</div>';
+  }
+};
+
+function renderCustList(custs){
+  const list=document.getElementById('allCustList');
+  let html='<div style="font-size:.78rem;font-weight:700;color:var(--g);margin-bottom:8px">Total: '+custs.length+' customer'+(custs.length!==1?'s':'')+'</div>';
+  custs.forEach(c=>{
+    html+='<div onclick="viewCustomerProfile(\''+c.phone+'\')" style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid #f0f0f0;border-radius:10px;margin-bottom:6px;cursor:pointer">'+
+      '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--o),#c94a00);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">'+((c.name||'?')[0]||'?').toUpperCase()+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:700;font-size:.84rem">'+(c.name||'—')+'</div>'+
+        '<div style="font-size:.7rem;color:#888">📞 '+c.phone+(c.location?' | 📍 '+c.location:'')+(c.houseNo?' — '+c.houseNo:'')+'</div>'+
+      '</div>'+
+      '<a href="https://wa.me/91'+c.phone+'" target="_blank" onclick="event.stopPropagation()" style="background:#25d366;color:white;border-radius:8px;padding:6px 9px;font-size:.7rem;font-weight:700;text-decoration:none">💬</a>'+
+      '<a href="tel:'+c.phone+'" onclick="event.stopPropagation()" style="background:#3b82f6;color:white;border-radius:8px;padding:6px 9px;font-size:.7rem;font-weight:700;text-decoration:none">📞</a>'+
+    '</div>';
+  });
+  list.innerHTML=html;
+}
+
+window.filterCustList=function(q){
+  q=(q||'').trim().toLowerCase();
+  if(!q){renderCustList(_allCustCache);return;}
+  const filtered=_allCustCache.filter(c=>
+    (c.name||'').toLowerCase().includes(q) ||
+    (c.phone||'').includes(q) ||
+    (c.location||'').toLowerCase().includes(q)
+  );
+  renderCustList(filtered);
+};
+
+// ---- CUSTOMER PROFILE (full detail modal) ----
+window.viewCustomerProfile=async function(phone){
+  const modal=document.getElementById('custProfileModal');
+  const header=document.getElementById('cpHeader');
+  const body=document.getElementById('cpBody');
+  modal.style.display='block';
+  header.innerHTML='<div style="font-weight:800;font-size:1rem">Loading…</div>';
+  body.innerHTML='<div style="text-align:center;padding:25px;color:#999">⏳ Fetching profile…</div>';
+  try{
+    const {getDocs:gd}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const cSnap=await getDoc(doc(db,'customers',phone));
+    const c=cSnap.exists()?{phone,...cSnap.data()}:{phone};
+    const oSnap=await gd(query(collection(db,'orders'),where('phone','==',phone)));
+    const orders=oSnap.docs.map(d=>({id:d.id,...d.data()})).filter(o=>o.status!=='cancelled');
+    orders.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    const totalOrders=orders.length;
+    const totalSpend=orders.reduce((s,o)=>s+(o.total||0),0);
+    const itemCount={};
+    orders.forEach(o=>(o.items||[]).forEach(i=>{itemCount[i.name]=(itemCount[i.name]||0)+i.qty;}));
+    const fav=Object.entries(itemCount).sort((a,b)=>b[1]-a[1])[0];
+    let score=Math.min(100,Math.round(totalOrders*5+totalSpend/100));
+    const level=score<=30?'🥉 Bronze':score<=60?'🥈 Silver':score<=85?'🥇 Gold':'💎 Platinum';
+    let due=0;
+    try{const wSnap=await getDoc(doc(db,'wallets',phone));if(wSnap.exists())due=wSnap.data().due||0;}catch(e){}
+
+    header.innerHTML=
+      '<div style="font-weight:800;font-size:1.05rem">'+(c.name||'Unknown')+'</div>'+
+      '<div style="font-size:.76rem;opacity:.9;margin-top:2px">📞 '+phone+'</div>'+
+      '<div style="font-size:.72rem;opacity:.85;margin-top:1px">'+level+'</div>';
+
+    let addr=[c.location,c.houseNo,c.addrLine2].filter(Boolean).join(' — ')||'Not set';
+    let bodyHtml='';
+    bodyHtml+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'+
+      '<div style="background:#fff7ed;border-radius:10px;padding:10px;text-align:center"><div style="font-size:1.3rem;font-weight:900;color:var(--o)">'+totalOrders+'</div><div style="font-size:.68rem;color:#888">Total Orders</div></div>'+
+      '<div style="background:#f0fdf4;border-radius:10px;padding:10px;text-align:center"><div style="font-size:1.3rem;font-weight:900;color:var(--g)">₹'+totalSpend+'</div><div style="font-size:.68rem;color:#888">Total Spent</div></div>'+
+    '</div>';
+    bodyHtml+='<div style="font-size:.76rem;line-height:1.7;margin-bottom:12px">'+
+      '<div>📍 <b>Address:</b> '+addr+'</div>'+
+      '<div>🍗 <b>Favorite item:</b> '+(fav?fav[0]+' ('+fav[1]+'x)':'—')+'</div>'+
+      (due>0?'<div style="color:var(--r)">💰 <b>Pending dues:</b> ₹'+due+'</div>':'')+
+      '<div>🗓️ <b>Registered:</b> '+(c.createdAt?new Date(c.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—')+'</div>'+
+    '</div>';
+    bodyHtml+='<div style="display:flex;gap:8px;margin-bottom:14px">'+
+      '<a href="https://wa.me/91'+phone+'" target="_blank" style="flex:1;text-align:center;background:#25d366;color:white;padding:9px;border-radius:10px;font-weight:700;font-size:.8rem;text-decoration:none">💬 WhatsApp</a>'+
+      '<a href="tel:'+phone+'" style="flex:1;text-align:center;background:#3b82f6;color:white;padding:9px;border-radius:10px;font-weight:700;font-size:.8rem;text-decoration:none">📞 Call</a>'+
+    '</div>';
+    bodyHtml+='<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Recent Orders ('+orders.length+')</div>';
+    if(!orders.length){
+      bodyHtml+='<div style="text-align:center;padding:15px;color:#999;font-size:.78rem">No orders yet</div>';
+    }else{
+      orders.slice(0,8).forEach(o=>{
+        const st={pending_payment:'⏳',confirmed:'✅',preparing:'👨‍🍳',ready:'📦',out_for_delivery:'🛵',delivered:'🎉'};
+        bodyHtml+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f3f3f3;font-size:.76rem">'+
+          '<div>'+(st[o.status]||'•')+' '+(o.date||'')+' <span style="color:#999">#'+o.id.slice(-5).toUpperCase()+'</span></div>'+
+          '<div style="font-weight:700">₹'+o.total+'</div>'+
+        '</div>';
+      });
+      if(orders.length>8)bodyHtml+='<div style="text-align:center;font-size:.7rem;color:#999;margin-top:6px">+'+(orders.length-8)+' more orders</div>';
+    }
+    body.innerHTML=bodyHtml;
+  }catch(e){
+    console.error(e);
+    body.innerHTML='<div style="text-align:center;padding:20px;color:#e33">Error loading profile: '+e.message+'</div>';
   }
 };
 
