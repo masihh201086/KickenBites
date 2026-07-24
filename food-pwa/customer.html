@@ -355,6 +355,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
 
   <!-- MY ORDERS TAB -->
   <div class="panel" id="tab-myorders">
+    <div style="padding:13px 13px 0">
+      <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">📅 Filter by day</div>
+      <div id="myOrdDayChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px"></div>
+    </div>
     <div style="padding:13px" id="myOrdersList">
       <div class="closed-box"><div style="font-size:2.5rem;margin-bottom:10px">📋</div><p>Login to see your orders</p></div>
     </div>
@@ -740,9 +744,43 @@ function renderOrderDateChips(orders){
 }
 
 
-function renderMyOrders(orders) {
+let _allMyOrders=[], myOrdFilter='all';
+
+function renderMyOrdDayChips(){
+  const wrap=document.getElementById('myOrdDayChips');
+  if(!wrap)return;
+  const dateSet=new Set(_allMyOrders.filter(o=>o.status!=='cancelled').map(o=>o.date));
+  let html='<button class="dbtn'+(myOrdFilter==='all'?' active':'')+'" style="flex-shrink:0;min-width:58px" onclick="setMyOrdFilter(\'all\')"><div style="font-weight:800">📋 All</div></button>';
+  html+=next7Days().map(d=>{
+    const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
+    const sel=myOrdFilter===d.date;
+    const dot=dateSet.has(d.date);
+    return '<button class="dbtn'+(sel?' active':'')+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="setMyOrdFilter(\''+d.date+'\')">'+
+      (lbl?'<div style="font-size:.58rem;opacity:.85">'+lbl+'</div>':'')+
+      '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
+      (dot?'<div style="position:absolute;top:3px;right:4px;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid white;box-shadow:0 0 0 1px var(--green)"></div>':'')+
+      '</button>';
+  }).join('');
+  wrap.innerHTML=html;
+}
+
+window.setMyOrdFilter=function(f){
+  myOrdFilter=f;
+  renderMyOrdDayChips();
+  renderMyOrders(_allMyOrders);
+};
+
+function renderMyOrders(all) {
+  _allMyOrders=all||[];
+  renderMyOrdDayChips();
   const el=document.getElementById('myOrdersList');
-  if(!orders.length){el.innerHTML='<div class="closed-box"><div style="font-size:2.5rem;margin-bottom:10px">🍽️</div><p>No orders yet. Place your first order!</p></div>';return;}
+  const orders=myOrdFilter==='all'?_allMyOrders:_allMyOrders.filter(o=>o.date===myOrdFilter);
+  if(!orders.length){
+    const msg=myOrdFilter==='all'
+      ?'No orders yet. Place your first order!'
+      :'No orders on '+formatDate(myOrdFilter)+'.';
+    el.innerHTML='<div class="closed-box"><div style="font-size:2.5rem;margin-bottom:10px">🍽️</div><p>'+msg+'</p></div>';return;
+  }
   const sl={pending_payment:'⏳ Awaiting Pay',confirmed:'✅ Confirmed',preparing:'👨‍🍳 Preparing',ready:'📦 Ready',out_for_delivery:'🛵 On the way',delivered:'🎉 Delivered',cancelled:'❌ Cancelled'};
   el.innerHTML=orders.map(o=>{
     const time=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';

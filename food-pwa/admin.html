@@ -518,6 +518,17 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
   </div>
 </div>
+<!-- DUES DETAIL MODAL -->
+<div id="duesModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;padding:12px;overflow-y:auto">
+  <div style="background:white;border-radius:20px;max-width:480px;margin:0 auto;overflow:hidden">
+    <div style="background:linear-gradient(135deg,var(--r),#b91c1c);color:white;padding:16px;display:flex;justify-content:space-between;align-items:flex-start">
+      <div id="dmHeader" style="flex:1"></div>
+      <button onclick="document.getElementById('duesModal').style.display='none'" style="background:rgba(255,255,255,.25);border:none;color:white;width:30px;height:30px;border-radius:50%;font-size:1rem;cursor:pointer;flex-shrink:0">✕</button>
+    </div>
+    <div id="dmBody" style="padding:16px">⏳ Loading…</div>
+  </div>
+</div>
+
 <!-- CUSTOMER PROFILE MODAL -->
 <div id="custProfileModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;padding:12px;overflow-y:auto">
   <div style="background:white;border-radius:20px;max-width:480px;margin:0 auto;overflow:hidden">
@@ -714,23 +725,44 @@ async function initDash(){
   ordViewDate=today;
   renderOrdDayChips();
   updateOrdDateUI();
+  preloadOrderDots();
 }
 
 // ===== ORDERS BY DATE =====
 // todayOrders is kept fresh by the always-on listener above (so notifications never stop,
 // even while the admin is looking at another date). allOrders is whatever is on screen.
+// Scan the next 7 days once so the green dots are correct from the start
+// (previously the Set only filled when you clicked a chip, so dots kept vanishing)
+window.preloadOrderDots=async function(){
+  try{
+    const days=next7Days().map(d=>d.date);
+    const results=await Promise.all(days.map(async ds=>{
+      try{
+        const snap=await getDocs(query(collection(db,'orders'),where('date','==',ds)));
+        const has=snap.docs.some(doc=>(doc.data().status||'')!=='cancelled');
+        return {ds,has};
+      }catch(e){return {ds,has:false};}
+    }));
+    results.forEach(r=>{ if(r.has) ordDatesWithOrders.add(r.ds); else ordDatesWithOrders.delete(r.ds); });
+    renderOrdDayChips();
+  }catch(e){console.error('preloadOrderDots',e);}
+};
+
 function renderOrdDayChips(){
   const wrap=document.getElementById('ordDayChips');
   if(!wrap)return;
-  const dateSet=new Set(todayOrders.map(o=>o.date));
+  const today=getTodayDate();
+  // Today's dot comes from the live listener; other days from the preloaded scan
+  const liveToday=todayOrders.some(o=>(o.status||'')!=='cancelled');
+  if(liveToday) ordDatesWithOrders.add(today); else ordDatesWithOrders.delete(today);
   wrap.innerHTML=next7Days().map(d=>{
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
     const sel=ordViewDate===d.date;
-    const dot=(d.idx===0&&todayOrders.length>0)||ordDatesWithOrders.has(d.date);
+    const dot=ordDatesWithOrders.has(d.date);
     return '<button class="dn-btn'+(sel?' sel':'')+'" style="flex-shrink:0;min-width:64px;padding:8px 10px;position:relative" onclick="setOrdersDate(\''+d.date+'\')">'+
       (lbl?'<div style="font-size:.6rem;opacity:.8">'+lbl+'</div>':'')+
       '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
-      (dot?'<div style="position:absolute;top:4px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--g)"></div>':'')+
+      (dot?'<div style="position:absolute;top:3px;right:4px;width:10px;height:10px;border-radius:50%;background:var(--g);border:2px solid white;box-shadow:0 0 0 1px var(--g)"></div>':'')+
       '</button>';
   }).join('');
 }
@@ -2147,15 +2179,120 @@ window.loadDues=async function(){
     const snap=await getDocs(collection(db,'wallets'));
     const dues=snap.docs.map(d=>({id:d.id,...d.data()})).filter(w=>(w.due||0)>0);
     if(!dues.length){list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">No pending dues 🎉</p>';return;}
-    list.innerHTML=dues.map(w=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #eee">
-        <div><div style="font-weight:700;font-size:.84rem">📞 ${w.phone||w.id}</div><div style="font-size:.72rem;color:var(--muted)">${w.updatedAt?new Date(w.updatedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div></div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-weight:800;color:var(--r);font-size:.92rem">₹${w.due}</span>
-          <button onclick="clearDue('${w.id}')" style="padding:5px 10px;background:var(--g);color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">Paid ✓</button>
+    // Fetch customer names so the list is readable (phone alone is not)
+    const names={};
+    await Promise.all(dues.map(async w=>{
+      const ph=w.phone||w.id;
+      try{const cs=await getDoc(doc(db,'customers',ph));if(cs.exists())names[ph]=cs.data().name||'';}catch(e){}
+    }));
+    list.innerHTML=dues.map(w=>{
+      const ph=w.phone||w.id;
+      const nm=names[ph]||'Unknown';
+      return `<div onclick="viewDues('${ph}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;border-bottom:1px solid #eee;cursor:pointer;border-radius:9px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:800;font-size:.86rem">${nm}</div>
+          <div style="font-size:.72rem;color:var(--muted)">📞 ${ph}${w.updatedAt?' · '+new Date(w.updatedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div>
         </div>
-      </div>`).join('');
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span style="font-weight:800;color:var(--r);font-size:.92rem">₹${w.due}</span>
+          <button onclick="event.stopPropagation();clearDue('${ph}')" style="padding:5px 10px;background:var(--g);color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">Paid ✓</button>
+        </div>
+      </div>`;
+    }).join('');
   }catch(e){list.innerHTML='<p style="font-size:.78rem;color:var(--muted)">Error loading dues</p>';}
+};
+
+// ---- DUES DETAIL + REMINDER ----
+window.viewDues=async function(phone){
+  const modal=document.getElementById('duesModal');
+  const header=document.getElementById('dmHeader');
+  const body=document.getElementById('dmBody');
+  modal.style.display='block';
+  header.innerHTML='<div style="font-weight:800;font-size:1rem">Loading…</div>';
+  body.innerHTML='<div style="text-align:center;padding:25px;color:#999">⏳ Fetching unpaid orders…</div>';
+  try{
+    let name='';
+    try{const cs=await getDoc(doc(db,'customers',phone));if(cs.exists())name=cs.data().name||'';}catch(e){}
+    let walletDue=0;
+    try{const ws=await getDoc(doc(db,'wallets',phone));if(ws.exists())walletDue=Number(ws.data().due)||0;}catch(e){}
+    const oSnap=await getDocs(query(collection(db,'orders'),where('phone','==',phone)));
+    // Unpaid = pay-later orders, or any non-cancelled order the customer never confirmed payment on
+    const unpaid=oSnap.docs.map(d=>({id:d.id,...d.data()}))
+      .filter(o=>o.status!=='cancelled'&&!(o.customerPaid===true&&!o.payLater))
+      .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const orderTotal=unpaid.reduce((s,o)=>s+(Number(o.total)||0),0);
+    const amount=walletDue>0?walletDue:orderTotal;
+
+    header.innerHTML='<div style="font-weight:800;font-size:1.05rem">'+(name||'Unknown')+'</div>'+
+      '<div style="font-size:.76rem;opacity:.9;margin-top:2px">📞 '+phone+'</div>'+
+      '<div style="font-size:.9rem;font-weight:800;margin-top:4px">Total Due: ₹'+amount+'</div>';
+
+    const upi=cfg.upiId||'';
+    const upiName=cfg.upiName||cfg.shopName||'Kicken Bites';
+    let h='';
+    if(!unpaid.length){
+      h+='<div style="background:#fffbeb;border-radius:10px;padding:10px;font-size:.76rem;color:#92400e;margin-bottom:12px">No unpaid orders found in records, but wallet shows ₹'+walletDue+' due.</div>';
+    }else{
+      h+='<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Unpaid Orders ('+unpaid.length+')</div>';
+      unpaid.forEach(o=>{
+        const items=(o.items||[]).map(i=>i.name+' ×'+i.qty).join(', ');
+        h+='<div style="padding:8px 0;border-bottom:1px solid #f3f3f3;font-size:.76rem">'+
+          '<div style="display:flex;justify-content:space-between;font-weight:700"><span>'+(o.date||'—')+'</span><span style="color:var(--r)">₹'+(o.total||0)+'</span></div>'+
+          '<div style="color:#888;font-size:.72rem">'+items+' · #'+o.id.slice(-5).toUpperCase()+(o.payLater?' · Pay Later':'')+'</div>'+
+        '</div>';
+      });
+      h+='<div style="display:flex;justify-content:space-between;padding:10px 0;font-weight:900;font-size:.9rem"><span>Total</span><span style="color:var(--r)">₹'+orderTotal+'</span></div>';
+    }
+    // UPI QR for the exact due amount
+    if(upi&&amount>0){
+      const ud='upi://pay?pa='+encodeURIComponent(upi)+'&pn='+encodeURIComponent(upiName)+'&am='+amount+'&cu=INR&tn='+encodeURIComponent('Kicken Bites dues');
+      h+='<div style="text-align:center;background:#f9fafb;border-radius:12px;padding:12px;margin:12px 0">'+
+        '<div style="font-size:.72rem;font-weight:800;color:var(--muted);margin-bottom:7px">SCAN TO PAY ₹'+amount+'</div>'+
+        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data='+encodeURIComponent(ud)+'" style="width:170px;height:170px;border-radius:8px" alt="UPI QR">'+
+        '<div style="font-size:.76rem;font-weight:700;margin-top:7px">'+upi+'</div>'+
+        '<button onclick="copyUpiId(\''+upi+'\')" style="margin-top:6px;padding:6px 14px;background:var(--dark);color:white;border:none;border-radius:9px;font-size:.72rem;font-weight:700;cursor:pointer">📋 Copy UPI ID</button>'+
+      '</div>';
+    }else if(!upi){
+      h+='<div style="background:#fffbeb;border-radius:10px;padding:10px;font-size:.74rem;color:#92400e;margin:12px 0">⚠️ Set your UPI ID in Setup to show a payment QR here.</div>';
+    }
+    h+='<div style="display:flex;gap:8px;margin-top:8px">'+
+      '<button onclick="sendDueReminder(\''+phone+'\')" style="flex:1;background:#25d366;color:white;border:none;padding:11px;border-radius:11px;font-weight:800;font-size:.82rem;cursor:pointer">💬 Send Reminder</button>'+
+      '<button onclick="clearDue(\''+phone+'\');document.getElementById(\'duesModal\').style.display=\'none\'" style="flex:1;background:var(--g);color:white;border:none;padding:11px;border-radius:11px;font-weight:800;font-size:.82rem;cursor:pointer">✓ Mark Paid</button>'+
+    '</div>';
+    body.innerHTML=h;
+    window._dueCtx={phone,name,unpaid,amount,upi,upiName};
+  }catch(e){
+    console.error(e);
+    body.innerHTML='<div style="text-align:center;padding:20px;color:#e33">Error: '+e.message+'</div>';
+  }
+};
+
+window.copyUpiId=function(upi){
+  if(navigator.clipboard)navigator.clipboard.writeText(upi).then(()=>showToast('📋 UPI ID copied')).catch(()=>{});
+  else showToast('UPI: '+upi);
+};
+
+window.sendDueReminder=function(phone){
+  const ctx=window._dueCtx;
+  if(!ctx||ctx.phone!==phone){alert('Please reopen the customer to send a reminder');return;}
+  const nl='\n';
+  let msg='🍗 *KICKEN BITES*'+nl+'━━━━━━━━━━━━━━━'+nl;
+  msg+='Hello *'+(ctx.name||'')+'* 🙏'+nl+nl+'This is a friendly reminder for your pending payment:'+nl+nl;
+  if(ctx.unpaid.length){
+    ctx.unpaid.forEach(o=>{
+      const items=(o.items||[]).map(i=>i.name+' ×'+i.qty).join(', ');
+      msg+='  • '+(o.date||'')+' — *'+items+'* — ₹'+(o.total||0)+nl;
+    });
+    msg+=nl;
+  }
+  msg+='💰 *Total Due: ₹'+ctx.amount+'*'+nl+nl;
+  if(ctx.upi){
+    msg+='📲 *Pay via UPI:*'+nl+ctx.upi+' ('+ctx.upiName+')'+nl+nl;
+    msg+='Or tap this link to pay instantly:'+nl;
+    msg+='upi://pay?pa='+encodeURIComponent(ctx.upi)+'&pn='+encodeURIComponent(ctx.upiName)+'&am='+ctx.amount+'&cu=INR'+nl+nl;
+  }
+  msg+='Thank you for ordering with us! 🙏';
+  location.href='https://wa.me/91'+phone+'?text='+encodeURIComponent(msg);
 };
 
 window.clearDue=async function(phone){
