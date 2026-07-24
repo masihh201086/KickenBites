@@ -1100,10 +1100,31 @@ window.placeOrderClick=async function(){
     let newId=null;
     await runTransaction(db,async tx=>{
       const ms=await tx.get(dailyRef);
-      const md=ms.exists()?ms.data():{};
-      const upd=(md.items||[]).map(item=>{const o=items.find(i=>i.id===item.id);if(o&&item.availableQty>0)return{...item,availableQty:Math.max(0,item.availableQty-o.qty)};return item;});
-      tx.update(dailyRef,{items:upd});
       const nr=doc(ordersRef);newId=nr.id;
+      if(ms.exists()){
+        // Real dailyMenu doc exists — just decrement stock on it
+        const md=ms.data();
+        const upd=(md.items||[]).map(item=>{const o=items.find(i=>i.id===item.id);if(o&&item.availableQty>0)return{...item,availableQty:Math.max(0,item.availableQty-o.qty)};return item;});
+        tx.update(dailyRef,{items:upd});
+      }else{
+        // No doc yet (menu came from the weekly default template).
+        // Create it now from what the customer is seeing, minus this order's qty.
+        const baseItems=(menuConfig.items||[]).map(item=>{
+          const o=items.find(i=>i.id===item.id);
+          const q=Number(item.availableQty)||0;
+          return {...item, availableQty:(o&&q>0)?Math.max(0,q-o.qty):q};
+        });
+        tx.set(dailyRef,{
+          date:ds,
+          isOpen:menuConfig.isOpen!==false,
+          locationCharges:menuConfig.locationCharges||{},
+          shopName:menuConfig.shopName||'Kicken Bites',
+          upiId:menuConfig.upiId||'',
+          upiName:menuConfig.upiName||'',
+          imgbbKey:menuConfig.imgbbKey||'',
+          items:baseItems
+        });
+      }
       tx.set(nr,{name,phone,address,addrLine1,addrLine2,orderType,items,subtotal:sub,deliveryCharge:delivery,total,notes,status:'pending_payment',createdAt:new Date().toISOString(),date:ds,scheduledFor:ds});
     });
     currentOrderId=newId;
@@ -1111,7 +1132,7 @@ window.placeOrderClick=async function(){
     // Persist to localStorage so WA button works even after page interaction
     try{localStorage.setItem('kb_last_order',JSON.stringify(lastOrder));}catch(e){}
     showPayScreen(total);
-  }catch(e){alert('Error placing order. Please try again.');}
+  }catch(e){console.error('Order error:',e);alert('Error placing order: '+(e&&e.message?e.message:'Please try again.'));}
   btn.disabled=false;updateBill();
 };
 
