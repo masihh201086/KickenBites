@@ -316,6 +316,10 @@ input:checked+.slider:before{transform:translateX(20px);}
       <button class="fb" onclick="filterO('out_for_delivery',this)">Out</button>
       <button class="fb" onclick="filterO('delivered',this)">Delivered</button>
     </div>
+    <div class="card" id="itemBookCard" style="padding:11px;display:none">
+      <div class="ct" style="margin:0 0 8px">🍽️ Items Booked (this date)</div>
+      <div id="itemBookBars"></div>
+    </div>
     <div id="ordersList"></div>
   </div>
 
@@ -547,7 +551,7 @@ import { db, getTodayDate, formatDisplayDate, getConfig, saveConfig, saveDailyMe
 
 const PK='adminPwd_v4';
 let cfg={}, masterItems=[], allOrders=[], todayOrders=[], ordViewDate='', ordDatesWithOrders=new Set(), curFilter='all', selMenuDate='', selMenuHasOverride=false, adminMap=null, adminMarker=null;
-let deliveryBoys=[], IMGBB='', curImgIdx=null, ordersUnsub=null, deliveryUnsub=null;
+let deliveryBoys=[], IMGBB='', curImgIdx=null, ordersUnsub=null, tomorrowUnsub=null, deliveryUnsub=null;
 
 // ---- LOGIN ----
 window.doLogin=function(){
@@ -722,6 +726,38 @@ async function initDash(){
     setTimeout(()=>initDash(),3000);
   });
   document.getElementById('aiDate').value=getTodayDate();
+
+  // ===== TOMORROW listener — notifications for advance (tomorrow) orders too =====
+  // Fires the SAME new-order / paid / delivered alerts as today, but never touches
+  // the on-screen list (that stays driven by the today/selected-date view).
+  const d2=new Date(getTodayDate()+'T00:00:00'); d2.setDate(d2.getDate()+1);
+  const tomorrow=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+  let tmrKnown={}; let tmrFirst=true;
+  if(tomorrowUnsub)tomorrowUnsub();
+  const tmrQ=query(collection(db,'orders'),where('date','==',tomorrow));
+  tomorrowUnsub=onSnapshot(tmrQ,snap=>{
+    const orders=snap.docs.map(x=>({id:x.id,...x.data()}));
+    if(!tmrFirst){
+      orders.forEach(o=>{
+        const prev=tmrKnown[o.id]||{};
+        if(!prev.customerPaid && o.customerPaid===true){
+          notifyAdmin(o, o.payLater?'paylater':'paid');
+          autoAssignDefaultBoy(o);
+        }
+        if(!prev.deliveredAt && o.deliveredAt){ notifyAdmin(o,'delivered'); }
+        tmrKnown[o.id]={customerPaid:o.customerPaid||false,deliveredAt:o.deliveredAt||null};
+      });
+    }else{
+      orders.forEach(o=>{tmrKnown[o.id]={customerPaid:o.customerPaid||false,deliveredAt:o.deliveredAt||null};});
+      tmrFirst=false;
+    }
+    // Keep tomorrow's green dot on the Orders chips fresh
+    if(orders.some(o=>(o.status||'')!=='cancelled')) ordDatesWithOrders.add(tomorrow); else ordDatesWithOrders.delete(tomorrow);
+    // If admin happens to be viewing tomorrow, repaint that view live
+    if(ordViewDate===tomorrow){ allOrders=orders.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')); updateStats(); renderOrders(); }
+    renderOrdDayChips();
+  }, err=>console.error('Tomorrow listener error:',err));
+
   ordViewDate=today;
   renderOrdDayChips();
   updateOrdDateUI();
@@ -769,17 +805,20 @@ function renderOrdDayChips(){
 
 function updateOrdDateUI(){
   const today=getTodayDate();
+  const d2=new Date(today+'T00:00:00'); d2.setDate(d2.getDate()+1);
+  const tomorrow=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
   const isToday=ordViewDate===today;
+  const isTomorrow=ordViewDate===tomorrow;
   const lbl=document.getElementById('ordDateLbl');
   const note=document.getElementById('ordLiveNote');
   const back=document.getElementById('ordBackToday');
-  if(lbl)lbl.textContent=isToday?'🔴 LIVE — '+formatDisplayDate(today):'📖 Viewing '+formatDisplayDate(ordViewDate);
+  if(lbl)lbl.textContent=(isToday||isTomorrow)?'🔴 LIVE — '+formatDisplayDate(ordViewDate):'📖 Viewing '+formatDisplayDate(ordViewDate);
   if(back)back.style.display=isToday?'none':'inline-block';
   if(note){
-    if(isToday){note.style.display='none';}
+    if(isToday||isTomorrow){note.style.display='none';}
     else{
       note.style.display='block';
-      note.innerHTML='📖 Viewing past/other date — this list does not auto-refresh. New orders for <b>today</b> will still alert you.';
+      note.innerHTML='📖 Viewing past/other date — this list does not auto-refresh. New orders for <b>today &amp; tomorrow</b> will still alert you.';
     }
   }
 }
@@ -793,6 +832,19 @@ window.setOrdersDate=async function(ds){
   if(ds===today){
     // Back to the live feed
     allOrders=todayOrders; updateStats(); renderOrders();
+    return;
+  }
+  const d2t=new Date(today+'T00:00:00'); d2t.setDate(d2t.getDate()+1);
+  const tomorrowStr=d2t.getFullYear()+'-'+String(d2t.getMonth()+1).padStart(2,'0')+'-'+String(d2t.getDate()).padStart(2,'0');
+  if(ds===tomorrowStr){
+    // Tomorrow is also a live listener — one-off fetch now, it'll refresh via the tomorrow listener
+    document.getElementById('ordersList').innerHTML='<div class="empty">⏳ Loading tomorrow\'s orders…</div>';
+    try{
+      const snap=await getDocs(query(collection(db,'orders'),where('date','==',ds)));
+      allOrders=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+      if(allOrders.length)ordDatesWithOrders.add(ds); else ordDatesWithOrders.delete(ds);
+      renderOrdDayChips(); updateStats(); renderOrders();
+    }catch(e){console.error(e);document.getElementById('ordersList').innerHTML='<div class="empty">⚠️ '+e.message+'</div>';}
     return;
   }
   // One-off fetch for any other date
@@ -1224,7 +1276,45 @@ function addCustomerPinsToMap(){
 // ---- ORDERS ----
 window.filterO=function(f,btn){curFilter=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderOrders();};
 
+// Live "items booked" bars for the currently-viewed date, computed from orders.
+// Green (lots left) → yellow → red (few left); "🔥 Fast filling!" at 50%+ booked.
+function renderItemBookingBars(){
+  const card=document.getElementById('itemBookCard');
+  const wrap=document.getElementById('itemBookBars');
+  if(!card||!wrap)return;
+  const live=allOrders.filter(o=>o.status!=='cancelled');
+  // tally booked qty per item name
+  const booked={};
+  live.forEach(o=>(o.items||[]).forEach(i=>{booked[i.name]=(booked[i.name]||0)+(Number(i.qty)||0);}));
+  // capacity per item = master defaultQty for the weekday of the viewed date
+  const wd=weekdayKey(ordViewDate||getTodayDate());
+  const rows=[];
+  (masterItems||[]).forEach(m=>{
+    if(!(m.weekdays&&m.weekdays[wd]))return;
+    const cap=Number(m.defaultQty)||0;
+    const b=booked[m.name]||0;
+    if(cap<=0&&b<=0)return;
+    const total=cap>0?cap:b;
+    const remaining=Math.max(0,total-b);
+    const pct=total>0?Math.round((b/total)*100):0;
+    const remPct=100-pct;
+    const color=remPct>50?'#22c55e':remPct>20?'#f59e0b':'#ef4444';
+    const fast=pct>=50&&remaining>0;
+    rows.push('<div style="margin-bottom:9px">'+
+      '<div style="display:flex;justify-content:space-between;font-size:.74rem;font-weight:700;margin-bottom:3px">'+
+        '<span>'+m.name+'</span>'+
+        '<span style="color:'+(remaining===0?'#ef4444':'var(--muted)')+'">'+b+' booked · '+remaining+' left'+(fast?' <span style="color:#e65c00">🔥</span>':'')+(remaining===0?' · SOLD OUT':'')+'</span>'+
+      '</div>'+
+      '<div style="height:8px;border-radius:20px;background:#eef0f2;overflow:hidden"><div style="height:100%;border-radius:20px;width:'+pct+'%;background:'+color+';transition:width .4s"></div></div>'+
+    '</div>');
+  });
+  if(!rows.length){card.style.display='none';return;}
+  card.style.display='block';
+  wrap.innerHTML=rows.join('');
+}
+
 function renderOrders(){
+  renderItemBookingBars();
   const list=document.getElementById('ordersList');
   let filtered=curFilter==='all'?[...allOrders]:allOrders.filter(o=>o.status===curFilter);
   // FIX 5: Active orders on top, then by newest first

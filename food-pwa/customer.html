@@ -75,6 +75,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
 .mc-price{font-weight:800;color:var(--orange);font-size:1rem;}
 .mc-badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
 .qbadge{font-size:.68rem;padding:2px 7px;border-radius:20px;font-weight:700;}
+.stockbar-wrap{margin:7px 0 2px;}
+.stockbar-track{height:8px;border-radius:20px;background:#eef0f2;overflow:hidden;}
+.stockbar-fill{height:100%;border-radius:20px;transition:width .4s ease;}
+.stockbar-info{display:flex;justify-content:space-between;align-items:center;font-size:.66rem;margin-top:3px;font-weight:600;}
+.stockbar-info .booked{color:var(--muted);}
+.stockbar-info .fast{color:#e65c00;font-weight:800;}
 .qok{background:#f0fdf4;color:var(--green);}
 .qlow{background:#fef2f2;color:var(--red);}
 .rating-badge{font-size:.68rem;color:#f59e0b;font-weight:700;}
@@ -876,8 +882,14 @@ async function loadMenu() {
       if(def)data=def;
     }
     clearTimeout(timeout);
+    data=await mergeMasterPrices(data);
     applyMenu(data);
-    menuUnsub=listenToTodayMenu(d=>{if(d&&!d.isDefault&&(d.items||[]).length&&selectedDate===today){menuConfig=d;renderMenu(d.items||[]);updateBill();}});
+    menuUnsub=listenToTodayMenu(async d=>{
+      if(d&&!d.isDefault&&(d.items||[]).length&&selectedDate===today){
+        d=await mergeMasterPrices(d);
+        menuConfig=d;renderMenu(d.items||[]);updateBill();
+      }
+    });
   }catch(e){clearTimeout(timeout);document.getElementById('closedBox').style.display='block';}
 }
 
@@ -923,6 +935,25 @@ function buildCard(item){
   if(item.imageUrl){imgHtml=`<div class="mc-img-wrap${soldOut?' soldout-overlay':''}"><img src="${item.imageUrl}" alt="${item.name}" loading="lazy" onerror="this.parentElement.style.display='none'">${soldOut?'<div class="sold-tag">SOLD OUT</div>':''}</div>`;}
   else{imgHtml=`<div class="mc-emoji">${item.emoji||'🍛'}${soldOut?'<div class="sold-tag" style="position:absolute">SOLD OUT</div>':''}</div>`;}
   const qtyBadge=soldOut?'':limited?`<span class="qbadge ${low?'qlow':'qok'}">${low?'⚠️ Only '+aq+' left':'✅ '+aq+' left'}</span>`:'';
+  // ---- Stock fill bar (#14): shows how much of the day's batch is booked ----
+  const startQty=Number(item.startQty)||0;
+  let stockBar='';
+  if(startQty>0){
+    const remaining=Math.max(0,Math.min(startQty,aq));
+    const booked=startQty-remaining;
+    const bookedPct=Math.round((booked/startQty)*100);           // how full (booked)
+    const remainPct=100-bookedPct;                               // how much left
+    // Colour reflects REMAINING stock: green (lots) → yellow → red (few)
+    const barColor=remainPct>50?'#22c55e':remainPct>20?'#f59e0b':'#ef4444';
+    const fastFilling=bookedPct>=50 && remaining>0;              // 50%+ booked
+    stockBar=`<div class="stockbar-wrap">
+      <div class="stockbar-track"><div class="stockbar-fill" style="width:${bookedPct}%;background:${barColor}"></div></div>
+      <div class="stockbar-info">
+        <span class="booked">${booked} booked · ${remaining} left</span>
+        ${soldOut?'<span style="color:#ef4444;font-weight:800">SOLD OUT</span>':(fastFilling?'<span class="fast">🔥 Fast filling!</span>':'')}
+      </div>
+    </div>`;
+  }
   const starsHtml = avgRating>0 ? '★'.repeat(Math.round(avgRating))+'☆'.repeat(5-Math.round(avgRating)) : '';
   const reviewsHtml = rReviews.length>0 ? `
     <div style="margin-top:7px;border-top:1px solid #f0f0f0;padding-top:7px">
@@ -937,6 +968,7 @@ function buildCard(item){
         <span class="mc-price">₹${item.price}</span>
         <div class="mc-badges">${qtyBadge}${ratingHtml}</div>
       </div>
+      ${stockBar}
       ${reviewsHtml}
     </div>
     <div class="mc-footer">
@@ -989,10 +1021,47 @@ function next7Days(){
 }
 function weekdayKey(ds){return ['sun','mon','tue','wed','thu','fri','sat'][new Date(ds+'T00:00:00').getDay()];}
 let _masterCfg=null;
-async function getMasterCfg(){
-  if(_masterCfg)return _masterCfg;
-  try{const s=await getDoc(doc(db,'config','menu'));_masterCfg=s.exists()?s.data():{};}catch(e){_masterCfg={};}
+async function getMasterCfg(force){
+  if(_masterCfg&&!force)return _masterCfg;
+  try{const s=await getDoc(doc(db,'config','menu'));_masterCfg=s.exists()?s.data():{};}catch(e){_masterCfg=_masterCfg||{};}
   return _masterCfg;
+}
+
+// Reconcile a loaded menu doc against the LATEST master template for its weekday.
+//  - price/name/desc/emoji/image always come from master (so admin edits show instantly)
+//  - availableQty (stock) is preserved from the saved daily doc where the item existed
+//  - items master no longer serves on that weekday are dropped
+//  - items master newly serves on that weekday are added (at their default qty)
+// This is why a Master price change now appears for every day instead of staying frozen
+// at whatever value got baked into a saved dailyMenu override, and why newly-enabled
+// items appear without needing to re-save that day.
+async function mergeMasterPrices(menuObj){
+  if(!menuObj||!Array.isArray(menuObj.items))return menuObj;
+  const ds=menuObj.date||selectedDate||getTodayDate();
+  const wd=weekdayKey(ds);
+  const mcfg=await getMasterCfg(true); // always fresh
+  const masterItems=(mcfg&&mcfg.masterItems)||[];
+  // stock we already had for this day, keyed by item id
+  const stock={};
+  menuObj.items.forEach(it=>{ if(it&&it.id!=null) stock[it.id]=it.availableQty; });
+  // rebuild the item list from master's weekday template, carrying over saved stock
+  menuObj.items=masterItems
+    .filter(m=>m.name&&m.price>0&&m.weekdays&&m.weekdays[wd])
+    .map(m=>{
+      const startQty=Number(m.defaultQty)||0;                       // original capacity for the day
+      const availableQty=(stock[m.id]!==undefined?stock[m.id]:startQty); // remaining
+      return {
+        id:m.id,
+        name:m.name,
+        price:m.price,
+        emoji:m.emoji||'🍛',
+        desc:m.desc||'',
+        imageUrl:m.imageUrl||'',
+        availableQty,
+        startQty
+      };
+    });
+  return menuObj;
 }
 function buildDefaultMenuC(ds,mcfg){
   const wd=weekdayKey(ds);
@@ -1036,6 +1105,7 @@ window.selectDate=async function(which,val){
     document.getElementById('menuList').innerHTML=`<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>No menu for ${disp}</p></div>`;
     quantities={};menuConfig={};updateBill();
   }else{
+    data=await mergeMasterPrices(data);
     menuConfig=data;quantities={};
     // Reload ratings then render
     await loadItemRatings();
@@ -1155,6 +1225,7 @@ window.placeOrderClick=async function(){
         tx.set(dailyRef,{
           date:ds,
           isOpen:menuConfig.isOpen!==false,
+          autoCreated:true, // stock-tracking doc from an order, NOT an admin custom menu
           locationCharges:menuConfig.locationCharges||{},
           shopName:menuConfig.shopName||'Kicken Bites',
           upiId:menuConfig.upiId||'',
