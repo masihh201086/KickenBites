@@ -583,11 +583,24 @@ function showApp() {
   show('mainApp');
   if (currentProfile) { updateProfileUI(currentProfile); autoFill(currentProfile); if(currentProfile.phone) loadMyOrders(currentProfile.phone); }
   loadMenu();
+  startPresence();
   // Restore last active tab (refresh stays on same tab)
   try{
     const savedTab=localStorage.getItem('kb_cust_tab');
     if(savedTab&&savedTab!=='order')switchTab(savedTab);
   }catch(e){}
+}
+
+// ===== PRESENCE HEARTBEAT (D) — lets admin see how many customers are online =====
+let _presenceTimer=null;
+function startPresence(){
+  const ph=loginPhoneVal||(currentProfile&&currentProfile.phone)||localStorage.getItem('custPhone');
+  if(!ph)return;
+  const beat=()=>{ try{ setDoc(doc(db,'presence',ph),{phone:ph,lastSeen:new Date().toISOString()},{merge:true}); }catch(e){} };
+  beat();
+  if(_presenceTimer)clearInterval(_presenceTimer);
+  _presenceTimer=setInterval(beat,60000); // every 60s
+  window.addEventListener('beforeunload',()=>{ try{ setDoc(doc(db,'presence',ph),{lastSeen:new Date(Date.now()-10*60000).toISOString()},{merge:true}); }catch(e){} });
 }
 
 // ---- LOGIN ----

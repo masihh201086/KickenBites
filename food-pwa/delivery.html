@@ -93,6 +93,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;min-height:1
 .container{padding:13px;}
 .card{background:white;border-radius:var(--r2);padding:13px;margin-bottom:11px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
 .ct{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:9px;}
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
 </style>
 </head>
 <body>
@@ -176,6 +177,20 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;min-height:1
     </div>
   </div>
 
+  <!-- ORDER DATE NAVIGATION -->
+  <div style="padding:8px 11px 0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+      <div style="font-size:.66rem;font-weight:800;text-transform:uppercase;color:var(--muted)">📅 Orders by date</div>
+      <button id="delBackToday" onclick="setDelDate(getTodayDate())" style="display:none;background:var(--o);color:white;border:none;border-radius:8px;padding:5px 10px;font-size:.68rem;font-weight:800;cursor:pointer">↩ Today</button>
+    </div>
+    <div id="delDayChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px"></div>
+    <div style="display:flex;gap:7px;align-items:center;margin-top:5px">
+      <button onclick="(document.getElementById('delDatePick').showPicker?document.getElementById('delDatePick').showPicker():document.getElementById('delDatePick').focus())" style="flex-shrink:0;padding:7px 11px;background:white;border:2px solid #e5e5e5;border-radius:9px;font-size:.72rem;font-weight:700;cursor:pointer">📅 Past Date</button>
+      <input type="date" id="delDatePick" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="setDelDate(this.value)">
+      <div id="delDateLbl" style="font-size:.72rem;font-weight:700;color:var(--o)"></div>
+    </div>
+  </div>
+
   <!-- 4 TABS -->
   <div class="tabs">
     <div class="tab active" id="tab-active-btn" onclick="swTab('active')">🚀 Active (0)</div>
@@ -189,6 +204,21 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;min-height:1
   <div class="panel" id="tab-all"><div class="empty">Loading…</div></div>
   <div class="panel" id="tab-earnings">
     <div style="padding:13px">
+      <!-- PERIOD SELECTOR (B) -->
+      <div style="background:white;border-radius:12px;padding:11px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:11px">
+        <div style="font-size:.66rem;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:7px">📊 Summary period</div>
+        <div id="earnPeriodChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px"></div>
+        <input type="date" id="earnDatePick" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="setEarnPeriod('pickday',this.value)">
+        <input type="month" id="earnMonthPick" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="setEarnPeriod('pickmonth',this.value)">
+        <div id="earnPeriodResult" style="background:linear-gradient(135deg,var(--dark),#0f3460);border-radius:12px;padding:14px;color:white;margin-top:4px">
+          <div id="earnPeriodLabel" style="font-size:.7rem;opacity:.7;margin-bottom:3px">THIS MONTH</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-end">
+            <div><div style="font-size:2rem;font-weight:900" id="earnPeriodAmt">₹0</div><div style="font-size:.74rem;opacity:.75" id="earnPeriodCount">0 deliveries</div></div>
+          </div>
+        </div>
+        <button onclick="sendEarningsSummary()" style="width:100%;margin-top:9px;background:#25d366;color:white;border:none;padding:11px;border-radius:11px;font-weight:800;font-size:.84rem;cursor:pointer">💬 Send Summary to Admin</button>
+      </div>
+
       <!-- TODAY -->
       <div style="background:linear-gradient(135deg,var(--dark),#0f3460);border-radius:14px;padding:16px;color:white;margin-bottom:11px">
         <div style="font-size:.7rem;opacity:.65;margin-bottom:4px">TODAY'S EARNINGS</div>
@@ -253,8 +283,48 @@ function getTodayDate() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+// ===== 7-DAY ORDER DATE NAV (A) =====
+function next7Days(){
+  const out=[];const base=new Date(getTodayDate()+'T00:00:00');
+  const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  for(let i=0;i<7;i++){
+    const d=new Date(base.getTime()+i*86400000);
+    const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    out.push({date:ds,wd:WD[d.getDay()],dayNum:d.getDate(),idx:i});
+  }
+  return out;
+}
+function renderDelDayChips(){
+  const wrap=document.getElementById('delDayChips');
+  if(!wrap)return;
+  wrap.innerHTML=next7Days().map(d=>{
+    const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
+    const sel=delViewDate===d.date;
+    return '<button onclick="setDelDate(\''+d.date+'\')" style="flex-shrink:0;min-width:60px;padding:7px 9px;border-radius:10px;border:2px solid '+(sel?'var(--o)':'#e5e5e5')+';background:'+(sel?'#fff7ed':'white')+';cursor:pointer;font-family:inherit">'+
+      (lbl?'<div style="font-size:.56rem;opacity:.8;color:var(--muted)">'+lbl+'</div>':'')+
+      '<div style="font-weight:800;font-size:.8rem;color:'+(sel?'var(--o)':'#333')+'">'+d.wd+' '+d.dayNum+'</div></button>';
+  }).join('');
+}
+function updateDelDateLbl(){
+  const today=getTodayDate();
+  const isToday=delViewDate===today;
+  const lbl=document.getElementById('delDateLbl');
+  const back=document.getElementById('delBackToday');
+  if(lbl){
+    const disp=new Date(delViewDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+    lbl.textContent=isToday?'🔴 Live — Today':'📖 '+disp;
+  }
+  if(back)back.style.display=isToday?'none':'inline-block';
+}
+window.setDelDate=function(ds){
+  if(!ds)return;
+  delViewDate=ds;
+  loadOrders();
+};
+
 let isGPS = false, watchId = null, updateCount = 0;
 let allOrders = [], boy = null, genOtp = '', loginPhone = '';
+let delViewDate = '';
 
 // --- SESSION CHECK ---
 const sp = localStorage.getItem('boyPhone'), sn = localStorage.getItem('boyName');
@@ -360,6 +430,37 @@ function startApp() {
   requestNotifPerm();
   loadOrders();
   listenForAssignments();
+  listenForSalaryPaid();
+}
+
+// ===== SALARY-PAID NOTIFICATION (B) =====
+function listenForSalaryPaid(){
+  if(!boy?.phone)return;
+  const q=query(collection(db,'boyNotifications'),where('phone','==',boy.phone),where('type','==','salary_paid'));
+  onSnapshot(q,snap=>{
+    snap.docs.forEach(d=>{
+      const n=d.data();
+      if(n.seen)return;
+      const shownKey='kb_salpaid_seen_'+d.id;
+      if(localStorage.getItem(shownKey))return;
+      showSalaryBanner(n);
+      localStorage.setItem(shownKey,'1');
+      try{setDoc(doc(db,'boyNotifications',d.id),{seen:true},{merge:true});}catch(e){}
+    });
+  },err=>console.error('salary notif',err));
+}
+function showSalaryBanner(n){
+  let el=document.getElementById('salaryBanner');
+  if(el)el.remove();
+  el=document.createElement('div');
+  el.id='salaryBanner';
+  el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;padding:16px;text-align:center;box-shadow:0 3px 12px rgba(0,0,0,.3);animation:slideDown .4s';
+  el.innerHTML='<div style="font-size:1.05rem;font-weight:900">💵 Salary Paid!</div>'+
+    '<div style="font-size:.82rem;opacity:.95;margin-top:3px">₹'+(n.amount||'')+' for '+(n.label||'')+' has been paid by admin 🎉</div>'+
+    '<button onclick="document.getElementById(\'salaryBanner\').remove()" style="margin-top:8px;background:rgba(255,255,255,.25);border:none;color:white;padding:6px 18px;border-radius:8px;font-weight:700;cursor:pointer">Got it</button>';
+  document.body.appendChild(el);
+  try{if('Notification' in window && Notification.permission==='granted')new Notification('💵 Salary Paid!',{body:'₹'+(n.amount||'')+' for '+(n.label||'')});}catch(e){}
+  setTimeout(()=>{const b=document.getElementById('salaryBanner');if(b)b.remove();},15000);
 }
 
 function requestNotifPerm(){
@@ -416,17 +517,22 @@ window.doLogout = async function() {
 };
 
 // --- ORDERS ---
+let _ordersUnsub=null;
 function loadOrders(){
   if(!boy?.phone)return;
-  const today=getTodayDate();
-  const q=query(collection(db,'orders'),where('date','==',today));
-  onSnapshot(q,
+  if(!delViewDate)delViewDate=getTodayDate();
+  const viewDate=delViewDate;
+  renderDelDayChips();
+  updateDelDateLbl();
+  if(_ordersUnsub){try{_ordersUnsub();}catch(e){}}
+  const q=query(collection(db,'orders'),where('date','==',viewDate));
+  _ordersUnsub=onSnapshot(q,
     snap=>{
       allOrders=snap.docs.map(d=>({id:d.id,...d.data()}))
         .filter(o=>o.orderType==='delivery')
         .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
-      // Cache for offline
-      try{localStorage.setItem('kb_offline_orders',JSON.stringify(allOrders));}catch(e){}
+      // Cache for offline (only cache today's for the offline fallback)
+      if(viewDate===getTodayDate()){try{localStorage.setItem('kb_offline_orders',JSON.stringify(allOrders));}catch(e){}}
       // Update summary using orders assigned to THIS boy
       var myOrders=allOrders.filter(o=>!o.assignedBoyPhone||o.assignedBoyPhone===boy.phone);
       updateTodaySummary(myOrders);
@@ -584,7 +690,7 @@ window.swTab = function(t) {
     document.getElementById('tab-'+x).classList.toggle('active',x===t);
     document.getElementById('tab-'+x+'-btn').classList.toggle('active',x===t);
   });
-  if(t==='earnings') loadEarnings();
+  if(t==='earnings'){ loadEarnings(); _earnAllOrders=null; setEarnPeriod(_earnPeriod.type||'thismonth', _earnPeriod.val); }
   try{localStorage.setItem('kb_del_tab',t);}catch(e){}
 };
 // Restore tab on load
@@ -659,6 +765,92 @@ async function loadEarnings(){
     document.getElementById('todayEarn').textContent='Error';
   }
 }
+
+// ===== EARNINGS PERIOD SUMMARY (B) =====
+let _earnAllOrders=null;      // cache of this boy's delivered orders
+let _earnPeriod={type:'thismonth',val:''};
+const DEL_BASE_SALARY=1800;
+
+function delCharge(o){
+  var charge=Number(o.deliveryCharge)||Number(o.delivery)||0;
+  if(!charge){var loc=o.address||o.location||'';charge=loc.includes('PATA')?50:15;}
+  return charge;
+}
+
+async function fetchBoyDelivered(){
+  if(_earnAllOrders)return _earnAllOrders;
+  const {getDocs:gd}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  const q1=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone));
+  const snap=await gd(q1);
+  _earnAllOrders=snap.docs.map(d=>({id:d.id,...d.data()})).filter(o=>o.status==='delivered');
+  return _earnAllOrders;
+}
+
+function periodRange(type,val){
+  const now=new Date();
+  if(type==='today'){const t=getTodayDate();return {label:'TODAY',match:o=>o.date===t};}
+  if(type==='pickday'){return {label:new Date(val+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}).toUpperCase(),match:o=>o.date===val};}
+  if(type==='thismonth'){const y=now.getFullYear(),m=now.getMonth();return {label:'THIS MONTH',match:o=>{const d=new Date((o.deliveredAt||o.date||o.createdAt));return d.getFullYear()===y&&d.getMonth()===m;}};}
+  if(type==='prevmonth'){let y=now.getFullYear(),m=now.getMonth()-1;if(m<0){m=11;y--;}return {label:'LAST MONTH',match:o=>{const d=new Date((o.deliveredAt||o.date||o.createdAt));return d.getFullYear()===y&&d.getMonth()===m;}};}
+  if(type==='pickmonth'){const [yy,mm]=val.split('-').map(Number);const lbl=new Date(yy,mm-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'}).toUpperCase();return {label:lbl,match:o=>{const d=new Date((o.deliveredAt||o.date||o.createdAt));return d.getFullYear()===yy&&d.getMonth()===mm-1;}};}
+  return {label:'ALL',match:()=>true};
+}
+
+function renderEarnPeriodChips(){
+  const wrap=document.getElementById('earnPeriodChips');
+  if(!wrap)return;
+  const chips=[
+    {t:'today',label:'Today'},
+    {t:'pickday',label:'📅 Pick Day'},
+    {t:'thismonth',label:'This Month'},
+    {t:'prevmonth',label:'Last Month'},
+    {t:'pickmonth',label:'📅 Pick Month'}
+  ];
+  wrap.innerHTML=chips.map(ch=>{
+    const sel=_earnPeriod.type===ch.t;
+    return '<button onclick="'+((ch.t==='pickday')?"document.getElementById('earnDatePick').showPicker?document.getElementById('earnDatePick').showPicker():document.getElementById('earnDatePick').focus()":(ch.t==='pickmonth')?"document.getElementById('earnMonthPick').showPicker?document.getElementById('earnMonthPick').showPicker():document.getElementById('earnMonthPick').focus()":"setEarnPeriod('"+ch.t+"')")+'" style="flex-shrink:0;padding:6px 11px;border-radius:9px;border:2px solid '+(sel?'var(--o)':'#e5e5e5')+';background:'+(sel?'#fff7ed':'white')+';color:'+(sel?'var(--o)':'#555')+';font-weight:700;font-size:.72rem;cursor:pointer;font-family:inherit">'+ch.label+'</button>';
+  }).join('');
+}
+
+window.setEarnPeriod=async function(type,val){
+  _earnPeriod={type,val:val||''};
+  renderEarnPeriodChips();
+  const amtEl=document.getElementById('earnPeriodAmt');
+  const cntEl=document.getElementById('earnPeriodCount');
+  const lblEl=document.getElementById('earnPeriodLabel');
+  if(amtEl)amtEl.textContent='…';
+  try{
+    const orders=await fetchBoyDelivered();
+    const {label,match}=periodRange(type,val);
+    const matched=orders.filter(match);
+    const charges=matched.reduce((s,o)=>s+delCharge(o),0);
+    const isMonth=(type==='thismonth'||type==='prevmonth'||type==='pickmonth');
+    const total=isMonth?(DEL_BASE_SALARY+charges):charges;
+    if(lblEl)lblEl.textContent=label+(isMonth?' (incl. ₹'+DEL_BASE_SALARY+' base)':'');
+    if(amtEl)amtEl.textContent='₹'+total;
+    if(cntEl)cntEl.textContent=matched.length+' deliveries · ₹'+charges+' delivery charges';
+    window._earnSummary={label,count:matched.length,charges,total,isMonth};
+  }catch(e){
+    console.error(e);
+    if(amtEl)amtEl.textContent='Error';
+  }
+};
+
+window.sendEarningsSummary=function(){
+  const s=window._earnSummary;
+  if(!s){showToast('Loading… try again');return;}
+  const nl='\n';
+  let msg='🛵 *DELIVERY EARNINGS SUMMARY*'+nl+'━━━━━━━━━━━━'+nl;
+  msg+='*'+(boy?.name||'Delivery Boy')+'* ('+(boy?.phone||'')+')'+nl+nl;
+  msg+='📅 Period: *'+s.label+'*'+nl;
+  msg+='📦 Deliveries: *'+s.count+'*'+nl;
+  msg+='🛵 Delivery charges: *₹'+s.charges+'*'+nl;
+  if(s.isMonth)msg+='💼 Base salary: ₹'+DEL_BASE_SALARY+nl;
+  msg+='━━━━━━━━━━━━'+nl+'💰 *Total: ₹'+s.total+'*'+nl+nl;
+  msg+='Please review and process payment. 🙏';
+  const adminPhone='9712951947';
+  location.href='https://wa.me/91'+adminPhone+'?text='+encodeURIComponent(msg);
+};
 
 // ---- WA DELAY MESSAGE ----
 window.waMsgDelay=function(phone, name){
