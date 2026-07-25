@@ -323,6 +323,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div class="card" id="itemBookCard" style="padding:11px;display:none">
       <div class="ct" style="margin:0 0 8px">🍽️ Items Booked (this date)</div>
       <div id="itemBookBars"></div>
+      <button onclick="sendOrdersReminder()" style="width:100%;margin-top:9px;background:#25d366;color:white;border:none;padding:11px;border-radius:10px;font-weight:800;font-size:.82rem;cursor:pointer">🔔 Send Reminder + Collage to Customers</button>
     </div>
     <div id="ordersList"></div>
   </div>
@@ -1663,13 +1664,36 @@ window.genReminderMsg=function(){
   const date=selMenuDate?new Date(selMenuDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}):'Today';
   const link=window.location.href.replace('admin.html','customer.html');
   let msg='🔔 *REMINDER — KICKEN BITES*\n📅 *'+date+'*\n\nHungry? Today\'s fresh menu is ready 👇\n\n';
-  active.forEach(i=>{msg+='• *'+i.name+'* — ₹'+i.price+(i.availableQty>0?' ('+i.availableQty+' left)':'')+'\n';});
+  const _bk={}; (todayOrders||[]).filter(o=>(o.status||'')!=='cancelled').forEach(o=>(o.items||[]).forEach(it=>{_bk[it.name]=(_bk[it.name]||0)+(Number(it.qty)||0);}));
+  active.forEach(i=>{const rem=Math.max(0,(Number(i.availableQty)||0)-(_bk[i.name]||0));msg+='• *'+i.name+'* — ₹'+i.price+(rem>0?' ('+rem+' left)':' (SOLD OUT)')+'\n';});
   msg+='\n⏰ *Order soon — limited plates!*\n👇 *CLICK TO ORDER* 👇\n'+link;
   window._waMsgText=msg;
   document.getElementById('waMsgContent').innerHTML=formatWAPreview(msg,link);
   document.getElementById('waMsgBox').style.display='block';
   generateCollage();
   showToast('🔔 Reminder ready — download collage & send');
+};
+
+// Orders-tab reminder: builds from the currently VIEWED order date (ordViewDate),
+// so admin can nudge customers straight from the Items Booked card without opening Menu.
+window.sendOrdersReminder=function(){
+  const ds=ordViewDate||getTodayDate();
+  const wd=weekdayKey(ds);
+  const items=(masterItems||[]).filter(i=>i.name&&i.price>0&&i.weekdays&&i.weekdays[wd]);
+  if(!items.length){alert('No menu items for this date.');return;}
+  const dateLbl=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+  const link=window.location.href.replace('admin.html','customer.html');
+  let msg='🔔 *REMINDER — KICKEN BITES*\n📅 *'+dateLbl+'*\n\nHungry? Fresh menu is ready 👇\n\n';
+  const _bk2={}; (todayOrders||[]).filter(o=>(o.status||'')!=='cancelled').forEach(o=>(o.items||[]).forEach(it=>{_bk2[it.name]=(_bk2[it.name]||0)+(Number(it.qty)||0);}));
+  items.forEach(i=>{const cap=qtyForDay(i,wd);const rem=Math.max(0,cap-(_bk2[i.name]||0));msg+='• *'+i.name+'* — ₹'+i.price+(rem>0?' ('+rem+' left)':' (SOLD OUT)')+'\n';});
+  msg+='\n⏰ *Order soon — limited plates!*\n👇 *CLICK TO ORDER* 👇\n'+link;
+  // open the menu tab's message preview + collage so admin can grab the image too
+  window._waMsgText=msg;
+  try{ document.getElementById('waMsgContent').innerHTML=formatWAPreview(msg,link); document.getElementById('waMsgBox').style.display='block'; }catch(e){}
+  try{ generateCollage(); }catch(e){}
+  // and open WhatsApp directly for quick sending
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+  showToast('🔔 Reminder opened — collage ready in Menu tab to attach');
 };
 
 // Turns *bold* WhatsApp text into a readable in-app preview with a green CTA button for the link
@@ -2666,6 +2690,18 @@ window.generateCollage = async function(){
   if(!active.length){alert('Please save today menu first');return;}
   showToast('⏳ Generating collage...');
 
+  // Live booked-per-item from today's orders → collage shows CURRENT remaining, not the
+  // initial batch size. remaining = startQty(availableQty snapshot) ... actually we compute
+  // remaining = max(0, start - booked) where start is the item's day capacity.
+  const _collBooked = {};
+  (todayOrders||[]).filter(function(o){return (o.status||'')!=='cancelled';})
+    .forEach(function(o){ (o.items||[]).forEach(function(it){ _collBooked[it.name]=(_collBooked[it.name]||0)+(Number(it.qty)||0); }); });
+  function _collRemain(item){
+    const start = Number(item.availableQty)||0;      // day's starting capacity (from Menu tab)
+    const booked = _collBooked[item.name]||0;
+    return { start: start, booked: booked, remaining: Math.max(0, start - booked) };
+  }
+
   const canvas = document.getElementById('menuCollage');
   const ctx = canvas.getContext('2d');
 
@@ -2787,16 +2823,29 @@ window.generateCollage = async function(){
       ctx.fillText('🍛', x+CELL_W/2, y+IMG_H/2+22);
     }
 
-    // Qty badge (top right)
-    if(item.availableQty>0){
-      var badgeColor = item.availableQty<=5 ? '#ef4444':'#22c55e';
+    // Qty badge (top right) — CURRENT remaining after live bookings
+    var _st = _collRemain(item);
+    var _rem = _st.remaining, _start = _st.start, _booked = _st.booked;
+    if(_start>0){
+      var soldOut = _rem<=0;
+      var badgeColor = soldOut ? '#ef4444' : (_rem<=5 ? '#f59e0b' : '#22c55e');
       ctx.fillStyle = badgeColor;
-      rRect(x+CELL_W-88, y+8, 80, 26, 13);
+      rRect(x+CELL_W-96, y+8, 88, 26, 13);
       ctx.fill();
       ctx.fillStyle = 'white';
       ctx.font = 'bold 13px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(item.availableQty+' avail', x+CELL_W-48, y+25);
+      ctx.fillText(soldOut ? 'SOLD OUT' : (_rem+' left'), x+CELL_W-52, y+25);
+      // Fill bar along the bottom of the image showing how full the batch is
+      var barY = y+IMG_H-14, barX = x+10, barW = CELL_W-20, barH = 8;
+      var bookedPct = _start>0 ? Math.min(100, Math.round((_booked/_start)*100)) : 0;
+      var remPct = 100 - bookedPct;
+      var barColor = remPct>50 ? '#22c55e' : (remPct>20 ? '#f59e0b' : '#ef4444');
+      // track
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      rRect(barX, barY, barW, barH, 4); ctx.fill();
+      // fill
+      if(bookedPct>0){ ctx.fillStyle = barColor; rRect(barX, barY, Math.max(6, barW*bookedPct/100), barH, 4); ctx.fill(); }
     }
 
     // Item name
