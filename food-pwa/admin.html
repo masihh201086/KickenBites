@@ -2175,31 +2175,42 @@ window.assignBoy=async function(orderId){
 window.loadDues=async function(){
   const list=document.getElementById('duesList');
   if(!list)return;
+  list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">⏳ Loading…</p>';
   try{
-    const snap=await getDocs(collection(db,'wallets'));
-    const dues=snap.docs.map(d=>({id:d.id,...d.data()})).filter(w=>(w.due||0)>0);
+    // Compute dues from actual UNSETTLED Pay-Later orders (reliable source of truth),
+    // not the wallet counter which can drift.
+    const snap=await getDocs(query(collection(db,'orders'),where('payLater','==',true)));
+    const byPhone={};
+    snap.docs.forEach(d=>{
+      const o=d.data();
+      if(o.paidCleared===true||o.status==='cancelled')return;
+      const ph=o.phone;if(!ph)return;
+      if(!byPhone[ph])byPhone[ph]={phone:ph,total:0,count:0,name:o.name||'',latest:''};
+      byPhone[ph].total+=Number(o.total)||0;
+      byPhone[ph].count++;
+      if((o.date||'')>byPhone[ph].latest)byPhone[ph].latest=o.date||'';
+      if(o.name)byPhone[ph].name=o.name;
+    });
+    const dues=Object.values(byPhone).filter(d=>d.total>0).sort((a,b)=>b.total-a.total);
     if(!dues.length){list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">No pending dues 🎉</p>';return;}
-    // Fetch customer names so the list is readable (phone alone is not)
-    const names={};
-    await Promise.all(dues.map(async w=>{
-      const ph=w.phone||w.id;
-      try{const cs=await getDoc(doc(db,'customers',ph));if(cs.exists())names[ph]=cs.data().name||'';}catch(e){}
+    // Fill any missing names from customers collection
+    await Promise.all(dues.filter(d=>!d.name).map(async d=>{
+      try{const cs=await getDoc(doc(db,'customers',d.phone));if(cs.exists())d.name=cs.data().name||'';}catch(e){}
     }));
-    list.innerHTML=dues.map(w=>{
-      const ph=w.phone||w.id;
-      const nm=names[ph]||'Unknown';
-      return `<div onclick="viewDues('${ph}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;border-bottom:1px solid #eee;cursor:pointer;border-radius:9px">
+    list.innerHTML=dues.map(d=>{
+      const nm=d.name||'Unknown';
+      return `<div onclick="viewDues('${d.phone}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;border-bottom:1px solid #eee;cursor:pointer;border-radius:9px">
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:.86rem">${nm}</div>
-          <div style="font-size:.72rem;color:var(--muted)">📞 ${ph}${w.updatedAt?' · '+new Date(w.updatedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div>
+          <div style="font-size:.72rem;color:var(--muted)">📞 ${d.phone} · ${d.count} order${d.count!==1?'s':''}${d.latest?' · latest '+new Date(d.latest+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <span style="font-weight:800;color:var(--r);font-size:.92rem">₹${w.due}</span>
-          <button onclick="event.stopPropagation();clearDue('${ph}')" style="padding:5px 10px;background:var(--g);color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">Paid ✓</button>
+          <span style="font-weight:800;color:var(--r);font-size:.92rem">₹${d.total}</span>
+          <button onclick="event.stopPropagation();clearDue('${d.phone}')" style="padding:5px 10px;background:var(--g);color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">Paid ✓</button>
         </div>
       </div>`;
     }).join('');
-  }catch(e){list.innerHTML='<p style="font-size:.78rem;color:var(--muted)">Error loading dues</p>';}
+  }catch(e){console.error(e);list.innerHTML='<p style="font-size:.78rem;color:var(--muted)">Error loading dues: '+e.message+'</p>';}
 };
 
 // ---- DUES DETAIL + REMINDER ----
@@ -2213,15 +2224,15 @@ window.viewDues=async function(phone){
   try{
     let name='';
     try{const cs=await getDoc(doc(db,'customers',phone));if(cs.exists())name=cs.data().name||'';}catch(e){}
-    let walletDue=0;
-    try{const ws=await getDoc(doc(db,'wallets',phone));if(ws.exists())walletDue=Number(ws.data().due)||0;}catch(e){}
     const oSnap=await getDocs(query(collection(db,'orders'),where('phone','==',phone)));
-    // Unpaid = pay-later orders, or any non-cancelled order the customer never confirmed payment on
+    // Unpaid = ONLY Pay-Later orders that haven't been settled yet.
+    // payLater:true is set when the customer chooses "Pay Later in Cash";
+    // paidCleared:true is set by admin when the dues are marked received.
     const unpaid=oSnap.docs.map(d=>({id:d.id,...d.data()}))
-      .filter(o=>o.status!=='cancelled'&&!(o.customerPaid===true&&!o.payLater))
+      .filter(o=>o.status!=='cancelled'&&o.payLater===true&&o.paidCleared!==true)
       .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
     const orderTotal=unpaid.reduce((s,o)=>s+(Number(o.total)||0),0);
-    const amount=walletDue>0?walletDue:orderTotal;
+    const amount=orderTotal;
 
     header.innerHTML='<div style="font-weight:800;font-size:1.05rem">'+(name||'Unknown')+'</div>'+
       '<div style="font-size:.76rem;opacity:.9;margin-top:2px">📞 '+phone+'</div>'+
@@ -2231,7 +2242,7 @@ window.viewDues=async function(phone){
     const upiName=cfg.upiName||cfg.shopName||'Kicken Bites';
     let h='';
     if(!unpaid.length){
-      h+='<div style="background:#fffbeb;border-radius:10px;padding:10px;font-size:.76rem;color:#92400e;margin-bottom:12px">No unpaid orders found in records, but wallet shows ₹'+walletDue+' due.</div>';
+      h+='<div style="background:#f0fdf4;border-radius:10px;padding:10px;font-size:.76rem;color:#166534;margin-bottom:12px">✅ No pending Pay-Later dues for this customer.</div>';
     }else{
       h+='<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Unpaid Orders ('+unpaid.length+')</div>';
       unpaid.forEach(o=>{
@@ -2296,12 +2307,17 @@ window.sendDueReminder=function(phone){
 };
 
 window.clearDue=async function(phone){
-  if(!confirm('Mark dues as paid for '+phone+'?'))return;
+  if(!confirm('Mark all Pay-Later dues as received for '+phone+'?'))return;
   try{
+    // Zero the wallet
     await setDoc(doc(db,'wallets',phone),{due:0,clearedAt:new Date().toISOString()},{merge:true});
-    showToast('✅ Dues cleared for '+phone);
+    // Mark every outstanding pay-later order as settled so it leaves the unpaid list
+    const snap=await getDocs(query(collection(db,'orders'),where('phone','==',phone)));
+    const pending=snap.docs.filter(d=>{const o=d.data();return o.payLater===true&&o.paidCleared!==true&&o.status!=='cancelled';});
+    await Promise.all(pending.map(d=>setDoc(doc(db,'orders',d.id),{paidCleared:true,paidClearedAt:new Date().toISOString()},{merge:true})));
+    showToast('✅ Cleared '+pending.length+' order'+(pending.length!==1?'s':'')+' for '+phone);
     loadDues();
-  }catch(e){alert('Error');}
+  }catch(e){console.error(e);alert('Error: '+e.message);}
 };
 
 // FIX 7: Admin live tracking modal
