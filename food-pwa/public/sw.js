@@ -1,20 +1,53 @@
-// Kicken Bites Service Worker v7
-// Handles background sync and notifications
-const CACHE = 'kb-v7';
-const FIREBASE_URL = 'https://firestore.googleapis.com';
+// Kicken Bites Service Worker v8 — NETWORK-FIRST, self-updating
+// Bump this number on every deploy to force every device onto the newest files.
+const SW_VERSION = 'kb-v8';
+const CACHE = SW_VERSION;
 
+// Install: take over immediately, don't wait for old tabs to close.
 self.addEventListener('install', e => { self.skipWaiting(); });
+
+// Activate: delete ALL old caches, claim all open pages, then tell every page to
+// reload once so they drop the old cached HTML/JS the previous SW was serving.
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));   // wipe every old cache
+    await self.clients.claim();                           // control open pages now
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of clients) {
+      // Ask each page to hard-reload so it fetches the fresh files.
+      c.postMessage({ type: 'SW_UPDATED', version: SW_VERSION });
+    }
+  })());
 });
 
-// Always fetch fresh - no caching
+// Fetch: ALWAYS go to the network first (fresh files every load). Only fall back to
+// cache when offline. Firestore/API calls are never cached. This is why a new deploy
+// shows up immediately without needing ?v= or manual cache clearing.
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)||new Response('Offline')));
+  const url = e.request.url;
+  // Never touch Firebase/Firestore/Google APIs — let them pass straight through.
+  if (url.includes('firestore.googleapis.com') ||
+      url.includes('firebaseio.com') ||
+      url.includes('googleapis.com') ||
+      url.includes('gstatic.com')) {
+    return; // default browser handling
+  }
+  e.respondWith((async () => {
+    try {
+      const fresh = await fetch(e.request, { cache: 'no-store' });
+      // keep a copy for offline use
+      try { const cache = await caches.open(CACHE); cache.put(e.request, fresh.clone()); } catch (_) {}
+      return fresh;
+    } catch (_) {
+      const cached = await caches.match(e.request);
+      return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
+    }
+  })());
 });
 
-// Background sync - check orders every 30 seconds when tab is hidden
+// ---- Background order check (unchanged behaviour) ----
 let checkInterval = null;
 let lastKnownStatuses = {};
 
@@ -23,12 +56,10 @@ self.addEventListener('message', e => {
     const {projectId, apiKey, date} = e.data;
     startBackgroundCheck(projectId, apiKey, date);
   }
-  if (e.data && e.data.type === 'STOP_BG_CHECK') {
-    stopBackgroundCheck();
-  }
-  if (e.data && e.data.type === 'UPDATE_STATUSES') {
-    lastKnownStatuses = e.data.statuses || {};
-  }
+  if (e.data && e.data.type === 'STOP_BG_CHECK') { stopBackgroundCheck(); }
+  if (e.data && e.data.type === 'UPDATE_STATUSES') { lastKnownStatuses = e.data.statuses || {}; }
+  // Let a page manually trigger the newest SW to take over.
+  if (e.data && e.data.type === 'SKIP_WAITING') { self.skipWaiting(); }
 });
 
 function startBackgroundCheck(projectId, apiKey, date) {
@@ -36,13 +67,11 @@ function startBackgroundCheck(projectId, apiKey, date) {
   checkInterval = setInterval(async () => {
     try {
       const clients = await self.clients.matchAll();
-      // Only check if no focused clients (tab in background or closed)
       const hasFocused = clients.some(c => c.focused);
       if (hasFocused) return;
-      
       await checkForNewOrders(projectId, apiKey, date);
     } catch(e) { console.error('BG check error:', e); }
-  }, 15000); // Check every 15 seconds
+  }, 15000);
 }
 
 function stopBackgroundCheck() {
@@ -56,11 +85,7 @@ async function checkForNewOrders(projectId, apiKey, date) {
       structuredQuery: {
         from: [{collectionId: 'orders'}],
         where: {
-          fieldFilter: {
-            field: {fieldPath: 'date'},
-            op: 'EQUAL',
-            value: {stringValue: date}
-          }
+          fieldFilter: { field: {fieldPath: 'date'}, op: 'EQUAL', value: {stringValue: date} }
         }
       }
     };
@@ -71,7 +96,6 @@ async function checkForNewOrders(projectId, apiKey, date) {
     });
     const data = await resp.json();
     if (!Array.isArray(data)) return;
-    
     for (const item of data) {
       if (!item.document) continue;
       const fields = item.document.fields || {};
@@ -80,7 +104,6 @@ async function checkForNewOrders(projectId, apiKey, date) {
       const name = fields.name?.stringValue || 'Customer';
       const total = fields.total?.integerValue || fields.total?.doubleValue || 0;
       const prevStatus = lastKnownStatuses[id];
-      
       if (prevStatus && prevStatus !== status) {
         if (prevStatus === 'pending_payment' && status === 'confirmed') {
           await showBgNotification('💰 Payment Confirmed!', `${name} paid ₹${total}`, id);
