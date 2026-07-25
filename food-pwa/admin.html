@@ -581,6 +581,25 @@ window.doLogin=function(){
   }else alert('Wrong password!');
 };
 
+window.showCollagePopup = function(dataUrl){
+  var old = document.getElementById('collagePopup'); if(old) old.remove();
+  var ov = document.createElement('div');
+  ov.id = 'collagePopup';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px';
+  var box = '<div style="background:#fff;border-radius:16px;max-width:460px;width:100%;max-height:90vh;overflow:auto;padding:14px">'
+    + '<div style="font-weight:800;font-size:1rem;margin-bottom:10px;text-align:center">🖼️ Menu Collage</div>'
+    + (dataUrl ? '<img src="'+dataUrl+'" style="width:100%;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)">'
+               : '<div style="text-align:center;color:#888;padding:20px">Preview unavailable — use Download.</div>')
+    + '<div style="display:flex;gap:8px;margin-top:12px">'
+    + '<button onclick="downloadCollage()" style="flex:2;background:var(--o);color:#fff;border:none;padding:12px;border-radius:10px;font-weight:800;cursor:pointer">⬇️ Download Image</button>'
+    + '<button onclick="document.getElementById(\'collagePopup\').remove()" style="flex:1;background:#eee;border:none;padding:12px;border-radius:10px;font-weight:700;cursor:pointer">Close</button>'
+    + '</div>'
+    + '<div style="font-size:.72rem;color:#888;text-align:center;margin-top:8px">Download the image, then attach it in WhatsApp with the reminder text.</div>'
+    + '</div>';
+  ov.innerHTML = box;
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
+};
 window.downloadCollage = function(){
   var canvas = document.getElementById('menuCollage');
   if(!canvas){showToast('Generate collage first');return;}
@@ -1690,10 +1709,13 @@ window.sendOrdersReminder=function(){
   // open the menu tab's message preview + collage so admin can grab the image too
   window._waMsgText=msg;
   try{ document.getElementById('waMsgContent').innerHTML=formatWAPreview(msg,link); document.getElementById('waMsgBox').style.display='block'; }catch(e){}
-  try{ generateCollage(); }catch(e){}
+  // Build items for THIS date (capacity as availableQty) and render the collage from them,
+  // so it works from the Orders tab even when Menu tab's todayActive isn't set.
+  const collageItems=items.map(i=>({id:i.id,name:i.name,price:i.price,emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
+  try{ generateCollage(collageItems, true); }catch(e){ console.error('collage',e); }
   // and open WhatsApp directly for quick sending
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
-  showToast('🔔 Reminder opened — collage ready in Menu tab to attach');
+  showToast('🔔 Reminder + collage ready — scroll to the collage to download');
 };
 
 // Turns *bold* WhatsApp text into a readable in-app preview with a green CTA button for the link
@@ -2684,10 +2706,12 @@ function initAdminTrackMap(){
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}
 
 
-window.generateCollage = async function(){
+window.generateCollage = async function(itemsOverride, showPopup){
   try{
-  const active = masterItems.filter(function(i){return i.todayActive;});
-  if(!active.length){alert('Please save today menu first');return;}
+  const active = (Array.isArray(itemsOverride) && itemsOverride.length)
+    ? itemsOverride
+    : masterItems.filter(function(i){return i.todayActive;});
+  if(!active.length){alert('Please save today menu first, or open the Menu tab.');return;}
   showToast('⏳ Generating collage...');
 
   // Live booked-per-item from today's orders → collage shows CURRENT remaining, not the
@@ -2875,11 +2899,11 @@ window.generateCollage = async function(){
   } catch(e){
     window._collageDataUrl = null; // Will use html2canvas on download
   }
-  showToast('✅ Collage ready! Tap Download Image to save.');
-  // Scroll to collage
-  setTimeout(function(){
-    document.getElementById('collageSection').scrollIntoView({behavior:'smooth', block:'start'});
-  }, 300);
+  // Show the collage in a popup only when requested (e.g. from the Orders tab, where the
+  // inline Menu-tab canvas isn't visible). Menu-tab generation keeps its inline preview.
+  if(showPopup){ showCollagePopup(window._collageDataUrl); }
+  else { setTimeout(function(){ try{ document.getElementById('collageSection').scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){} }, 300); }
+  showToast('✅ Collage ready! Tap Download to save.');
   } catch(err){
     console.error('Collage error:', err);
     showToast('Error: ' + err.message);
