@@ -1714,7 +1714,27 @@ function hide(id){const e=document.getElementById(id);if(e)e.style.display='none
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}
 
 init();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(function(reg){
+    // If an updated SW is found, activate it right away.
+    reg.addEventListener('updatefound', function(){
+      var nw = reg.installing;
+      if(nw) nw.addEventListener('statechange', function(){
+        if(nw.state === 'installed' && navigator.serviceWorker.controller){ nw.postMessage && nw.postMessage({type:'SKIP_WAITING'}); }
+      });
+    });
+    setInterval(function(){ reg.update(); }, 60000); // check for a new version every minute
+  }).catch(function(){});
+  // When the new SW tells us it updated, reload ONCE to pick up fresh files.
+  var _kbReloaded=false;
+  navigator.serviceWorker.addEventListener('message', function(e){
+    if(e.data && e.data.type==='SW_UPDATED' && !_kbReloaded){ _kbReloaded=true; location.reload(); }
+  });
+  // Also reload when control passes to a brand-new SW.
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    if(!_kbReloaded){ _kbReloaded=true; location.reload(); }
+  });
+}
 </script>
 </body>
 </html>

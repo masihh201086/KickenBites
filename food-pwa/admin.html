@@ -2838,5 +2838,25 @@ window.generateCollage = async function(){
   }
 };
 </script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(function(reg){
+    reg.addEventListener('updatefound', function(){
+      var nw = reg.installing;
+      if(nw) nw.addEventListener('statechange', function(){
+        if(nw.state === 'installed' && navigator.serviceWorker.controller){ nw.postMessage && nw.postMessage({type:'SKIP_WAITING'}); }
+      });
+    });
+    setInterval(function(){ reg.update(); }, 60000);
+  }).catch(function(){});
+  var _kbReloaded=false;
+  navigator.serviceWorker.addEventListener('message', function(e){
+    if(e.data && e.data.type==='SW_UPDATED' && !_kbReloaded){ _kbReloaded=true; location.reload(); }
+  });
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    if(!_kbReloaded){ _kbReloaded=true; location.reload(); }
+  });
+}
+</script>
 </body>
 </html>
