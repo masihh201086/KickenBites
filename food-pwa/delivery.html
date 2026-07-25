@@ -436,10 +436,11 @@ function startApp() {
 // ===== SALARY-PAID NOTIFICATION (B) =====
 function listenForSalaryPaid(){
   if(!boy?.phone)return;
-  const q=query(collection(db,'boyNotifications'),where('phone','==',boy.phone),where('type','==','salary_paid'));
+  const q=query(collection(db,'boyNotifications'),where('phone','==',boy.phone));
   onSnapshot(q,snap=>{
     snap.docs.forEach(d=>{
       const n=d.data();
+      if(n.type!=='salary_paid')return;
       if(n.seen)return;
       const shownKey='kb_salpaid_seen_'+d.id;
       if(localStorage.getItem(shownKey))return;
@@ -525,11 +526,22 @@ function loadOrders(){
   renderDelDayChips();
   updateDelDateLbl();
   if(_ordersUnsub){try{_ordersUnsub();}catch(e){}}
-  const q=query(collection(db,'orders'),where('date','==',viewDate));
+  const isToday=(viewDate===getTodayDate());
+  // For TODAY, listen to the whole orders collection and filter client-side so that
+  // legacy orders (missing/differently-formatted date) are never hidden. For other
+  // dates, query that specific date.
+  const q=isToday
+    ? collection(db,'orders')
+    : query(collection(db,'orders'),where('date','==',viewDate));
   _ordersUnsub=onSnapshot(q,
     snap=>{
       allOrders=snap.docs.map(d=>({id:d.id,...d.data()}))
         .filter(o=>o.orderType==='delivery')
+        .filter(o=>{
+          if(!isToday) return true;                 // already date-filtered by query
+          if(!o.date) return true;                  // legacy order with no date → show today
+          return o.date===viewDate;                 // today's dated orders
+        })
         .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
       // Cache for offline (only cache today's for the offline fallback)
       if(viewDate===getTodayDate()){try{localStorage.setItem('kb_offline_orders',JSON.stringify(allOrders));}catch(e){}}
@@ -690,7 +702,11 @@ window.swTab = function(t) {
     document.getElementById('tab-'+x).classList.toggle('active',x===t);
     document.getElementById('tab-'+x+'-btn').classList.toggle('active',x===t);
   });
-  if(t==='earnings'){ loadEarnings(); _earnAllOrders=null; setEarnPeriod(_earnPeriod.type||'thismonth', _earnPeriod.val); }
+  if(t==='earnings'){
+    try{ loadEarnings(); }catch(e){ console.error('loadEarnings',e); }
+    _earnAllOrders=null;
+    try{ setEarnPeriod(_earnPeriod.type||'thismonth', _earnPeriod.val); }catch(e){ console.error('setEarnPeriod',e); }
+  }
   try{localStorage.setItem('kb_del_tab',t);}catch(e){}
 };
 // Restore tab on load
