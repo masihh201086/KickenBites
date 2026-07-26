@@ -454,6 +454,15 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
           </div>
         </div>
       </div>
+      <!-- DUES / PAY-LATER CARD (#3) -->
+      <div id="custDuesCard" style="display:none;background:#fff4f4;border:1.5px solid #f0a0a0;border-radius:var(--r);padding:14px;margin-bottom:11px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+          <div style="font-weight:800;font-size:.95rem;color:#b91c1c">💳 Pending Dues</div>
+          <div style="font-weight:900;font-size:1.15rem;color:#b91c1c" id="custDuesTotal">₹0</div>
+        </div>
+        <div id="custDuesList"></div>
+        <div style="font-size:.72rem;color:#8a5a5a;margin-top:8px;line-height:1.5">🙏 Please clear your dues on your next order or contact the shop.</div>
+      </div>
       <div class="prof-card">
         <div class="pct">Personal Details</div>
         <input class="pi" id="piName" placeholder="Full name" type="text">
@@ -790,6 +799,69 @@ window.changePinPrompt = async function() {
   catch(e){alert('Error changing PIN');}
 };
 
+// ===== ORDER-DELIVERED NOTICE (#4) =====
+// Popup if the app is open; always leave an unseen flag so a banner shows in Orders tab.
+let _deliveredInit=false;
+function checkDeliveredNotice(orders){
+  let seen={};
+  try{ seen=JSON.parse(localStorage.getItem('kb_delivered_seen')||'{}'); }catch(e){}
+  const justDelivered=[];
+  (orders||[]).forEach(o=>{
+    if(o.status==='delivered' && !seen[o.id]){
+      justDelivered.push(o);
+      seen[o.id]=true;
+    }
+  });
+  try{ localStorage.setItem('kb_delivered_seen',JSON.stringify(seen)); }catch(e){}
+  // On the very first snapshot after login, don't pop up for already-delivered history —
+  // just mark them seen (above) so only NEW deliveries during this session pop up.
+  if(!_deliveredInit){ _deliveredInit=true; return; }
+  if(!justDelivered.length)return;
+  // Show popup if app is visible, else store a pending banner for the Orders tab
+  if(document.visibilityState==='visible'){
+    showDeliveredPopup(justDelivered[0]);
+  }else{
+    try{ localStorage.setItem('kb_delivered_pending', justDelivered[0].id); }catch(e){}
+  }
+}
+function showDeliveredPopup(o){
+  let el=document.getElementById('deliveredPopup'); if(el)el.remove();
+  const items=(o.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', ');
+  el=document.createElement('div');
+  el.id='deliveredPopup';
+  el.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px';
+  el.innerHTML='<div style="background:white;border-radius:18px;max-width:360px;width:100%;padding:22px;text-align:center">'+
+    '<div style="font-size:3rem">🎉</div>'+
+    '<div style="font-size:1.2rem;font-weight:900;color:#16a34a;margin:6px 0">Order Delivered!</div>'+
+    '<div style="font-size:.85rem;color:#555;margin-bottom:4px">'+(items||'Your order')+'</div>'+
+    '<div style="font-size:.78rem;color:#888;margin-bottom:14px">We hope you enjoy your meal! 🍽️</div>'+
+    '<button onclick="rateFromDelivered(\''+o.id+'\')" style="width:100%;background:var(--orange);color:white;border:none;padding:12px;border-radius:11px;font-weight:800;margin-bottom:8px;cursor:pointer">⭐ Rate this order</button>'+
+    '<button onclick="document.getElementById(\'deliveredPopup\').remove()" style="width:100%;background:#eee;border:none;padding:11px;border-radius:11px;font-weight:700;cursor:pointer">Close</button>'+
+  '</div>';
+  el.addEventListener('click',e=>{if(e.target===el)el.remove();});
+  document.body.appendChild(el);
+}
+window.rateFromDelivered=function(orderId){
+  const el=document.getElementById('deliveredPopup'); if(el)el.remove();
+  switchTab('myorders');
+  showToast('Scroll to your delivered order to rate it ⭐');
+};
+// Show a banner in the Orders tab if a delivery happened while the app was closed/backgrounded
+function showDeliveredBannerIfPending(){
+  let pid=null;
+  try{ pid=localStorage.getItem('kb_delivered_pending'); }catch(e){}
+  if(!pid)return;
+  try{ localStorage.removeItem('kb_delivered_pending'); }catch(e){}
+  const host=document.getElementById('tab-myorders')||document.getElementById('tab-order');
+  if(!host)return;
+  let b=document.getElementById('deliveredBanner'); if(b)b.remove();
+  b=document.createElement('div');
+  b.id='deliveredBanner';
+  b.style.cssText='background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border-radius:12px;padding:13px;margin:10px 0;text-align:center;font-weight:700';
+  b.innerHTML='🎉 Your order was delivered! We hope you enjoyed it. <span style="text-decoration:underline;cursor:pointer" onclick="this.parentElement.remove()">Dismiss</span>';
+  host.insertBefore(b, host.firstChild);
+}
+
 // ---- MY ORDERS ----
 function loadMyOrders(phone) {
   if(!phone)return;
@@ -798,10 +870,40 @@ function loadMyOrders(phone) {
     const q=query(collection(db,'orders'),where('phone','==',phone));
     ordersUnsub=onSnapshot(q,snap=>{
       const orders=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+      checkDeliveredNotice(orders);
       renderMyOrders(orders);
       renderOrderDateChips(orders);
+      renderMyDues(orders);
     });
   }catch(e){}
+}
+
+// ===== CUSTOMER DUES (#3) — pending pay-later orders in Profile tab =====
+function renderMyDues(orders){
+  const card=document.getElementById('custDuesCard');
+  const list=document.getElementById('custDuesList');
+  const totEl=document.getElementById('custDuesTotal');
+  if(!card||!list)return;
+  // An order is a due only when payLater && not cleared && not cancelled
+  const dues=(orders||[]).filter(o=>o.payLater===true && o.paidCleared!==true && o.status!=='cancelled');
+  if(!dues.length){ card.style.display='none'; list.innerHTML=''; return; }
+  let total=0;
+  list.innerHTML=dues.map(o=>{
+    const amt=Number(o.total)||0; total+=amt;
+    const items=(o.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', ');
+    let dLbl='';
+    if(o.date){ try{ dLbl=new Date(o.date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}); }catch(e){} }
+    return '<div style="background:white;border-radius:9px;padding:9px 11px;margin-bottom:7px;border:1px solid #f0d0d0">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<div style="font-weight:700;font-size:.8rem;color:#333">'+(dLbl?'📅 '+dLbl:'Order')+'</div>'+
+        '<div style="font-weight:800;color:#b91c1c">₹'+amt+'</div>'+
+      '</div>'+
+      (items?'<div style="font-size:.72rem;color:#777;margin-top:2px">'+items+'</div>':'')+
+      '<div style="font-size:.64rem;color:#c88;margin-top:2px">Pay Later · '+(o.status||'')+'</div>'+
+    '</div>';
+  }).join('');
+  if(totEl)totEl.textContent='₹'+total;
+  card.style.display='block';
 }
 
 let myOrderDateSet=new Set();
@@ -1710,6 +1812,7 @@ window.switchTab=function(t){
   });
   if(t==='profile') loadLoyalty();
   if(t==='wish') initWishTab();
+  if(t==='myorders') showDeliveredBannerIfPending();
   // Persist tab so refresh stays on same tab
   try{localStorage.setItem('kb_cust_tab',t);}catch(e){}
 };

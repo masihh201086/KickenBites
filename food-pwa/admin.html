@@ -240,6 +240,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div class="tab" onclick="sw('print')">🖨️ Print</div>
     <div class="tab" onclick="sw('ratings')">⭐ Ratings</div>
     <div class="tab" onclick="sw('wish')">🌟 Wish</div>
+    <div class="tab" onclick="sw('dues')">💳 Dues</div>
     <div class="tab" onclick="sw('ai')">🤖 AI</div>
     <div class="tab" onclick="sw('setup')">⚙️ Setup</div>
   </div>
@@ -454,6 +455,22 @@ input:checked+.slider:before{transform:translateX(20px);}
   </div>
 
   <!-- SETUP -->
+  <!-- DUES TAB (#3B) -->
+  <div class="panel" id="tab-dues">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="ct" style="margin:0">💳 Customer Pay-Later Dues</div>
+        <div style="font-weight:900;color:var(--r);font-size:1.1rem" id="duesGrandTotal">₹0</div>
+      </div>
+      <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Tap a customer to see their orders, send a WhatsApp reminder, or mark paid.</p>
+      <div id="duesList"><p style="font-size:.78rem;color:var(--muted);text-align:center">Loading…</p></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button onclick="loadDues()" style="flex:1;padding:10px;background:var(--dark);color:white;border:none;border-radius:var(--radius);font-size:.8rem;font-weight:700;cursor:pointer">🔄 Refresh</button>
+        <button onclick="remindAllDues()" style="flex:1;padding:10px;background:#25d366;color:white;border:none;border-radius:var(--radius);font-size:.8rem;font-weight:700;cursor:pointer">💬 Remind All</button>
+      </div>
+    </div>
+  </div>
+
   <div class="panel" id="tab-setup">
     <div class="card">
       <div class="ct">Shop Details</div>
@@ -492,12 +509,6 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="ct">Change Password</div>
       <div class="sg2"><label>New Password</label><input class="si" type="password" id="sPass" placeholder="New password"></div>
       <div class="sg2"><label>Confirm</label><input class="si" type="password" id="sPassC" placeholder="Confirm"></div>
-    </div>
-    <div class="card" style="margin-top:9px">
-      <div class="ct">💳 Customer Pay Later Dues</div>
-      <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Customers who have pending payments.</p>
-      <div id="duesList"><p style="font-size:.78rem;color:var(--muted);text-align:center">Loading…</p></div>
-      <button onclick="loadDues()" style="width:100%;padding:9px;background:var(--dark);color:white;border:none;border-radius:var(--radius);font-size:.8rem;font-weight:600;cursor:pointer;margin-top:8px">🔄 Refresh Dues</button>
     </div>
     <!-- ALL CUSTOMERS -->
     <div class="card" style="margin-top:9px">
@@ -2257,11 +2268,12 @@ window.hideRating = async function(ratingId) {
 
 window.sw=function(t){
   try{localStorage.setItem('kb_adm_tab',t);}catch(e){}
-  const all=['orders','today','master','print','ratings','wish','ai','setup'];
+  const all=['orders','today','master','print','ratings','wish','dues','ai','setup'];
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',all[i]===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
-  if(t==='setup'){loadDeliveryBoys();setTimeout(loadDues,500);}
+  if(t==='setup'){loadDeliveryBoys();}
+  if(t==='dues'){loadDues();}
   if(t==='ratings')loadRatings();
   if(t==='wish')loadAdminWish();
   if(t==='orders'&&adminMap)setTimeout(()=>adminMap.invalidateSize(),100);
@@ -2542,7 +2554,9 @@ window.loadDues=async function(){
       if(o.name)byPhone[ph].name=o.name;
     });
     const dues=Object.values(byPhone).filter(d=>d.total>0).sort((a,b)=>b.total-a.total);
-    if(!dues.length){list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">No pending dues 🎉</p>';return;}
+    window._duesCache=dues;
+    const gt=document.getElementById('duesGrandTotal'); if(gt)gt.textContent='₹'+dues.reduce((s,d)=>s+d.total,0);
+    if(!dues.length){list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">No pending dues 🎉</p>';const gt2=document.getElementById('duesGrandTotal');if(gt2)gt2.textContent='₹0';return;}
     // Fill any missing names from customers collection
     await Promise.all(dues.filter(d=>!d.name).map(async d=>{
       try{const cs=await getDoc(doc(db,'customers',d.phone));if(cs.exists())d.name=cs.data().name||'';}catch(e){}
@@ -2561,6 +2575,30 @@ window.loadDues=async function(){
       </div>`;
     }).join('');
   }catch(e){console.error(e);list.innerHTML='<p style="font-size:.78rem;color:var(--muted)">Error loading dues: '+e.message+'</p>';}
+};
+
+// Send a WhatsApp reminder to every customer with dues, one at a time (#3B)
+window.remindAllDues=async function(){
+  const dues=window._duesCache||[];
+  if(!dues.length){showToast('No dues to remind');return;}
+  if(!confirm('Open WhatsApp reminder for each of the '+dues.length+' customer(s) with dues? They open one by one.'))return;
+  let cfg={};
+  try{const cs=await getDoc(doc(db,'config','menu'));if(cs.exists())cfg=cs.data();}catch(e){}
+  const upi=cfg.upiId||''; const shop=cfg.shopName||'Kicken Bites';
+  // Open each reminder with a small stagger so the browser doesn't block them
+  dues.forEach((d,idx)=>{
+    setTimeout(()=>{
+      const nl='\n';
+      let msg='🔔 *'+shop+' — Payment Reminder*'+nl+nl+
+        'Hi *'+(d.name||'Customer')+'*,'+nl+
+        'You have a pending Pay-Later balance of *₹'+d.total+'* ('+d.count+' order'+(d.count!==1?'s':'')+').'+nl+nl+
+        (upi?('Please pay to UPI: *'+upi+'*'+nl+nl):'')+
+        'Kindly clear it at your earliest. Thank you! 🙏';
+      const ph=d.phone.toString().replace(/[^0-9]/g,'').slice(-10);
+      window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
+    }, idx*600);
+  });
+  showToast('Opening '+dues.length+' reminder(s)…');
 };
 
 // ---- DUES DETAIL + REMINDER ----
