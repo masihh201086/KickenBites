@@ -131,6 +131,15 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
 .qr-box-big img{width:230px;height:230px;display:block;}
 .qr-amt-big{margin-top:9px;font-size:.9rem;font-weight:700;color:var(--dark);}
 .qr-dl-btn{width:100%;padding:13px;background:var(--dark);color:white;border:none;border-radius:12px;font-size:.92rem;font-weight:800;cursor:pointer;margin-bottom:11px;}
+.upi-apps-lbl{font-size:.78rem;font-weight:700;color:var(--muted);margin:2px 0 7px;text-align:center;}
+.upi-apps-row{display:flex;gap:7px;margin-bottom:12px;}
+.upi-app-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border:2px solid #e5e5e5;border-radius:12px;background:white;font-size:.7rem;font-weight:800;color:#333;cursor:pointer;}
+.upi-app-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;font-weight:900;}
+.upi-app-btn.gpay .upi-app-ico{background:#4285f4;}
+.upi-app-btn.phonepe .upi-app-ico{background:#5f259f;}
+.upi-app-btn.paytm .upi-app-ico{background:#00baf2;}
+.upi-app-btn.bhim .upi-app-ico{background:#00796b;}
+.upi-app-btn:active{transform:scale(.96);}
 .upi-box-big{background:linear-gradient(135deg,#fff8f0,#ffe8d0);border:2px solid var(--op);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;align-items:stretch;margin-bottom:11px;}
 .upi-txt-big{font-size:1.15rem;font-weight:800;color:var(--dark);text-align:center;word-break:break-all;letter-spacing:.02em;}
 .copy-btn-big{width:100%;padding:13px;background:var(--orange);color:white;border:none;border-radius:11px;font-size:.95rem;font-weight:800;cursor:pointer;}
@@ -486,12 +495,19 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
       <div class="qr-amt-big">Amount <b id="qrAmt"></b> is pre-filled</div>
     </div>
     <button class="qr-dl-btn" onclick="downloadQR()">⬇️ Download / Save QR to Gallery</button>
+    <div class="upi-apps-lbl">⚡ Quick open your UPI app:</div>
+    <div class="upi-apps-row">
+      <button class="upi-app-btn gpay" onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
+      <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
+      <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
+      <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
+    </div>
     <div class="proc-box">
       <b>How to pay with QR:</b><br>
       1️⃣ Tap <b>Download QR</b> above (saves to your gallery)<br>
-      2️⃣ Open GPay / PhonePe / Paytm<br>
+      2️⃣ Tap your app icon above to open it<br>
       3️⃣ Choose <b>Scan QR</b> → <b>Gallery</b> / <b>Upload from photos</b><br>
-      4️⃣ Pick the saved QR → amount ₹<span id="procAmt1"></span> is filled<br>
+      4️⃣ Pick the saved QR → amount ₹<span id="procAmt1"></span> fills in<br>
       5️⃣ Complete the payment
     </div>
 
@@ -1228,16 +1244,14 @@ function updateBill(){
   // Show the day + date this order is for, in the Bill Summary
   const bd=document.getElementById('billDate');
   if(bd){
-    if(sub>0){
-      const ds=selectedDate||getTodayDate();
-      const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
-      const t=getTodayDate();
-      const d2=new Date(t+'T00:00:00');d2.setDate(d2.getDate()+1);
-      const tm=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
-      const rel=ds===t?'Today · ':ds===tm?'Tomorrow · ':'';
-      bd.textContent='📅 Order for '+rel+disp;
-      bd.style.display='block';
-    }else{ bd.textContent=''; bd.style.display='none'; }
+    const ds=selectedDate||getTodayDate();
+    const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+    const t=getTodayDate();
+    const d2=new Date(t+'T00:00:00');d2.setDate(d2.getDate()+1);
+    const tm=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+    const rel=ds===t?'Today · ':ds===tm?'Tomorrow · ':'';
+    bd.textContent='📅 Order for '+rel+disp;
+    bd.style.display='block';
   }
   document.getElementById('delRow').style.display=(orderType==='delivery'&&sub>0)?'flex':'none';
   document.getElementById('delAmt').textContent='₹'+delivery;
@@ -1329,7 +1343,7 @@ window.placeOrderClick=async function(){
       tx.set(nr,{name,phone,address,addrLine1,addrLine2,orderType,items,subtotal:sub,deliveryCharge:delivery,total,notes,status:'pending_payment',createdAt:new Date().toISOString(),date:ds,scheduledFor:ds});
     });
     currentOrderId=newId;
-    lastOrder={name,phone,address,total,delivery,items,notes,orderType,payLater:false};
+    lastOrder={name,phone,address,total,delivery,items,notes,orderType,payLater:false,date:ds};
     // Persist to localStorage so WA button works even after page interaction
     try{localStorage.setItem('kb_last_order',JSON.stringify(lastOrder));}catch(e){}
     showPayScreen(total);
@@ -1366,6 +1380,23 @@ function showPayScreen(total){
   setTimeout(loadWalletBalance,300);
 }
 // Download the payment QR to the gallery so the customer can upload it in their UPI app
+// Open a specific UPI app (app only — NO amount prefill, since deep-linking the amount
+// caused GPay to decline). Customer then scans/uploads the saved QR inside the app.
+window.openUpiApp=function(app){
+  const schemes={
+    gpay:['tez://upi/','gpay://','https://gpay.app.goo.gl/'],
+    phonepe:['phonepe://','ppe://'],
+    paytm:['paytmmp://','paytm://'],
+    bhim:['bhim://','upi://']
+  };
+  const list=schemes[app]||['upi://'];
+  // Try the app's scheme; if it doesn't open, the generic upi:// lets the phone pick an app.
+  let opened=false;
+  try{ window.location.href=list[0]; opened=true; }catch(e){}
+  // Fallback to a generic UPI intent after a short delay if nothing opened
+  setTimeout(()=>{ if(!document.hidden) { try{ window.location.href='upi://pay'; }catch(e){} } }, 800);
+  showToast('Opening '+app.toUpperCase()+' — then Scan QR → Gallery → pick the saved QR');
+};
 window.downloadQR=async function(){
   try{
     const url=window._payQrUrl;
@@ -1511,11 +1542,22 @@ window.sendCustomerConfirmWA=function(){
   var payLine = lastOrder.payLater
     ? '💳 Payment: Cash on Delivery'
     : '💳 Payment: Received ✅';
+  // Day + date this order is for
+  var dateLine='';
+  if(lastOrder.date){
+    var _dd=new Date(lastOrder.date+'T00:00:00');
+    var _disp=_dd.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+    var _t=new Date();var _ts=_t.getFullYear()+'-'+String(_t.getMonth()+1).padStart(2,'0')+'-'+String(_t.getDate()).padStart(2,'0');
+    var _tm=new Date(_t.getTime()+86400000);var _tms=_tm.getFullYear()+'-'+String(_tm.getMonth()+1).padStart(2,'0')+'-'+String(_tm.getDate()).padStart(2,'0');
+    var _rel=lastOrder.date===_ts?'Today · ':lastOrder.date===_tms?'Tomorrow · ':'';
+    dateLine='📅 *Order for: '+_rel+_disp+'*'+nl+nl;
+  }
   var msg=
     '🍗 *KICKEN BITES*'+nl+
     '✅ *Order Confirmed!*'+nl+nl+
     'Hi *'+lastOrder.name+'*!'+nl+
     'Your order is confirmed and being prepared fresh!'+nl+nl+
+    dateLine+
     '*Order Details:*'+nl+
     items+nl+nl+
     '💰 *Total: Rs '+lastOrder.total+'*'+
