@@ -362,7 +362,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
     <button class="btn btn-o" onclick="saveTodayMenu()">💾 Save & Publish Menu</button>
     <div style="display:flex;gap:8px;margin-top:7px">
-      <button class="btn btn-wa" onclick="genWAMessage();generateCollage()" style="flex:1;margin-top:0">📱 Generate Menu + Collage</button>
+      <button class="btn btn-wa" onclick="genWAMessage();generateMenuCollage()" style="flex:1;margin-top:0">📱 Generate Menu + Collage</button>
     </div>
     <div id="waMsgBox" style="display:none;margin-top:9px">
       <div class="ct">WhatsApp Message (Copy & Post)</div>
@@ -1734,27 +1734,25 @@ window.genReminderMsg=function(){
 
 // Orders-tab reminder: builds from the currently VIEWED order date (ordViewDate),
 // so admin can nudge customers straight from the Items Booked card without opening Menu.
-window.sendOrdersReminder=function(){
+window.sendOrdersReminder=async function(){
   const ds=ordViewDate||getTodayDate();
   const wd=weekdayKey(ds);
   const items=(masterItems||[]).filter(i=>i.name&&i.price>0&&i.weekdays&&i.weekdays[wd]);
   if(!items.length){alert('No menu items for this date.');return;}
   const dateLbl=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   const link=window.location.href.replace('admin.html','customer.html');
+  // Accurate remaining for THIS date: read its dailyMenu doc (never subtract another day's orders)
+  let remainById={};
+  try{ const ms=await getDoc(doc(db,'dailyMenu',ds)); if(ms.exists()){ (ms.data().items||[]).forEach(it=>{ if(it.id!=null && it.availableQty!=null) remainById[it.id]=Number(it.availableQty); }); } }catch(e){}
+  const remOf=i=> (remainById[i.id]!=null ? remainById[i.id] : qtyForDay(i,wd));
   let msg='🔔 *REMINDER — KICKEN BITES*\n📅 *'+dateLbl+'*\n\nHungry? Fresh menu is ready 👇\n\n';
-  const _bk2={}; (todayOrders||[]).filter(o=>(o.status||'')!=='cancelled').forEach(o=>(o.items||[]).forEach(it=>{_bk2[it.name]=(_bk2[it.name]||0)+(Number(it.qty)||0);}));
-  items.forEach(i=>{const cap=qtyForDay(i,wd);const rem=Math.max(0,cap-(_bk2[i.name]||0));msg+='• *'+i.name+'* — ₹'+i.price+(rem>0?' ('+rem+' left)':' (SOLD OUT)')+'\n';});
+  items.forEach(i=>{const rem=Math.max(0,remOf(i));msg+='• *'+i.name+'* — ₹'+i.price+(rem>0?' ('+rem+' left)':' (SOLD OUT)')+'\n';});
   msg+='\n⏰ *Order soon — limited plates!*\n👇 *CLICK TO ORDER* 👇\n'+link;
-  // open the menu tab's message preview + collage so admin can grab the image too
   window._waMsgText=msg;
   try{ document.getElementById('waMsgContent').innerHTML=formatWAPreview(msg,link); document.getElementById('waMsgBox').style.display='block'; }catch(e){}
-  // Build items for THIS date (capacity as availableQty) and render the collage from them,
-  // so it works from the Orders tab even when Menu tab's todayActive isn't set.
-  const collageItems=items.map(i=>({id:i.id,name:i.name,price:i.price,emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
-  // Stash the message so the popup's "Send on WhatsApp" button can open WhatsApp AFTER
-  // the admin has downloaded the collage image (correct order: download first, then send).
+  const collageItems=items.map(i=>({id:i.id,name:i.name,price:i.price,emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:Math.max(0,remOf(i))}));
   window._pendingReminderMsg=msg;
-  try{ generateCollage(collageItems, true); }catch(e){ console.error('collage',e); }
+  try{ await generateCollage(collageItems, true); }catch(e){ console.error('collage',e); }
   showToast('🔔 Collage ready — download it, then tap Send on WhatsApp');
 };
 
@@ -2568,9 +2566,12 @@ window.loadDues=async function(){
           <div style="font-weight:800;font-size:.86rem">${nm}</div>
           <div style="font-size:.72rem;color:var(--muted)">📞 ${d.phone} · ${d.count} order${d.count!==1?'s':''}${d.latest?' · latest '+new Date(d.latest+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
           <span style="font-weight:800;color:var(--r);font-size:.92rem">₹${d.total}</span>
-          <button onclick="event.stopPropagation();clearDue('${d.phone}')" style="padding:5px 10px;background:var(--g);color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">Paid ✓</button>
+          <div style="display:flex;gap:6px">
+            <button onclick="event.stopPropagation();remindOneDue('${d.phone}','${(nm||'').replace(/'/g,'')}',${d.total})" style="padding:5px 10px;background:#25d366;color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">💬 Remind</button>
+            <button onclick="event.stopPropagation();clearDue('${d.phone}')" style="padding:5px 10px;background:var(--g);color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">Paid ✓</button>
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -2578,31 +2579,58 @@ window.loadDues=async function(){
 };
 
 // Send a WhatsApp reminder to every customer with dues, one at a time (#3B)
-window.remindAllDues=async function(){
-  const dues=window._duesCache||[];
-  if(!dues.length){showToast('No dues to remind');return;}
-  if(!confirm('Open WhatsApp reminder for each of the '+dues.length+' customer(s) with dues? They open one by one.'))return;
+// Send a dues reminder to ONE specific customer (from the dues row) (#REG-DUES-REMIND-INDIVIDUAL)
+window.remindOneDue=async function(phone,name,total){
   let cfg={};
   try{const cs=await getDoc(doc(db,'config','menu'));if(cs.exists())cfg=cs.data();}catch(e){}
   const upi=cfg.upiId||''; const shop=cfg.shopName||'Kicken Bites';
-  // Open each reminder with a small stagger so the browser doesn't block them
-  dues.forEach((d,idx)=>{
-    setTimeout(()=>{
-      const nl='\n';
-      const payLink=window.location.href.replace('admin.html','customer.html');
-      let msg='🔔 *'+shop+' — Payment Reminder*'+nl+nl+
-        'Hi *'+(d.name||'Customer')+'*,'+nl+
-        'You have a pending Pay-Later balance of *₹'+d.total+'* ('+d.count+' order'+(d.count!==1?'s':'')+').'+nl+nl+
-        (upi?('📲 Pay via UPI: *'+upi+'*'+nl+nl):'')+
-        '💳 Or pay online → Profile → Pay Dues Now:'+nl+payLink+nl+nl+
-        'Kindly clear it at your earliest. Thank you! 🙏';
-      const ph=d.phone.toString().replace(/[^0-9]/g,'').slice(-10);
-      window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
-    }, idx*600);
-  });
-  showToast('Opening '+dues.length+' reminder(s)…');
+  const nl='\n';
+  const payLink=window.location.href.replace('admin.html','customer.html');
+  let msg='🔔 *'+shop+' — Payment Reminder*'+nl+nl+
+    'Hi *'+(name||'Customer')+'*,'+nl+
+    'You have a pending Pay-Later balance of *₹'+total+'*.'+nl+nl+
+    (upi?('📲 Pay via UPI: *'+upi+'*'+nl+nl):'')+
+    '💳 Or pay online → Profile → Pay Dues Now:'+nl+payLink+nl+nl+
+    'Kindly clear it at your earliest. Thank you! 🙏';
+  const ph=phone.toString().replace(/[^0-9]/g,'').slice(-10);
+  window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
+  showToast('Opening reminder for '+(name||ph));
 };
 
+// Remind ALL: opens ONE reminder per confirm/tap (browsers block multiple auto window.open,
+// which is why the old stagger only opened the first). Each customer is a fresh user gesture.
+let _remindQueue=[], _remindCfg={};
+window.remindAllDues=async function(){
+  const dues=window._duesCache||[];
+  if(!dues.length){showToast('No dues to remind');return;}
+  let cfg={};
+  try{const cs=await getDoc(doc(db,'config','menu'));if(cs.exists())cfg=cs.data();}catch(e){}
+  _remindCfg={upi:cfg.upiId||'', shop:cfg.shopName||'Kicken Bites'};
+  _remindQueue=dues.slice();
+  remindNextInQueue();
+};
+function remindNextInQueue(){
+  if(!_remindQueue.length){showToast('✅ All reminders sent');return;}
+  const d=_remindQueue.shift();
+  const nl='\n';
+  const payLink=window.location.href.replace('admin.html','customer.html');
+  const upi=_remindCfg.upi, shop=_remindCfg.shop;
+  let msg='🔔 *'+shop+' — Payment Reminder*'+nl+nl+
+    'Hi *'+(d.name||'Customer')+'*,'+nl+
+    'You have a pending Pay-Later balance of *₹'+d.total+'* ('+d.count+' order'+(d.count!==1?'s':'')+').'+nl+nl+
+    (upi?('📲 Pay via UPI: *'+upi+'*'+nl+nl):'')+
+    '💳 Or pay online → Profile → Pay Dues Now:'+nl+payLink+nl+nl+
+    'Kindly clear it at your earliest. Thank you! 🙏';
+  const ph=d.phone.toString().replace(/[^0-9]/g,'').slice(-10);
+  window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
+  if(_remindQueue.length){
+    setTimeout(()=>{
+      if(confirm('Reminder opened for '+(d.name||ph)+'.\n\n'+_remindQueue.length+' customer(s) left. Send the next one?')) remindNextInQueue();
+    }, 400);
+  }else{
+    showToast('✅ Last reminder opened');
+  }
+}
 // ---- DUES DETAIL + REMINDER ----
 window.viewDues=async function(phone){
   const modal=document.getElementById('duesModal');
@@ -2775,6 +2803,30 @@ function initAdminTrackMap(){
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}
 
 
+// Build the Menu-tab collage for the SELECTED menu date with ACCURATE remaining quantities
+// (reads that date's dailyMenu doc so we never subtract a different day's bookings).
+window.generateMenuCollage = async function(){
+  try{
+    const ds = selMenuDate || getTodayDate();
+    const wd = weekdayKey(ds);
+    // Items that serve this weekday, from master
+    let items = (masterItems||[]).filter(i=>i.name && i.price>0 && i.weekdays && i.weekdays[wd] && (i.todayActive || selMenuDate));
+    if(!items.length) items = (masterItems||[]).filter(i=>i.todayActive);
+    // Accurate remaining: read the dailyMenu doc for that date if it exists
+    let remainById = {};
+    try{
+      const ms = await getDoc(doc(db,'dailyMenu',ds));
+      if(ms.exists()){ (ms.data().items||[]).forEach(it=>{ if(it.id!=null && it.availableQty!=null) remainById[it.id]=Number(it.availableQty); }); }
+    }catch(e){}
+    const collageItems = items.map(i=>({
+      id:i.id, name:i.name, price:i.price, emoji:i.emoji||'🍛', desc:i.desc||'', imageUrl:i.imageUrl||'',
+      // use the day's live remaining if we have it, else the day's capacity
+      availableQty: (remainById[i.id]!=null ? remainById[i.id] : qtyForDay(i,wd))
+    }));
+    await generateCollage(collageItems, false);
+  }catch(e){ console.error('generateMenuCollage',e); try{ await generateCollage(); }catch(_){} }
+};
+
 window.generateCollage = async function(itemsOverride, showPopup){
   try{
   const active = (Array.isArray(itemsOverride) && itemsOverride.length)
@@ -2783,16 +2835,25 @@ window.generateCollage = async function(itemsOverride, showPopup){
   if(!active.length){alert('Please save today menu first, or open the Menu tab.');return;}
   showToast('⏳ Generating collage...');
 
-  // Live booked-per-item from today's orders → collage shows CURRENT remaining, not the
-  // initial batch size. remaining = startQty(availableQty snapshot) ... actually we compute
-  // remaining = max(0, start - booked) where start is the item's day capacity.
+  // Determine remaining per item.
+  // - If itemsOverride was passed (a specific viewed date), its availableQty is ALREADY that
+  //   date's remaining — use it directly (do NOT subtract today's bookings, which belong to a
+  //   different date; that caused a wrong "SOLD OUT").
+  // - Otherwise (today's live menu via todayActive), subtract today's live bookings.
+  const _usingOverride = (Array.isArray(itemsOverride) && itemsOverride.length);
   const _collBooked = {};
-  (todayOrders||[]).filter(function(o){return (o.status||'')!=='cancelled';})
-    .forEach(function(o){ (o.items||[]).forEach(function(it){ _collBooked[it.name]=(_collBooked[it.name]||0)+(Number(it.qty)||0); }); });
+  if(!_usingOverride){
+    (todayOrders||[]).filter(function(o){return (o.status||'')!=='cancelled';})
+      .forEach(function(o){ (o.items||[]).forEach(function(it){ _collBooked[it.name]=(_collBooked[it.name]||0)+(Number(it.qty)||0); }); });
+  }
   function _collRemain(item){
-    const start = Number(item.availableQty)||0;      // day's starting capacity (from Menu tab)
+    const cap = Number(item.availableQty)||0;
+    if(_usingOverride){
+      // availableQty is already the remaining for that date
+      return { start: cap, booked: 0, remaining: Math.max(0, cap) };
+    }
     const booked = _collBooked[item.name]||0;
-    return { start: start, booked: booked, remaining: Math.max(0, start - booked) };
+    return { start: cap, booked: booked, remaining: Math.max(0, cap - booked) };
   }
 
   const canvas = document.getElementById('menuCollage');
@@ -2813,11 +2874,20 @@ window.generateCollage = async function(itemsOverride, showPopup){
     ctx.closePath();
   }
 
-  // Layout
-  const COLS = 2;
-  const ROWS = Math.ceil(active.length/COLS);
-  const CELL_W = 380;
-  const CELL_H = 300;
+  // Layout — choose column count so the last row is full (no ugly blank cell)
+  const n = active.length;
+  let COLS;
+  if(n<=1) COLS=1;
+  else if(n===2) COLS=2;
+  else if(n===3) COLS=3;      // single full row of 3
+  else if(n===4) COLS=2;      // 2×2
+  else if(n===6) COLS=3;      // 2×3
+  else if(n===5) COLS=5;      // single full row of 5 (kept compact by smaller cells below)
+  else COLS = (n%3===0)?3:(n%2===0?2:3);
+  const ROWS = Math.ceil(n/COLS);
+  // Scale cell width down a bit when there are many columns so the image stays reasonable
+  const CELL_W = COLS>=4 ? 300 : 380;
+  const CELL_H = COLS>=4 ? 250 : 300;
   const PAD = 10;
   const HEADER_H = 90;
   const FOOTER_H = 44;
@@ -2887,7 +2957,7 @@ window.generateCollage = async function(itemsOverride, showPopup){
     var row = Math.floor(idx / COLS);
     var x = PAD + col*(CELL_W+PAD);
     var y = HEADER_H + PAD + row*(CELL_H+PAD);
-    var IMG_H = 210;
+    var IMG_H = Math.round(CELL_H*0.7);
     var INFO_H = CELL_H - IMG_H;
 
     // Card white bg

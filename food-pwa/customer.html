@@ -822,7 +822,9 @@ function checkDeliveredNotice(orders){
   if(document.visibilityState==='visible'){
     showDeliveredPopup(justDelivered[0]);
   }else{
-    try{ localStorage.setItem('kb_delivered_pending', justDelivered[0].id); }catch(e){}
+    const o=justDelivered[0];
+    const info={id:o.id, items:(o.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', '), total:o.total||0, date:o.date||''};
+    try{ localStorage.setItem('kb_delivered_pending', JSON.stringify(info)); }catch(e){}
   }
 }
 function showDeliveredPopup(o){
@@ -834,6 +836,7 @@ function showDeliveredPopup(o){
   el.innerHTML='<div style="background:white;border-radius:18px;max-width:360px;width:100%;padding:22px;text-align:center">'+
     '<div style="font-size:3rem">🎉</div>'+
     '<div style="font-size:1.2rem;font-weight:900;color:#16a34a;margin:6px 0">Order Delivered!</div>'+
+    '<div style="font-size:.8rem;font-weight:800;color:#333;margin-bottom:2px">Order #'+(o.id?o.id.slice(-5).toUpperCase():'')+'</div>'+
     '<div style="font-size:.85rem;color:#555;margin-bottom:4px">'+(items||'Your order')+'</div>'+
     '<div style="font-size:.78rem;color:#888;margin-bottom:14px">We hope you enjoy your meal! 🍽️</div>'+
     '<button onclick="rateFromDelivered(\''+o.id+'\')" style="width:100%;background:var(--orange);color:white;border:none;padding:12px;border-radius:11px;font-weight:800;margin-bottom:8px;cursor:pointer">⭐ Rate this order</button>'+
@@ -849,17 +852,23 @@ window.rateFromDelivered=function(orderId){
 };
 // Show a banner in the Orders tab if a delivery happened while the app was closed/backgrounded
 function showDeliveredBannerIfPending(){
-  let pid=null;
-  try{ pid=localStorage.getItem('kb_delivered_pending'); }catch(e){}
-  if(!pid)return;
+  let raw=null;
+  try{ raw=localStorage.getItem('kb_delivered_pending'); }catch(e){}
+  if(!raw)return;
   try{ localStorage.removeItem('kb_delivered_pending'); }catch(e){}
+  // raw may be a plain id (old) or a JSON info object (new)
+  let info={id:'',items:'',total:0};
+  try{ info=JSON.parse(raw); }catch(e){ info={id:raw,items:'',total:0}; }
   const host=document.getElementById('tab-myorders')||document.getElementById('tab-order');
   if(!host)return;
   let b=document.getElementById('deliveredBanner'); if(b)b.remove();
   b=document.createElement('div');
   b.id='deliveredBanner';
-  b.style.cssText='background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border-radius:12px;padding:13px;margin:10px 0;text-align:center;font-weight:700';
-  b.innerHTML='🎉 Your order was delivered! We hope you enjoyed it. <span style="text-decoration:underline;cursor:pointer" onclick="this.parentElement.remove()">Dismiss</span>';
+  b.style.cssText='background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border-radius:12px;padding:13px;margin:10px 0;font-weight:700';
+  const oid=info.id?('#'+String(info.id).slice(-5).toUpperCase()):'';
+  b.innerHTML='<div style="text-align:center">🎉 <b>Order '+oid+' delivered!</b></div>'+
+    (info.items?'<div style="text-align:center;font-size:.8rem;opacity:.95;margin-top:2px;font-weight:600">'+info.items+(info.total?' · ₹'+info.total:'')+'</div>':'')+
+    '<div style="text-align:center;font-size:.78rem;opacity:.9;margin-top:3px">We hope you enjoyed it! <span style="text-decoration:underline;cursor:pointer;font-weight:800" onclick="this.closest(\'#deliveredBanner\').remove()">Dismiss</span></div>';
   host.insertBefore(b, host.firstChild);
 }
 
