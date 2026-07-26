@@ -125,6 +125,18 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
 .pay-amt{color:white;font-size:2.3rem;font-weight:900;line-height:1;}
 .pay-name{color:rgba(255,255,255,.7);font-size:.76rem;margin-top:4px;}
 .pay-card{background:white;border-radius:20px 20px 0 0;padding:16px 14px 50px;}
+.pay-opt-title{font-size:1rem;font-weight:800;color:var(--dark);margin:6px 0 10px;text-align:center;}
+.qr-wrap-big{text-align:center;margin-bottom:11px;}
+.qr-box-big{display:inline-block;padding:12px;background:white;border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.14);border:3px solid var(--op);}
+.qr-box-big img{width:230px;height:230px;display:block;}
+.qr-amt-big{margin-top:9px;font-size:.9rem;font-weight:700;color:var(--dark);}
+.qr-dl-btn{width:100%;padding:13px;background:var(--dark);color:white;border:none;border-radius:12px;font-size:.92rem;font-weight:800;cursor:pointer;margin-bottom:11px;}
+.upi-box-big{background:linear-gradient(135deg,#fff8f0,#ffe8d0);border:2px solid var(--op);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;align-items:stretch;margin-bottom:11px;}
+.upi-txt-big{font-size:1.15rem;font-weight:800;color:var(--dark);text-align:center;word-break:break-all;letter-spacing:.02em;}
+.copy-btn-big{width:100%;padding:13px;background:var(--orange);color:white;border:none;border-radius:11px;font-size:.95rem;font-weight:800;cursor:pointer;}
+.copy-btn-big.copied{background:var(--green);}
+.proc-box{background:#f8fafc;border:1px solid #e5e9f0;border-left:4px solid var(--orange);border-radius:10px;padding:11px 13px;font-size:.82rem;line-height:1.7;color:#334;margin-bottom:13px;}
+.proc-box b{color:var(--dark);}
 .upi-lbl{font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;}
 .upi-box{background:linear-gradient(135deg,#fff8f0,#ffe8d0);border:2px solid var(--op);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
 .upi-txt{font-size:.95rem;font-weight:800;color:var(--orange);flex:1;word-break:break-all;}
@@ -349,6 +361,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
       </div>
       <div class="sec" style="margin-top:8px">
         <div class="stt">Bill Summary</div>
+        <div id="billDate" style="font-size:.8rem;font-weight:700;color:var(--orange);margin:-2px 0 7px"></div>
         <div class="bill">
           <div id="billItems"></div>
           <div class="br" id="delRow" style="display:none"><span>Delivery Charge</span><span id="delAmt"></span></div>
@@ -463,20 +476,42 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
     <div class="pay-lbl">Amount to Pay</div>
     <div class="pay-amt" id="payAmt">₹0</div>
     <div class="pay-name" id="payTo">Pay to Kicken Bites</div>
+    <div class="pay-date" id="payDate" style="margin-top:6px;font-size:.8rem;opacity:.9;font-weight:600"></div>
   </div>
   <div class="pay-card">
-    <div class="upi-lbl">📋 Copy UPI ID & Pay</div>
-    <div class="upi-box">
-      <div class="upi-txt" id="upiId">—</div>
-      <button class="copy-btn" id="copyBtn" onclick="copyUpi()">Copy</button>
+    <!-- OPTION 1: BIG QR + DOWNLOAD -->
+    <div class="pay-opt-title">📷 Option 1 — Scan / Save QR Code</div>
+    <div class="qr-wrap-big">
+      <div class="qr-box-big"><img id="qrImg" src="" alt="QR Code"></div>
+      <div class="qr-amt-big">Amount <b id="qrAmt"></b> is pre-filled</div>
     </div>
-    <div class="upi-hint">1️⃣ Tap Copy → 2️⃣ Open GPay/PhonePe → 3️⃣ Pay by UPI ID → 4️⃣ Paste → 5️⃣ Pay ₹<span id="hintAmt"></span></div>
-    <div class="or-div">OR SCAN QR CODE</div>
-    <div class="qr-wrap">
-      <h3>Scan with any UPI app</h3>
-      <div class="qr-box"><img id="qrImg" src="" alt="QR"></div>
-      <div class="qr-hint">Amount <b id="qrAmt"></b> will be pre-filled</div>
+    <button class="qr-dl-btn" onclick="downloadQR()">⬇️ Download / Save QR to Gallery</button>
+    <div class="proc-box">
+      <b>How to pay with QR:</b><br>
+      1️⃣ Tap <b>Download QR</b> above (saves to your gallery)<br>
+      2️⃣ Open GPay / PhonePe / Paytm<br>
+      3️⃣ Choose <b>Scan QR</b> → <b>Gallery</b> / <b>Upload from photos</b><br>
+      4️⃣ Pick the saved QR → amount ₹<span id="procAmt1"></span> is filled<br>
+      5️⃣ Complete the payment
     </div>
+
+    <div class="or-div">OR</div>
+
+    <!-- OPTION 2: BIG COPY UPI -->
+    <div class="pay-opt-title">📋 Option 2 — Pay by UPI ID</div>
+    <div class="upi-box-big">
+      <div class="upi-txt-big" id="upiId">—</div>
+      <button class="copy-btn-big" id="copyBtn" onclick="copyUpi()">📋 Copy UPI ID</button>
+    </div>
+    <div class="proc-box">
+      <b>How to pay with UPI ID:</b><br>
+      1️⃣ Tap <b>Copy UPI ID</b> above<br>
+      2️⃣ Open GPay / PhonePe / Paytm<br>
+      3️⃣ Choose <b>Pay by UPI ID</b> / <b>Send to UPI ID</b><br>
+      4️⃣ <b>Paste</b> the UPI ID<br>
+      5️⃣ Enter amount ₹<span id="hintAmt"></span> and pay
+    </div>
+
     <div class="warn-note">⚠️ After paying, tap <b>"I Have Paid"</b> below to confirm your order.</div>
     <button class="confirm-btn" onclick="iHavePaid()"><span style="font-size:1.1rem">✅</span> I Have Paid — Confirm Order</button>
     
@@ -534,7 +569,7 @@ import { db, getTodayDate, formatDisplayDate, getTodayMenu, getDailyMenu, listen
 // ---- STATE ----
 let menuConfig={}, quantities={}, orderType='delivery', currentOrderId=null, currentTotal=0;
 let currentProfile=null, lastOrder={}, selectedDate='', loginPhoneVal='', genOtp='';
-let ordersUnsub=null, menuUnsub=null, itemRatings={};
+let ordersUnsub=null, menuUnsub=null, selDateUnsub=null, itemRatings={};
 
 const today = getTodayDate();
 document.getElementById('todayLbl').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
@@ -887,20 +922,6 @@ async function loadMenu() {
   const timeout=setTimeout(()=>{hide('loadingScreen');document.getElementById('closedBox').style.display='block';},8000);
   try{
     selectedDate=today;
-    // Restore the last-viewed date across refresh (only today or an upcoming date in the
-    // 7-day window; a stale past date falls back to today).
-    let _restore=null;
-    try{
-      const sv=localStorage.getItem('kb_cust_date');
-      if(sv){ const valid=next7Days().map(d=>d.date); if(valid.includes(sv)&&sv!==today) _restore=sv; }
-    }catch(e){}
-    if(_restore){
-      clearTimeout(timeout);
-      hide('loadingScreen');
-      show('mainApp');
-      await selectDate('custom',_restore);
-      return;
-    }
     renderOrderDayChips();
     let data=await getTodayMenu();
     if(!data||data.isDefault||!(data.items||[]).length){
@@ -917,7 +938,13 @@ async function loadMenu() {
         menuConfig=d;renderMenu(d.items||[]);updateBill();
       }
     });
-  }catch(e){clearTimeout(timeout);document.getElementById('closedBox').style.display='block';}
+    // Now that the page is functional, restore the last-viewed date if it was a valid
+    // upcoming date (never a stale past date). selectDate handles showing that day's menu.
+    try{
+      const sv=localStorage.getItem('kb_cust_date');
+      if(sv&&sv!==today){ const valid=next7Days().map(d=>d.date); if(valid.includes(sv)) await selectDate('custom',sv); }
+    }catch(e){}
+  }catch(e){clearTimeout(timeout);hide('loadingScreen');document.getElementById('closedBox').style.display='block';console.error('loadMenu error',e);}
 }
 
 async function applyMenu(cfg){
@@ -1122,6 +1149,10 @@ window.selectDate=async function(which,val){
   else ds=val||today;
   selectedDate=ds;
   try{ localStorage.setItem('kb_cust_date', ds); }catch(e){}
+  // Ensure the menu UI is visible — selectDate can be the first thing shown (restored on load)
+  hide('loadingScreen');
+  const menuSecEl=document.getElementById('menuSec'); if(menuSecEl)menuSecEl.style.display='block';
+  const closedEl=document.getElementById('closedBox'); if(closedEl)closedEl.style.display='none';
   renderOrderDayChips();
   const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('dateLbl').textContent='📅 Ordering for: '+disp;
@@ -1143,6 +1174,22 @@ window.selectDate=async function(which,val){
     renderMenu(data.items);
     updateBill();
   }
+  // Live-update stock for the SELECTED date (any day, not just today), so quantities
+  // decrease in real time on every chip — not only on today's page.
+  if(selDateUnsub){try{selDateUnsub();}catch(e){}selDateUnsub=null;}
+  const listenDs=ds;
+  if(listenDs===today) return;   // today already has its own live listener (menuUnsub)
+  selDateUnsub=onSnapshot(doc(db,'dailyMenu',listenDs), async snap=>{
+    if(selectedDate!==listenDs)return;          // user moved to another chip
+    if(!snap.exists())return;                    // no doc yet (still on default template)
+    let d=snap.data();
+    if(!(d.items||[]).length)return;             // ignore empty snapshots
+    if(d.isDefault)return;                        // ignore the default-template marker
+    d=await mergeMasterPrices(d);
+    menuConfig=d;
+    renderMenu(d.items||[]);
+    updateBill();
+  }, err=>console.error('selDate listener',err));
 };
 
 window.selType=function(t){
@@ -1178,6 +1225,20 @@ function updateBill(){
   const items=menuConfig.items||[];
   let html='';items.forEach(i=>{if(quantities[i.id]>0)html+=`<div class="br"><span>${i.name} ×${quantities[i.id]}</span><span>₹${quantities[i.id]*i.price}</span></div>`;});
   document.getElementById('billItems').innerHTML=html;
+  // Show the day + date this order is for, in the Bill Summary
+  const bd=document.getElementById('billDate');
+  if(bd){
+    if(sub>0){
+      const ds=selectedDate||getTodayDate();
+      const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+      const t=getTodayDate();
+      const d2=new Date(t+'T00:00:00');d2.setDate(d2.getDate()+1);
+      const tm=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+      const rel=ds===t?'Today · ':ds===tm?'Tomorrow · ':'';
+      bd.textContent='📅 Order for '+rel+disp;
+      bd.style.display='block';
+    }else{ bd.textContent=''; bd.style.display='none'; }
+  }
   document.getElementById('delRow').style.display=(orderType==='delivery'&&sub>0)?'flex':'none';
   document.getElementById('delAmt').textContent='₹'+delivery;
   document.getElementById('totAmt').textContent='₹'+total;
@@ -1281,18 +1342,51 @@ function showPayScreen(total){
   const uid=menuConfig.upiId||'';const uname=menuConfig.upiName||'Kicken Bites';
   document.getElementById('payAmt').textContent='₹'+total;
   document.getElementById('payTo').textContent='Pay to '+uname;
+  // Show the day + date this order is for
+  const pd=document.getElementById('payDate');
+  if(pd){
+    const ds=selectedDate||getTodayDate();
+    const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+    const t=getTodayDate();
+    const d2=new Date(t+'T00:00:00');d2.setDate(d2.getDate()+1);
+    const tm=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+    const rel=ds===t?'Today · ':ds===tm?'Tomorrow · ':'';
+    pd.textContent='📅 Order for '+rel+disp;
+  }
   document.getElementById('upiId').textContent=uid;
   document.getElementById('hintAmt').textContent=total;
   document.getElementById('qrAmt').textContent='₹'+total;
-  document.getElementById('copyBtn').textContent='Copy';document.getElementById('copyBtn').classList.remove('copied');
+  const pa1=document.getElementById('procAmt1'); if(pa1)pa1.textContent=total;
+  const cb=document.getElementById('copyBtn'); cb.textContent='📋 Copy UPI ID'; cb.classList.remove('copied');
   const ud=`upi://pay?pa=${encodeURIComponent(uid)}&pn=${encodeURIComponent(uname)}&am=${total}&cu=INR&tn=${encodeURIComponent('Kicken Bites')}`;
-  document.getElementById('qrImg').src=`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(ud)}`;
+  const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(ud)}`;
+  document.getElementById('qrImg').src=qrUrl;
+  window._payQrUrl=qrUrl; window._payQrName='KickenBites-Pay-'+total+'.png';
   show('payScreen');window.scrollTo(0,0);
   setTimeout(loadWalletBalance,300);
 }
+// Download the payment QR to the gallery so the customer can upload it in their UPI app
+window.downloadQR=async function(){
+  try{
+    const url=window._payQrUrl;
+    if(!url){showToast('QR not ready');return;}
+    const resp=await fetch(url);
+    const blob=await resp.blob();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=window._payQrName||'KickenBites-QR.png';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+    showToast('✅ QR saved to gallery — open your UPI app & upload it');
+  }catch(e){
+    // Fallback: open the QR in a new tab so the user can long-press to save
+    window.open(window._payQrUrl,'_blank');
+    showToast('Long-press the QR to save it');
+  }
+};
 window.copyUpi=function(){
   const uid=menuConfig.upiId||'';
-  navigator.clipboard.writeText(uid).then(()=>{document.getElementById('copyBtn').textContent='✅ Copied!';document.getElementById('copyBtn').classList.add('copied');setTimeout(()=>{document.getElementById('copyBtn').textContent='Copy';document.getElementById('copyBtn').classList.remove('copied');},3000);showToast('UPI ID copied! Open your UPI app and paste.');}).catch(()=>{});
+  navigator.clipboard.writeText(uid).then(()=>{const b=document.getElementById('copyBtn');b.textContent='✅ Copied!';b.classList.add('copied');setTimeout(()=>{b.textContent='📋 Copy UPI ID';b.classList.remove('copied');},3000);showToast('UPI ID copied! Open your UPI app and paste.');}).catch(()=>{});
 };
 // ---- WALLET / PAY LATER ----
 async function loadWalletBalance(){
