@@ -2589,10 +2589,12 @@ window.remindAllDues=async function(){
   dues.forEach((d,idx)=>{
     setTimeout(()=>{
       const nl='\n';
+      const payLink=window.location.href.replace('admin.html','customer.html');
       let msg='🔔 *'+shop+' — Payment Reminder*'+nl+nl+
         'Hi *'+(d.name||'Customer')+'*,'+nl+
         'You have a pending Pay-Later balance of *₹'+d.total+'* ('+d.count+' order'+(d.count!==1?'s':'')+').'+nl+nl+
-        (upi?('Please pay to UPI: *'+upi+'*'+nl+nl):'')+
+        (upi?('📲 Pay via UPI: *'+upi+'*'+nl+nl):'')+
+        '💳 Or pay online → Profile → Pay Dues Now:'+nl+payLink+nl+nl+
         'Kindly clear it at your earliest. Thank you! 🙏';
       const ph=d.phone.toString().replace(/[^0-9]/g,'').slice(-10);
       window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
@@ -2686,10 +2688,10 @@ window.sendDueReminder=function(phone){
   }
   msg+='💰 *Total Due: ₹'+ctx.amount+'*'+nl+nl;
   if(ctx.upi){
-    msg+='📲 *Pay via UPI:*'+nl+ctx.upi+' ('+ctx.upiName+')'+nl+nl;
-    msg+='Or tap this link to pay instantly:'+nl;
-    msg+='upi://pay?pa='+encodeURIComponent(ctx.upi)+'&pn='+encodeURIComponent(ctx.upiName)+'&am='+ctx.amount+'&cu=INR'+nl+nl;
+    msg+='📲 *Pay via UPI:* '+ctx.upi+' ('+ctx.upiName+')'+nl+nl;
   }
+  const payLink=window.location.href.replace('admin.html','customer.html');
+  msg+='💳 *Pay online here → Profile → Pay Dues Now:*'+nl+payLink+nl+nl;
   msg+='Thank you for ordering with us! 🙏';
   location.href='https://wa.me/91'+phone+'?text='+encodeURIComponent(msg);
 };

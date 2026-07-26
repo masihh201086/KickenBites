@@ -461,7 +461,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
           <div style="font-weight:900;font-size:1.15rem;color:#b91c1c" id="custDuesTotal">₹0</div>
         </div>
         <div id="custDuesList"></div>
-        <div style="font-size:.72rem;color:#8a5a5a;margin-top:8px;line-height:1.5">🙏 Please clear your dues on your next order or contact the shop.</div>
+        <button onclick="payDuesNow()" style="width:100%;margin-top:10px;background:#25d366;color:white;border:none;padding:12px;border-radius:11px;font-weight:800;font-size:.9rem;cursor:pointer">💳 Pay Dues Now</button>
+        <div style="font-size:.72rem;color:#8a5a5a;margin-top:8px;line-height:1.5">🙏 Pay online above, or clear on your next order / contact the shop.</div>
       </div>
       <div class="prof-card">
         <div class="pct">Personal Details</div>
@@ -903,6 +904,8 @@ function renderMyDues(orders){
     '</div>';
   }).join('');
   if(totEl)totEl.textContent='₹'+total;
+  window._myDuesTotal=total;
+  window._myDuesOrders=dues.map(o=>o.id);
   card.style.display='block';
 }
 
@@ -1454,27 +1457,47 @@ window.placeOrderClick=async function(){
 };
 
 // ---- PAYMENT ----
+// ===== PAY DUES (customer) — reuses the payment screen in "dues" mode =====
+window._payMode='order';  // 'order' | 'dues'
+window.payDuesNow=async function(){
+  const total=window._myDuesTotal||0;
+  if(total<=0){showToast('No dues to pay');return;}
+  // Make sure we have UPI config (Profile tab may not have loaded the menu)
+  if(!menuConfig||!menuConfig.upiId){
+    try{ const cs=await getDoc(doc(db,'config','menu')); if(cs.exists()){ const d=cs.data(); menuConfig=Object.assign({},menuConfig,{upiId:d.upiId,upiName:d.upiName}); } }catch(e){}
+  }
+  window._payMode='dues';
+  showPayScreen(total);
+};
 function showPayScreen(total){
   const uid=menuConfig.upiId||'';const uname=menuConfig.upiName||'Kicken Bites';
+  const isDues=(window._payMode==='dues');
   document.getElementById('payAmt').textContent='₹'+total;
   document.getElementById('payTo').textContent='Pay to '+uname;
-  // Show the day + date this order is for
+  // Header line: dues vs order
   const pd=document.getElementById('payDate');
   if(pd){
-    const ds=selectedDate||getTodayDate();
-    const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
-    const t=getTodayDate();
-    const d2=new Date(t+'T00:00:00');d2.setDate(d2.getDate()+1);
-    const tm=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
-    const rel=ds===t?'Today · ':ds===tm?'Tomorrow · ':'';
-    pd.textContent='📅 Order for '+rel+disp;
+    if(isDues){
+      pd.textContent='💳 Clearing Pending Dues';
+    }else{
+      const ds=selectedDate||getTodayDate();
+      const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+      const t=getTodayDate();
+      const d2=new Date(t+'T00:00:00');d2.setDate(d2.getDate()+1);
+      const tm=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+      const rel=ds===t?'Today · ':ds===tm?'Tomorrow · ':'';
+      pd.textContent='📅 Order for '+rel+disp;
+    }
   }
+  // Confirm button label depends on mode
+  const cfb=document.querySelector('#payScreen .confirm-btn');
+  if(cfb) cfb.innerHTML=isDues?'<span style="font-size:1.1rem">✅</span> I Have Paid — Clear Dues':'<span style="font-size:1.1rem">✅</span> I Have Paid — Confirm Order';
   document.getElementById('upiId').textContent=uid;
   document.getElementById('hintAmt').textContent=total;
   document.getElementById('qrAmt').textContent='₹'+total;
   const pa1=document.getElementById('procAmt1'); if(pa1)pa1.textContent=total;
   const cb=document.getElementById('copyBtn'); cb.textContent='📋 Copy UPI ID'; cb.classList.remove('copied');
-  const ud=`upi://pay?pa=${encodeURIComponent(uid)}&pn=${encodeURIComponent(uname)}&am=${total}&cu=INR&tn=${encodeURIComponent('Kicken Bites')}`;
+  const ud=`upi://pay?pa=${encodeURIComponent(uid)}&pn=${encodeURIComponent(uname)}&am=${total}&cu=INR&tn=${encodeURIComponent(isDues?'Kicken Bites Dues':'Kicken Bites')}`;
   const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(ud)}`;
   document.getElementById('qrImg').src=qrUrl;
   window._payQrUrl=qrUrl; window._payQrName='KickenBites-Pay-'+total+'.png';
@@ -1598,8 +1621,21 @@ window.payLater=async function(){
   }catch(e){alert('Error: '+e.message);}
 };
 
-window.closePayScreen=function(){hide('payScreen');};
+window.closePayScreen=function(){hide('payScreen');window._payMode='order';};
 window.iHavePaid=async function(){
+  // DUES MODE: mark all pending pay-later orders as customer-claimed-paid (admin still confirms)
+  if(window._payMode==='dues'){
+    const ids=window._myDuesOrders||[];
+    if(!ids.length){hide('payScreen');window._payMode='order';showToast('No dues found');return;}
+    try{
+      await Promise.all(ids.map(id=>setDoc(doc(db,'orders',id),{customerClaimedPaid:true,customerClaimedPaidAt:new Date().toISOString()},{merge:true})));
+      hide('payScreen');
+      window._payMode='order';
+      showToast('✅ Thanks! Payment noted — the shop will confirm shortly.');
+    }catch(e){alert('Error. Please try again or contact the shop.');}
+    return;
+  }
+  // ORDER MODE (normal)
   if(!currentOrderId)return;
   try{
     await setDoc(doc(db,'orders',currentOrderId),{

@@ -427,10 +427,26 @@ function startApp() {
   window.addEventListener('beforeunload', async ()=>{
     try{ await setOnlineStatus(false); }catch(e){}
   });
-  requestNotifPerm();
-  loadOrders();
-  listenForAssignments();
-  listenForSalaryPaid();
+  try{ requestNotifPerm(); }catch(e){ console.error('notifPerm',e); }
+  try{ loadOrders(); }catch(e){ console.error('loadOrders',e); showLoadError(); }
+  try{ listenForAssignments(); }catch(e){ console.error('assignments',e); }
+  try{ listenForSalaryPaid(); }catch(e){ console.error('salaryPaid',e); }
+  // Safety net: if orders haven't loaded within 6s, stop showing "Loading…"
+  setTimeout(function(){
+    var a=document.getElementById('tab-active');
+    if(a && a.innerHTML.indexOf('Loading')>=0){
+      // try one more time, then show a friendly empty/retry state
+      try{ loadOrders(); }catch(e){}
+      setTimeout(function(){
+        var a2=document.getElementById('tab-active');
+        if(a2 && a2.innerHTML.indexOf('Loading')>=0) showLoadError();
+      }, 3000);
+    }
+  }, 6000);
+}
+function showLoadError(){
+  var a=document.getElementById('tab-active');
+  if(a) a.innerHTML='<div class="empty">⚠️ Couldn\'t load orders. Pull down to refresh, or tap a date chip again.<br><br><button onclick="loadOrders()" style="margin-top:6px;padding:9px 16px;background:var(--o);color:white;border:none;border-radius:9px;font-weight:700;cursor:pointer">🔄 Retry</button></div>';
 }
 
 // ===== SALARY-PAID NOTIFICATION (B) =====
@@ -530,21 +546,14 @@ function loadOrders(){
   updateDelDateLbl();
   if(_ordersUnsub){try{_ordersUnsub();}catch(e){}}
   const isToday=(viewDate===getTodayDate());
-  // For TODAY, listen to the whole orders collection and filter client-side so that
-  // legacy orders (missing/differently-formatted date) are never hidden. For other
-  // dates, query that specific date.
-  const q=isToday
-    ? collection(db,'orders')
-    : query(collection(db,'orders'),where('date','==',viewDate));
+  // Query by date (indexed, fast) for every day including today. Orders reliably carry a
+  // date field, so this shows all of that day's delivery orders without hanging on the
+  // whole collection.
+  const q=query(collection(db,'orders'),where('date','==',viewDate));
   _ordersUnsub=onSnapshot(q,
     snap=>{
       allOrders=snap.docs.map(d=>({id:d.id,...d.data()}))
         .filter(o=>o.orderType==='delivery')
-        .filter(o=>{
-          if(!isToday) return true;                 // already date-filtered by query
-          if(!o.date) return true;                  // legacy order with no date → show today
-          return o.date===viewDate;                 // today's dated orders
-        })
         .sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
       // Cache for offline (only cache today's for the offline fallback)
       if(viewDate===getTodayDate()){try{localStorage.setItem('kb_offline_orders',JSON.stringify(allOrders));}catch(e){}}
