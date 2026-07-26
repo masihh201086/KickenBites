@@ -887,6 +887,20 @@ async function loadMenu() {
   const timeout=setTimeout(()=>{hide('loadingScreen');document.getElementById('closedBox').style.display='block';},8000);
   try{
     selectedDate=today;
+    // Restore the last-viewed date across refresh (only today or an upcoming date in the
+    // 7-day window; a stale past date falls back to today).
+    let _restore=null;
+    try{
+      const sv=localStorage.getItem('kb_cust_date');
+      if(sv){ const valid=next7Days().map(d=>d.date); if(valid.includes(sv)&&sv!==today) _restore=sv; }
+    }catch(e){}
+    if(_restore){
+      clearTimeout(timeout);
+      hide('loadingScreen');
+      show('mainApp');
+      await selectDate('custom',_restore);
+      return;
+    }
     renderOrderDayChips();
     let data=await getTodayMenu();
     if(!data||data.isDefault||!(data.items||[]).length){
@@ -1087,12 +1101,14 @@ function buildDefaultMenuC(ds,mcfg){
 function renderOrderDayChips(){
   const wrap=document.getElementById('orderDayChips');
   if(!wrap)return;
+  const WDFULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   wrap.innerHTML=next7Days().map(d=>{
-    const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
+    const dObj=new Date(d.date+'T00:00:00');
+    const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':WDFULL[dObj.getDay()];
     const sel=selectedDate===d.date;
     const hasOrder=myOrderDateSet.has(d.date);
     return '<button class="dbtn'+(sel?' active':'')+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
-      (lbl?'<div style="font-size:.58rem;opacity:.85">'+lbl+'</div>':'')+
+      '<div style="font-size:.58rem;opacity:.85;font-weight:700">'+lbl+'</div>'+
       '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
       (hasOrder?'<div style="position:absolute;top:4px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--green,#22c55e)" title="You have an order this day"></div>':'')+
       '</button>';
@@ -1105,6 +1121,7 @@ window.selectDate=async function(which,val){
   else if(which==='tomorrow'){d.setDate(d.getDate()+1);ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
   else ds=val||today;
   selectedDate=ds;
+  try{ localStorage.setItem('kb_cust_date', ds); }catch(e){}
   renderOrderDayChips();
   const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('dateLbl').textContent='📅 Ordering for: '+disp;

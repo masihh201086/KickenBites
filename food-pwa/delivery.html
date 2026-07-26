@@ -181,7 +181,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;min-height:1
   <div style="padding:8px 11px 0">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
       <div style="font-size:.66rem;font-weight:800;text-transform:uppercase;color:var(--muted)">📅 Orders by date</div>
-      <button id="delBackToday" onclick="setDelDate(getTodayDate())" style="display:none;background:var(--o);color:white;border:none;border-radius:8px;padding:5px 10px;font-size:.68rem;font-weight:800;cursor:pointer">↩ Today</button>
     </div>
     <div id="delDayChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px"></div>
     <div style="display:flex;gap:7px;align-items:center;margin-top:5px">
@@ -297,11 +296,13 @@ function next7Days(){
 function renderDelDayChips(){
   const wrap=document.getElementById('delDayChips');
   if(!wrap)return;
+  const WDFULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   wrap.innerHTML=next7Days().map(d=>{
-    const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
+    const dObj=new Date(d.date+'T00:00:00');
+    const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':WDFULL[dObj.getDay()];
     const sel=delViewDate===d.date;
     return '<button onclick="setDelDate(\''+d.date+'\')" style="flex-shrink:0;min-width:60px;padding:7px 9px;border-radius:10px;border:2px solid '+(sel?'var(--o)':'#e5e5e5')+';background:'+(sel?'#fff7ed':'white')+';cursor:pointer;font-family:inherit">'+
-      (lbl?'<div style="font-size:.56rem;opacity:.8;color:var(--muted)">'+lbl+'</div>':'')+
+      '<div style="font-size:.56rem;opacity:.85;color:var(--muted);font-weight:700">'+lbl+'</div>'+
       '<div style="font-weight:800;font-size:.8rem;color:'+(sel?'var(--o)':'#333')+'">'+d.wd+' '+d.dayNum+'</div></button>';
   }).join('');
 }
@@ -309,16 +310,15 @@ function updateDelDateLbl(){
   const today=getTodayDate();
   const isToday=delViewDate===today;
   const lbl=document.getElementById('delDateLbl');
-  const back=document.getElementById('delBackToday');
   if(lbl){
     const disp=new Date(delViewDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
     lbl.textContent=isToday?'🔴 Live — Today':'📖 '+disp;
   }
-  if(back)back.style.display=isToday?'none':'inline-block';
 }
 window.setDelDate=function(ds){
   if(!ds)return;
   delViewDate=ds;
+  try{ localStorage.setItem('kb_del_date', ds); }catch(e){}
   loadOrders();
 };
 
@@ -521,7 +521,10 @@ window.doLogout = async function() {
 let _ordersUnsub=null;
 function loadOrders(){
   if(!boy?.phone)return;
-  if(!delViewDate)delViewDate=getTodayDate();
+  if(!delViewDate){
+    delViewDate=getTodayDate();
+    try{ const sv=localStorage.getItem('kb_del_date'); if(sv){ const valid=next7Days().map(d=>d.date); if(valid.includes(sv)) delViewDate=sv; } }catch(e){}
+  }
   const viewDate=delViewDate;
   renderDelDayChips();
   updateDelDateLbl();

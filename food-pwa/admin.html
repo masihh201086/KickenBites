@@ -249,7 +249,6 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div class="card" style="padding:11px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
         <div class="ct" style="margin:0">📋 Orders By Date</div>
-        <button id="ordBackToday" onclick="setOrdersDate(getTodayDate())" style="display:none;background:var(--o);color:white;border:none;border-radius:9px;padding:6px 11px;font-size:.72rem;font-weight:800;cursor:pointer">↩ Back to Today</button>
       </div>
       <div id="ordDayChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px"></div>
       <div style="display:flex;gap:7px;align-items:center;margin-top:7px">
@@ -321,7 +320,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       <button class="fb" onclick="filterO('delivered',this)">Delivered</button>
     </div>
     <div class="card" id="itemBookCard" style="padding:11px;display:none">
-      <div class="ct" style="margin:0 0 8px">🍽️ Items Booked (this date)</div>
+      <div class="ct" id="itemBookTitle" style="margin:0 0 8px">🍽️ Items Booked</div>
       <div id="itemBookBars"></div>
       <button onclick="sendOrdersReminder()" style="width:100%;margin-top:9px;background:#25d366;color:white;border:none;padding:11px;border-radius:10px;font-weight:800;font-size:.82rem;cursor:pointer">🔔 Send Reminder + Collage to Customers</button>
     </div>
@@ -800,10 +799,21 @@ async function initDash(){
     renderOrdDayChips();
   }, err=>console.error('Tomorrow listener error:',err));
 
+  // Restore the last-viewed order date across refresh (only if it's today or a valid
+  // upcoming date in the 7-day window; a stale past date falls back to today).
   ordViewDate=today;
+  try{
+    const saved=localStorage.getItem('kb_ord_date');
+    if(saved){
+      const validDates=next7Days().map(d=>d.date);
+      if(validDates.includes(saved)) ordViewDate=saved;
+    }
+  }catch(e){}
   renderOrdDayChips();
   updateOrdDateUI();
   preloadOrderDots();
+  // If a non-today date was restored, load its orders now.
+  if(ordViewDate!==today){ setOrdersDate(ordViewDate); }
 }
 
 // ===== ORDERS BY DATE =====
@@ -833,12 +843,15 @@ function renderOrdDayChips(){
   // Today's dot comes from the live listener; other days from the preloaded scan
   const liveToday=todayOrders.some(o=>(o.status||'')!=='cancelled');
   if(liveToday) ordDatesWithOrders.add(today); else ordDatesWithOrders.delete(today);
+  const WDFULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   wrap.innerHTML=next7Days().map(d=>{
-    const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
+    // Every chip shows a small label above the date: Today / Tomorrow / else the weekday name
+    const dObj=new Date(d.date+'T00:00:00');
+    const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':WDFULL[dObj.getDay()];
     const sel=ordViewDate===d.date;
     const dot=ordDatesWithOrders.has(d.date);
     return '<button class="dn-btn'+(sel?' sel':'')+'" style="flex-shrink:0;min-width:64px;padding:8px 10px;position:relative" onclick="setOrdersDate(\''+d.date+'\')">'+
-      (lbl?'<div style="font-size:.6rem;opacity:.8">'+lbl+'</div>':'')+
+      '<div style="font-size:.6rem;opacity:.85;font-weight:700">'+lbl+'</div>'+
       '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
       (dot?'<div style="position:absolute;top:3px;right:4px;width:10px;height:10px;border-radius:50%;background:var(--g);border:2px solid white;box-shadow:0 0 0 1px var(--g)"></div>':'')+
       '</button>';
@@ -853,9 +866,7 @@ function updateOrdDateUI(){
   const isTomorrow=ordViewDate===tomorrow;
   const lbl=document.getElementById('ordDateLbl');
   const note=document.getElementById('ordLiveNote');
-  const back=document.getElementById('ordBackToday');
   if(lbl)lbl.textContent=(isToday||isTomorrow)?'🔴 LIVE — '+formatDisplayDate(ordViewDate):'📖 Viewing '+formatDisplayDate(ordViewDate);
-  if(back)back.style.display=isToday?'none':'inline-block';
   if(note){
     if(isToday||isTomorrow){note.style.display='none';}
     else{
@@ -868,6 +879,7 @@ function updateOrdDateUI(){
 window.setOrdersDate=async function(ds){
   if(!ds)return;
   ordViewDate=ds;
+  try{ localStorage.setItem('kb_ord_date', ds); }catch(e){}
   const today=getTodayDate();
   updateOrdDateUI();
   renderOrdDayChips();
@@ -1355,6 +1367,17 @@ function renderItemBookingBars(){
   const card=document.getElementById('itemBookCard');
   const wrap=document.getElementById('itemBookBars');
   if(!card||!wrap)return;
+  // Title shows exactly which day this booking data is for (Today/Tomorrow + date)
+  const titleEl=document.getElementById('itemBookTitle');
+  if(titleEl){
+    const ds=ordViewDate||getTodayDate();
+    const today=getTodayDate();
+    const d2=new Date(today+'T00:00:00'); d2.setDate(d2.getDate()+1);
+    const tomorrow=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+    const rel=ds===today?'Today':ds===tomorrow?'Tomorrow':new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long'});
+    const dm=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+    titleEl.innerHTML='🍽️ Items Booked <span style=\'font-size:.8rem;font-weight:700;color:var(--o)\'>— '+rel+', '+dm+'</span>';
+  }
   const live=allOrders.filter(o=>o.status!=='cancelled');
   // tally booked qty per item name
   const booked={};
