@@ -2874,20 +2874,13 @@ window.generateCollage = async function(itemsOverride, showPopup){
     ctx.closePath();
   }
 
-  // Layout — choose column count so the last row is full (no ugly blank cell)
+  // Layout — MAX 2 per row, big cells (old look). An odd last item spans full width
+  // (centered) so there's never an ugly blank cell.
   const n = active.length;
-  let COLS;
-  if(n<=1) COLS=1;
-  else if(n===2) COLS=2;
-  else if(n===3) COLS=3;      // single full row of 3
-  else if(n===4) COLS=2;      // 2×2
-  else if(n===6) COLS=3;      // 2×3
-  else if(n===5) COLS=5;      // single full row of 5 (kept compact by smaller cells below)
-  else COLS = (n%3===0)?3:(n%2===0?2:3);
+  const COLS = (n<=1) ? 1 : 2;
   const ROWS = Math.ceil(n/COLS);
-  // Scale cell width down a bit when there are many columns so the image stays reasonable
-  const CELL_W = COLS>=4 ? 300 : 380;
-  const CELL_H = COLS>=4 ? 250 : 300;
+  const CELL_W = 380;   // big images
+  const CELL_H = 300;
   const PAD = 10;
   const HEADER_H = 90;
   const FOOTER_H = 44;
@@ -2957,6 +2950,10 @@ window.generateCollage = async function(itemsOverride, showPopup){
     var row = Math.floor(idx / COLS);
     var x = PAD + col*(CELL_W+PAD);
     var y = HEADER_H + PAD + row*(CELL_H+PAD);
+    // If this is a lone last item on its row (odd count with 2 cols), center it so the
+    // row looks full instead of leaving a blank cell beside it.
+    var isLoneLast = (COLS===2) && (idx===n-1) && (n%2===1);
+    if(isLoneLast){ x = Math.round((canvas.width - CELL_W)/2); }
     var IMG_H = Math.round(CELL_H*0.7);
     var INFO_H = CELL_H - IMG_H;
 
