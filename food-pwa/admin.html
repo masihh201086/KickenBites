@@ -2882,13 +2882,21 @@ window.generateCollage = async function(itemsOverride, showPopup){
     if(_start>0){
       var soldOut = _rem<=0;
       var badgeColor = soldOut ? '#ef4444' : (_rem<=5 ? '#f59e0b' : '#22c55e');
+      // Badge enlarged ~2.5x with BLACK text for readability (same colours).
+      var _bTxt = soldOut ? 'SOLD OUT' : (_rem+' left');
+      var _bFont = 30;                       // was 13 → ~2.3x
+      ctx.font = 'bold '+_bFont+'px sans-serif';
+      var _bPadX = 20, _bH = 52;             // was 26 → 2x tall
+      var _bW = Math.max(120, ctx.measureText(_bTxt).width + _bPadX*2);
+      var _bX = x + CELL_W - _bW - 10, _bY = y + 10;
       ctx.fillStyle = badgeColor;
-      rRect(x+CELL_W-96, y+8, 88, 26, 13);
+      rRect(_bX, _bY, _bW, _bH, 16);
       ctx.fill();
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 13px sans-serif';
+      ctx.fillStyle = '#000';               // black text inside
       ctx.textAlign = 'center';
-      ctx.fillText(soldOut ? 'SOLD OUT' : (_rem+' left'), x+CELL_W-52, y+25);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(_bTxt, _bX + _bW/2, _bY + _bH/2 + 1);
+      ctx.textBaseline = 'alphabetic';      // reset for other text
       // Fill bar along the bottom of the image showing how full the batch is
       var barY = y+IMG_H-14, barX = x+10, barW = CELL_W-20, barH = 8;
       var bookedPct = _start>0 ? Math.min(100, Math.round((_booked/_start)*100)) : 0;
