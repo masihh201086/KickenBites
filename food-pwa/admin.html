@@ -436,7 +436,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
       <!-- TOTAL view -->
       <div id="awTotalView" style="display:none">
-        <div style="font-size:.73rem;color:var(--muted);margin-bottom:9px">🏆 Highest demand across all dates — plan your top items.</div>
+        <div style="font-size:.73rem;color:var(--muted);margin-bottom:9px">🏆 Highest demand over the next 7 days — plan your top items.</div>
         <div id="adminWishTotal"><div style="text-align:center;padding:20px;color:#999">⏳ Loading…</div></div>
         <button onclick="loadAdminWishTotal()" style="width:100%;margin-top:9px;padding:9px;background:var(--dark);color:white;border:none;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer">🔄 Refresh</button>
       </div>
@@ -2412,16 +2412,19 @@ window.viewCustomerProfile=async function(phone){
 };
 
 // ---- ADMIN WISHLIST ----
-let adminWishDate='';
+let adminWishDate='', adminWishDatesSet=new Set();
 function renderAWChips(){
   const wrap=document.getElementById('awDayChips');
   if(!wrap)return;
   wrap.innerHTML=next7Days().map(d=>{
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
     const sel=adminWishDate===d.date;
-    return '<button class="dbtn'+(sel?' active':'')+'" style="flex-shrink:0;min-width:60px" onclick="setAdminWishDate(\''+d.date+'\')">'+
+    const dot=adminWishDatesSet.has(d.date);
+    return '<button class="dbtn'+(sel?' active':'')+'" style="flex-shrink:0;min-width:60px;position:relative" onclick="setAdminWishDate(\''+d.date+'\')">'+
       (lbl?'<div style="font-size:.58rem;opacity:.8">'+lbl+'</div>':'')+
-      '<div>'+d.wd+' '+d.dayNum+'</div></button>';
+      '<div>'+d.wd+' '+d.dayNum+'</div>'+
+      (dot?'<div style="position:absolute;top:3px;right:4px;width:9px;height:9px;border-radius:50%;background:#22c55e;border:2px solid white;box-shadow:0 0 0 1px #22c55e"></div>':'')+
+      '</button>';
   }).join('');
 }
 window.setAdminWishDate=function(ds){
@@ -2434,8 +2437,21 @@ function updateAWDateShow(){
   const el=document.getElementById('awDateShow');
   if(el&&adminWishDate)el.textContent='📅 '+new Date(adminWishDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
 }
+// Which of the next-7-day dates have ANY customer wishes → green dot on admin chips
+async function loadAdminWishDots(){
+  try{
+    const {getDocs:gd}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap=await gd(collection(db,'wishlist'));
+    const win=new Set(next7Days().map(d=>d.date));
+    const set=new Set();
+    snap.docs.forEach(d=>{const dt=d.data();if(dt.date&&win.has(dt.date)&&((dt.items||[]).length||(dt.qtys&&Object.keys(dt.qtys).length)))set.add(dt.date);});
+    adminWishDatesSet=set;
+    renderAWChips();
+  }catch(e){}
+}
 window.loadAdminWish=async function(){
   if(!adminWishDate){adminWishDate=getTodayDate();updateAWDateShow();}
+  loadAdminWishDots();
   renderAWChips();
   const list=document.getElementById('adminWishList');
   list.innerHTML='<div style="text-align:center;padding:20px;color:#999">⏳ Loading votes…</div>';
@@ -2510,15 +2526,17 @@ window.loadAdminWishTotal=async function(){
   box.innerHTML='<div style="text-align:center;padding:20px;color:#999">⏳ Loading…</div>';
   try{
     const {getDocs:gd}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const snap=await gd(collection(db,'wishlist'));   // ALL wishlist docs, every date
+    const snap=await gd(collection(db,'wishlist'));   // read all, then filter to the 7-day window
+    const validWindow=new Set(next7Days().map(d=>d.date));   // only Today→+6 days count
     const counts={};            // item id -> total votes
     const uniqueVoters={};       // item id -> Set of phones (so we can show reach)
     const dates=new Set();
     let totalVoteDocs=0;
     snap.docs.forEach(d=>{
       const data=d.data();
+      if(!data.date||!validWindow.has(data.date))return;   // skip past/other dates
       totalVoteDocs++;
-      if(data.date)dates.add(data.date);
+      dates.add(data.date);
       const who=data.phone||data.name||d.id;
       const q=data.qtys&&typeof data.qtys==='object'?data.qtys:null;
       (data.items||[]).forEach(id=>{

@@ -133,8 +133,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
 .qr-dl-btn{width:100%;padding:13px;background:var(--dark);color:white;border:none;border-radius:12px;font-size:.92rem;font-weight:800;cursor:pointer;margin-bottom:11px;}
 .upi-apps-lbl{font-size:.78rem;font-weight:700;color:var(--muted);margin:2px 0 7px;text-align:center;}
 .upi-apps-row{display:flex;gap:7px;margin-bottom:12px;}
-.upi-app-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border:2px solid #e5e5e5;border-radius:12px;background:white;font-size:.7rem;font-weight:800;color:#333;cursor:pointer;}
-.upi-app-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;font-weight:900;}
+.upi-app-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 4px;border:2px solid #e5e5e5;border-radius:12px;background:white;font-size:.82rem;font-weight:800;color:#222;cursor:pointer;}
+.upi-app-ico{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1.35rem;font-weight:900;box-shadow:0 2px 5px rgba(0,0,0,.18);}
 .upi-app-btn.gpay .upi-app-ico{background:#4285f4;}
 .upi-app-btn.phonepe .upi-app-ico{background:#5f259f;}
 .upi-app-btn.paytm .upi-app-ico{background:#00baf2;}
@@ -537,13 +537,20 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
       <div class="upi-txt-big" id="upiId">—</div>
       <button class="copy-btn-big" id="copyBtn" onclick="copyUpi()">📋 Copy UPI ID</button>
     </div>
+    <div class="upi-apps-lbl">⚡ Open your UPI app:</div>
+    <div class="upi-apps-row">
+      <button class="upi-app-btn gpay" onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
+      <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
+      <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
+      <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
+    </div>
     <div class="proc-box">
       <b>How to pay with UPI ID:</b><br>
       1️⃣ Tap <b>Copy UPI ID</b> above<br>
-      2️⃣ Open GPay / PhonePe / Paytm<br>
+      2️⃣ Tap your app icon above to open it<br>
       3️⃣ Choose <b>Pay by UPI ID</b> / <b>Send to UPI ID</b><br>
       4️⃣ <b>Paste</b> the UPI ID<br>
-      5️⃣ Enter amount ₹<span id="hintAmt"></span> and pay
+      5️⃣ Enter amount ₹<span id="hintAmt2"></span> and pay
     </div>
 
     <div class="warn-note">⚠️ After paying, tap <b>"I Have Paid"</b> below to confirm your order.</div>
@@ -1520,6 +1527,7 @@ function showPayScreen(total){
   if(cfb) cfb.innerHTML=isDues?'<span style="font-size:1.1rem">✅</span> I Have Paid — Clear Dues':'<span style="font-size:1.1rem">✅</span> I Have Paid — Confirm Order';
   document.getElementById('upiId').textContent=uid;
   document.getElementById('hintAmt').textContent=total;
+  {const h2=document.getElementById('hintAmt2');if(h2)h2.textContent=total;}
   document.getElementById('qrAmt').textContent='₹'+total;
   const pa1=document.getElementById('procAmt1'); if(pa1)pa1.textContent=total;
   const cb=document.getElementById('copyBtn'); cb.textContent='📋 Copy UPI ID'; cb.classList.remove('copied');
@@ -1880,7 +1888,7 @@ window.switchTab=function(t){
 };
 
 // ---- WISHLIST ----
-let wishDate='', wishItems=[], wishVotes={}, wishMaster=[], wishCounts={};
+let wishDate='', wishItems=[], wishVotes={}, wishMaster=[], wishCounts={}, myWishDates=new Set();
 
 async function initWishTab(){
   if(!wishDate){wishDate=getTodayDate();updateWishDateShow();}
@@ -1892,8 +1900,23 @@ async function initWishTab(){
       wishMaster=(cfg.masterItems||[]).filter(i=>i.name&&i.price>0);
     }catch(e){console.error(e);}
   }
+  await loadMyWishDates();
   await loadWishVotes();
+  renderWishDayChips();
   renderWishList();
+}
+
+// Which of the next-7-day dates this customer already has a wishlist for → green dot
+async function loadMyWishDates(){
+  myWishDates=new Set();
+  const phone=currentProfile?.phone||localStorage.getItem('custPhone');
+  if(!phone)return;
+  try{
+    for(const d of next7Days()){
+      const s=await getDoc(doc(db,'wishlist',d.date+'_'+phone));
+      if(s.exists()){ const md=s.data(); const has=(md.items||[]).length>0 || (md.qtys&&Object.keys(md.qtys).length>0); if(has)myWishDates.add(d.date); }
+    }
+  }catch(e){}
 }
 
 function renderWishDayChips(){
@@ -1902,9 +1925,12 @@ function renderWishDayChips(){
   wrap.innerHTML=next7Days().map(d=>{
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
     const sel=wishDate===d.date;
-    return '<button class="wchip'+(sel?' active':'')+'" style="flex-shrink:0;min-width:60px" onclick="setWishDate(\''+d.date+'\')">'+
+    const dot=myWishDates.has(d.date);
+    return '<button class="wchip'+(sel?' active':'')+'" style="flex-shrink:0;min-width:60px;position:relative" onclick="setWishDate(\''+d.date+'\')">'+
       (lbl?'<div style="font-size:.58rem;opacity:.85">'+lbl+'</div>':'')+
-      '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div></button>';
+      '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
+      (dot?'<div style="position:absolute;top:3px;right:4px;width:9px;height:9px;border-radius:50%;background:#22c55e;border:2px solid white;box-shadow:0 0 0 1px #22c55e"></div>':'')+
+      '</button>';
   }).join('');
 }
 window.setWishDate=function(ds){
@@ -1999,6 +2025,8 @@ function saveWishlistInstant(){
         date:wishDate, phone:phone, name:currentProfile?.name||'',
         items:items, qtys:qtys, updatedAt:new Date().toISOString()
       });
+      if(Object.keys(qtys).length>0)myWishDates.add(wishDate);else myWishDates.delete(wishDate);
+      renderWishDayChips();
       if(hint)hint.textContent='✅ Saved';
       setTimeout(()=>{const h=document.getElementById('wishSaveHint');if(h&&h.textContent==='✅ Saved')h.textContent='';},1500);
     }catch(e){ if(hint)hint.textContent='⚠️ Save failed — check internet'; }
