@@ -1505,8 +1505,8 @@ window.payDuesNow=async function(){
 function showPayScreen(total){
   const uid=menuConfig.upiId||'';const uname=menuConfig.upiName||'Kicken Bites';
   const isDues=(window._payMode==='dues');
-  document.getElementById('payAmt').textContent='₹'+total;
-  document.getElementById('payTo').textContent='Pay to '+uname;
+  {const el=document.getElementById('payAmt');if(el)el.textContent='₹'+total;}
+  {const el=document.getElementById('payTo');if(el)el.textContent='Pay to '+uname;}
   // Header line: dues vs order
   const pd=document.getElementById('payDate');
   if(pd){
@@ -1525,10 +1525,10 @@ function showPayScreen(total){
   // Confirm button label depends on mode
   const cfb=document.querySelector('#payScreen .confirm-btn');
   if(cfb) cfb.innerHTML=isDues?'<span style="font-size:1.1rem">✅</span> I Have Paid — Clear Dues':'<span style="font-size:1.1rem">✅</span> I Have Paid — Confirm Order';
-  document.getElementById('upiId').textContent=uid;
-  document.getElementById('hintAmt').textContent=total;
+  {const el=document.getElementById('upiId');if(el)el.textContent=uid;}
+  {const h1=document.getElementById('hintAmt');if(h1)h1.textContent=total;}
   {const h2=document.getElementById('hintAmt2');if(h2)h2.textContent=total;}
-  document.getElementById('qrAmt').textContent='₹'+total;
+  {const el=document.getElementById('qrAmt');if(el)el.textContent='₹'+total;}
   const pa1=document.getElementById('procAmt1'); if(pa1)pa1.textContent=total;
   const cb=document.getElementById('copyBtn'); cb.textContent='📋 Copy UPI ID'; cb.classList.remove('copied');
   const ud=`upi://pay?pa=${encodeURIComponent(uid)}&pn=${encodeURIComponent(uname)}&am=${total}&cu=INR&tn=${encodeURIComponent(isDues?'Kicken Bites Dues':'Kicken Bites')}`;
