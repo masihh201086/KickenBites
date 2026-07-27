@@ -243,6 +243,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
 .wish-bar{height:7px;background:#f3f3f3;border-radius:5px;overflow:hidden;margin-top:5px;}
 .wish-fill{height:100%;background:linear-gradient(90deg,#f59e0b,#e65c00);border-radius:5px;transition:width .3s;}
 .wish-check{font-size:1.2rem;}
+.wish-qty{display:flex;align-items:center;gap:0;flex-shrink:0;}
+.wish-qbtn{width:32px;height:32px;border:none;border-radius:8px;background:#f59e0b;color:white;font-size:1.1rem;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.wish-qbtn:active{transform:scale(.9);}
+.wish-qnum{min-width:34px;text-align:center;font-weight:900;font-size:1rem;color:#333;}
+.wish-add{padding:7px 14px;border:2px solid #f59e0b;border-radius:9px;background:white;color:#d97706;font-weight:800;font-size:.8rem;cursor:pointer;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -277,8 +282,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
         <button style="width:100%;padding:9px;border:2px solid #eee;border-radius:10px;background:white;font-size:.78rem;cursor:pointer;color:var(--muted);margin-top:6px" onclick="backStep1()">← Change number</button>
       </div>
       <div id="otpSec" style="display:none">
-        <div class="otp-box">Your OTP: <strong id="otpDisp" style="font-size:1.2rem;letter-spacing:.12em"></strong></div>
-        <input class="li" type="number" id="lOtp" placeholder="Enter OTP" maxlength="4" inputmode="numeric">
+        <div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:11px;padding:12px;margin-bottom:11px;font-size:.8rem;color:#1e40af;line-height:1.6">
+          🔑 Tap the button below to send a PIN-reset request to the shop on WhatsApp. The shop will reply with your OTP — enter it here to set a new PIN.
+        </div>
+        <button class="lbtn" style="background:#25d366;margin-bottom:11px" onclick="sendOtpRequestWA()">💬 Send OTP Request to Shop</button>
+        <input class="li" type="number" id="lOtp" placeholder="Enter OTP from shop" maxlength="4" inputmode="numeric">
         <input class="li" type="password" id="lReset" placeholder="New 4-digit PIN" maxlength="4" inputmode="numeric">
         <button class="lbtn" onclick="verifyOtp()">Reset & Login →</button>
         <button style="width:100%;padding:9px;border:2px solid #eee;border-radius:10px;background:white;font-size:.78rem;cursor:pointer;color:var(--muted);margin-top:6px" onclick="backStep1()">← Back</button>
@@ -406,10 +414,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--obg);color:var
         <div id="wishDateShow" style="font-size:.78rem;color:#d97706;font-weight:700;margin-top:7px"></div>
       </div>
       <div style="background:white;border-radius:13px;padding:13px">
-        <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#d97706;margin-bottom:4px">🍗 Tap items to vote</div>
-        <div style="font-size:.7rem;color:#888;margin-bottom:9px">Your votes help shop plan the menu</div>
+        <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#d97706;margin-bottom:4px">🍗 How many do you want?</div>
+        <div style="font-size:.7rem;color:#888;margin-bottom:9px">Set a quantity — saved instantly. Helps the shop plan the menu.</div>
         <div id="wishList" style="min-height:100px"><div style="text-align:center;padding:30px;color:#999">⏳ Loading menu…</div></div>
-        <button id="wishSaveBtn" onclick="saveWishlist()" style="width:100%;padding:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:11px;font-weight:800;font-size:.88rem;cursor:pointer;margin-top:10px">⭐ Submit My Votes</button>
+        <div id="wishSaveHint" style="text-align:center;font-size:.72rem;color:#16a34a;font-weight:700;margin-top:8px;min-height:16px"></div>
       </div>
     </div>
   </div>
@@ -723,10 +731,19 @@ window.createPin = async function() {
 };
 
 window.forgotPin = function() {
-  genOtp = Math.floor(1000+Math.random()*9000).toString();
-  document.getElementById('otpDisp').textContent = genOtp;
+  genOtp = Math.floor(1000+Math.random()*9000).toString();  // kept in memory, NOT shown on screen
   document.getElementById('pinSec').style.display='none';
   document.getElementById('otpSec').style.display='block';
+};
+// Send the reset OTP to the shop's WhatsApp so the shop can relay it to the customer
+window.sendOtpRequestWA = function(){
+  const ADMIN='9712951947';
+  const nl='\n';
+  const msg='🔑 *Kicken Bites — PIN Reset*'+nl+nl+
+    'Customer *'+(loginPhoneVal||'')+'* requested a PIN reset.'+nl+
+    'Their OTP is: *'+genOtp+'*'+nl+nl+
+    'Please share this OTP with the customer so they can set a new PIN.';
+  window.open('https://wa.me/91'+ADMIN+'?text='+encodeURIComponent(msg),'_blank');
 };
 
 window.verifyOtp = function() {
@@ -1909,7 +1926,11 @@ async function loadWishVotes(){
     // My votes for this date
     if(phone){
       const mySnap=await getDoc(doc(db,'wishlist',wishDate+'_'+phone));
-      if(mySnap.exists())(mySnap.data().items||[]).forEach(id=>{wishVotes[id]=true;});
+      if(mySnap.exists()){
+        const md=mySnap.data();
+        if(md.qtys&&typeof md.qtys==='object'){ Object.keys(md.qtys).forEach(id=>{const q=Number(md.qtys[id])||0;if(q>0)wishVotes[id]=q;}); }
+        else (md.items||[]).forEach(id=>{wishVotes[id]=1;});   // back-compat: old boolean votes
+      }
     }
     // All votes count for this date
     const {getDocs}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
@@ -1928,51 +1949,63 @@ function renderWishList(){
   const maxVotes=Math.max(1,...Object.values(wishCounts));
   const totalVoters=new Set();
   list.innerHTML=sorted.map(item=>{
-    const voted=wishVotes[item.id]?'voted':'';
+    const myQty=Number(wishVotes[item.id])||0;
+    const voted=myQty>0?'voted':'';
     const cnt=wishCounts[item.id]||0;
     const pct=cnt>0?Math.round(cnt/maxVotes*100):0;
     const img=item.imageUrl?`<img class="wish-img" src="${item.imageUrl}">`:`<div class="wish-img">${item.emoji||'🍛'}</div>`;
-    return `<div class="wish-item ${voted}" onclick="toggleWish('${item.id}')">
+    // Quantity picker: an "Add" button when 0, else − N + stepper. Instant save.
+    const picker = myQty>0
+      ? `<div class="wish-qty">
+           <button class="wish-qbtn" onclick="event.stopPropagation();setWishQty('${item.id}',${myQty-1})">−</button>
+           <div class="wish-qnum">${myQty}</div>
+           <button class="wish-qbtn" onclick="event.stopPropagation();setWishQty('${item.id}',${myQty+1})">+</button>
+         </div>`
+      : `<button class="wish-add" onclick="event.stopPropagation();setWishQty('${item.id}',1)">+ Add</button>`;
+    return `<div class="wish-item ${voted}">
       ${img}
       <div style="flex:1;min-width:0">
         <div class="wish-name">${item.name}</div>
         ${cnt>0?`<div class="wish-bar"><div class="wish-fill" style="width:${pct}%"></div></div>`:''}
         ${cnt>0?`<div class="wish-votes">🔥 ${cnt} vote${cnt>1?'s':''}</div>`:''}
       </div>
-      <div class="wish-check">${wishVotes[item.id]?'⭐':'☆'}</div>
+      ${picker}
     </div>`;
   }).join('');
 }
 
-window.toggleWish=function(id){
-  if(wishVotes[id])delete wishVotes[id];
-  else wishVotes[id]=true;
+// #8/#9: set a quantity for an item and save INSTANTLY (no Submit button)
+let _wishSaveTimer=null;
+window.setWishQty=function(id,qty){
+  qty=Math.max(0,Math.min(99,Number(qty)||0));
+  if(qty<=0)delete wishVotes[id];
+  else wishVotes[id]=qty;
   renderWishList();
+  saveWishlistInstant();
 };
+function saveWishlistInstant(){
+  // debounce rapid +/− taps into one write
+  if(_wishSaveTimer)clearTimeout(_wishSaveTimer);
+  const hint=document.getElementById('wishSaveHint');
+  if(hint)hint.textContent='💾 Saving…';
+  _wishSaveTimer=setTimeout(async()=>{
+    const phone=currentProfile?.phone||localStorage.getItem('custPhone');
+    if(!phone){ if(hint)hint.textContent='⚠️ Login to save your list'; return; }
+    try{
+      // items = ids with qty>0; qtys = {id:qty} so admin can total demand by plates
+      const items=Object.keys(wishVotes).filter(k=>wishVotes[k]>0);
+      const qtys={}; items.forEach(k=>qtys[k]=wishVotes[k]);
+      await setDoc(doc(db,'wishlist',wishDate+'_'+phone),{
+        date:wishDate, phone:phone, name:currentProfile?.name||'',
+        items:items, qtys:qtys, updatedAt:new Date().toISOString()
+      });
+      if(hint)hint.textContent='✅ Saved';
+      setTimeout(()=>{const h=document.getElementById('wishSaveHint');if(h&&h.textContent==='✅ Saved')h.textContent='';},1500);
+    }catch(e){ if(hint)hint.textContent='⚠️ Save failed — check internet'; }
+  },500);
+}
 
-window.saveWishlist=async function(){
-  const phone=currentProfile?.phone||localStorage.getItem('custPhone');
-  if(!phone){alert('Please login first');return;}
-  const items=Object.keys(wishVotes);
-  const btn=document.getElementById('wishSaveBtn');
-  btn.disabled=true;btn.textContent='Saving…';
-  try{
-    await setDoc(doc(db,'wishlist',wishDate+'_'+phone),{
-      date:wishDate,
-      phone:phone,
-      name:currentProfile?.name||'',
-      items:items,
-      updatedAt:new Date().toISOString()
-    });
-    await loadWishVotes();
-    renderWishList();
-    btn.textContent='✅ Votes Saved!';
-    setTimeout(()=>{btn.textContent='⭐ Submit My Votes';btn.disabled=false;},1500);
-  }catch(e){
-    alert('Error saving votes');
-    btn.textContent='⭐ Submit My Votes';btn.disabled=false;
-  }
-};
+
 
 async function loadLoyalty(){
   const phone=currentProfile?.phone||localStorage.getItem('custPhone');

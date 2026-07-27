@@ -128,8 +128,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;min-height:1
         <button class="outline-btn" onclick="backStep1()">← Change number</button>
       </div>
       <div id="otpSec" style="display:none">
-        <div class="otp-box">Your OTP: <strong id="otpDisp" style="font-size:1.3rem;letter-spacing:.12em"></strong></div>
-        <input class="li" type="number" id="lotp" placeholder="Enter OTP" maxlength="4" inputmode="numeric">
+        <div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:11px;padding:12px;margin-bottom:11px;font-size:.8rem;color:#1e40af;line-height:1.6">
+          🔑 Tap below to send a PIN-reset request to the shop on WhatsApp. The shop will reply with your OTP — enter it here to set a new PIN.
+        </div>
+        <button class="lbtn" style="background:#25d366;margin-bottom:11px" onclick="sendOtpRequestWA()">💬 Send OTP Request to Shop</button>
+        <input class="li" type="number" id="lotp" placeholder="Enter OTP from shop" maxlength="4" inputmode="numeric">
         <input class="li" type="password" id="lrpin" placeholder="New 4-digit PIN" maxlength="4" inputmode="numeric">
         <button class="lbtn" onclick="resetPin()">Reset & Login →</button>
         <button class="outline-btn" onclick="backStep1()">← Back</button>
@@ -390,11 +393,19 @@ window.createPin = async function() {
 };
 
 window.forgotPin = function() {
-  genOtp = Math.floor(1000+Math.random()*9000).toString();
-  document.getElementById('otpDisp').textContent = genOtp;
+  genOtp = Math.floor(1000+Math.random()*9000).toString();  // kept in memory, NOT shown
   document.getElementById('pinSec').style.display='none';
   document.getElementById('otpSec').style.display='block';
-  showSucc('OTP generated! In production this would be sent via SMS.');
+};
+// Send the reset OTP to the shop's WhatsApp so the shop can relay it to the delivery boy
+window.sendOtpRequestWA = function(){
+  const ADMIN='9712951947';
+  const nl='\n';
+  const msg='🔑 *Kicken Bites — Delivery PIN Reset*'+nl+nl+
+    'Delivery boy *'+(loginPhone||'')+'* requested a PIN reset.'+nl+
+    'Their OTP is: *'+genOtp+'*'+nl+nl+
+    'Please share this OTP with them so they can set a new PIN.';
+  window.open('https://wa.me/91'+ADMIN+'?text='+encodeURIComponent(msg),'_blank');
 };
 
 window.resetPin = async function() {
