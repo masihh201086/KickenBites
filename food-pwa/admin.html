@@ -588,7 +588,7 @@ input:checked+.slider:before{transform:translateX(20px);}
 <div id="toast"></div>
 
 <script type="module">
-import { db, getTodayDate, formatDisplayDate, getConfig, saveConfig, saveDailyMenu, getDailyMenu, listenToOrders, updateOrderStatus, listenToDelivery, setDeliveryStatus, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, where, query } from './src/utils/firebase.js';
+import { db, getTodayDate, formatDisplayDate, getConfig, saveConfig, saveDailyMenu, getDailyMenu, listenToOrders, updateOrderStatus, listenToDelivery, setDeliveryStatus, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, where, query, runTransaction } from './src/utils/firebase.js';
 
 const PK='adminPwd_v4';
 let cfg={}, masterItems=[], allOrders=[], todayOrders=[], ordViewDate='', ordDatesWithOrders=new Set(), curFilter='all', selMenuDate='', selMenuHasOverride=false, adminMap=null, adminMarker=null;
@@ -1055,10 +1055,10 @@ function showInAppNotif(cfg, orderData){
     var detail=document.createElement('div');
     detail.setAttribute('style','background:#f9f9f9;border-radius:12px;padding:12px;margin-bottom:10px;font-size:.83rem;line-height:1.7');
     detail.innerHTML=
-      '<b>'+(orderData.name||'')+'</b> | '+(orderData.phone||'')+'<br>'+
-      itemsList+'<br>'+
-      (orderData.address?orderData.address+'<br>':'')+
-      (orderData.notes?'Note: '+orderData.notes+'<br>':'')+
+      '<b>'+esc(orderData.name||'')+'</b> | '+esc(orderData.phone||'')+'<br>'+
+      esc(itemsList)+'<br>'+
+      (orderData.address?esc(orderData.address)+'<br>':'')+
+      (orderData.notes?'Note: '+esc(orderData.notes)+'<br>':'')+
       (orderData.payLater?'<span style="color:#f59e0b;font-weight:700">PAY LATER</span><br>':'')+
       '<span style="font-size:1.1rem;font-weight:900;color:'+color+'">Rs '+(orderData.total||0)+'</span>';
     body.appendChild(detail);
@@ -1374,11 +1374,11 @@ function addCustomerPinsToMap(){
     // Slightly offset markers so they don't overlap
     const lat=pos.lat+(i*0.0005);const lng=pos.lng+(i*0.0004);
     const icon=L.divIcon({
-      html:`<div style="background:#3b82f6;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.3)" title="${o.name}">${i+1}</div>`,
+      html:`<div style="background:#3b82f6;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.3)" title="${esc(o.name)}">${i+1}</div>`,
       iconSize:[32,32],iconAnchor:[16,16],className:''
     });
     const m=L.marker([lat,lng],{icon}).addTo(adminMap);
-    m.bindPopup(`<b>${o.name}</b><br>📞 ${o.phone}<br>📍 ${o.address}<br>💰 ₹${o.total}<br>${(o.items||[]).map(i=>i.name+' ×'+i.qty).join(', ')}`);
+    m.bindPopup(`<b>${esc(o.name)}</b><br>📞 ${esc(o.phone)}<br>📍 ${esc(o.address)}<br>💰 ₹${o.total}<br>${(o.items||[]).map(i=>esc(i.name)+' ×'+i.qty).join(', ')}`);
     custMapMarkers.push(m);
   });
 }
@@ -1386,16 +1386,23 @@ function addCustomerPinsToMap(){
 // ---- ORDERS ----
 window.filterO=function(f,btn){curFilter=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderOrders();};
 
-// Live "items booked" bars for the currently-viewed date, computed from orders.
+// Live "items booked" bars for the currently-viewed date.
+// BUGFIX: this used to recompute "remaining" from scratch (master capacity minus
+// orders summed BY NAME), completely independent of the real dailyMenu.availableQty
+// customers actually see. That let the two disagree — e.g. any item whose day-qty
+// resolved to 0 forced remaining to always show 0/SOLD OUT the instant one order
+// came in, even when real stock was fine. Now it reads the SAME dailyMenu doc
+// (matched by item id, not name) that customer.html decrements, so the bar always
+// reflects true remaining stock.
 // Green (lots left) → yellow → red (few left); "🔥 Fast filling!" at 50%+ booked.
-function renderItemBookingBars(){
+async function renderItemBookingBars(){
   const card=document.getElementById('itemBookCard');
   const wrap=document.getElementById('itemBookBars');
   if(!card||!wrap)return;
+  const ds=ordViewDate||getTodayDate();
   // Title shows exactly which day this booking data is for (Today/Tomorrow + date)
   const titleEl=document.getElementById('itemBookTitle');
   if(titleEl){
-    const ds=ordViewDate||getTodayDate();
     const today=getTodayDate();
     const d2=new Date(today+'T00:00:00'); d2.setDate(d2.getDate()+1);
     const tomorrow=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
@@ -1404,19 +1411,30 @@ function renderItemBookingBars(){
     titleEl.innerHTML='🍽️ Items Booked <span style=\'font-size:.8rem;font-weight:700;color:var(--o)\'>— '+rel+', '+dm+'</span>';
   }
   const live=allOrders.filter(o=>o.status!=='cancelled');
-  // tally booked qty per item name
-  const booked={};
-  live.forEach(o=>(o.items||[]).forEach(i=>{booked[i.name]=(booked[i.name]||0)+(Number(i.qty)||0);}));
-  // capacity per item = that weekday's per-day qty (falls back to legacy defaultQty)
-  const wd=weekdayKey(ordViewDate||getTodayDate());
+  // tally booked qty per item id (id, not name — renames won't silently break the count)
+  const bookedById={};
+  live.forEach(o=>(o.items||[]).forEach(i=>{const key=i.id!=null?i.id:i.name;bookedById[key]=(bookedById[key]||0)+(Number(i.qty)||0);}));
+  // real remaining stock per item id, straight from the dailyMenu doc customers see
+  let realStockById={};
+  try{
+    const ms=await getDoc(doc(db,'dailyMenu',ds));
+    if(ms.exists()) (ms.data().items||[]).forEach(it=>{ if(it&&it.id!=null) realStockById[it.id]=Number(it.availableQty)||0; });
+  }catch(e){console.error('renderItemBookingBars stock fetch',e);}
+  // Guard against a stale async response landing after the admin already switched dates
+  if((ordViewDate||getTodayDate())!==ds)return;
+  const wd=weekdayKey(ds);
   const rows=[];
   (masterItems||[]).forEach(m=>{
     if(!(m.weekdays&&m.weekdays[wd]))return;
     const cap=qtyForDay(m,wd);
-    const b=booked[m.name]||0;
+    const b=bookedById[m.id]||0;
     if(cap<=0&&b<=0)return;
-    const total=cap>0?cap:b;
-    const remaining=Math.max(0,total-b);
+    // Prefer the real dailyMenu stock when we have it; fall back to cap-minus-booked
+    // only when no dailyMenu doc exists yet for this date (no orders placed at all).
+    const remaining=Object.prototype.hasOwnProperty.call(realStockById,m.id)
+      ? Math.max(0,realStockById[m.id])
+      : Math.max(0,cap-b);
+    const total=Math.max(cap,remaining+b);
     const pct=total>0?Math.round((b/total)*100):0;
     const remPct=100-pct;
     const color=remPct>50?'#22c55e':remPct>20?'#f59e0b':'#ef4444';
@@ -1451,16 +1469,16 @@ function renderOrders(){
     const ocDate=o.createdAt?new Date(o.createdAt):null;
     const t=ocDate?ocDate.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
     const d=ocDate?ocDate.toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
-    const items=(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
-    const boy=o.assignedBoy?`🛵 Assigned: ${o.assignedBoy}`:'';
+    const items=(o.items||[]).map(i=>`${esc(i.name)} ×${i.qty}`).join(', ');
+    const boy=o.assignedBoy?`🛵 Assigned: ${esc(o.assignedBoy)}`:'';
     return `<div class="oc ${o.status}" id="oc_${o.id}">
       <div class="oc-top">
-        <div><div class="oc-name">${o.name}<span class="tag ${o.orderType==='delivery'?'td':'tt'}">${o.orderType==='delivery'?'🛵':'🏠'}</span></div><div class="oc-ph">📞 ${o.phone}</div></div>
+        <div><div class="oc-name">${esc(o.name)}<span class="tag ${o.orderType==='delivery'?'td':'tt'}">${o.orderType==='delivery'?'🛵':'🏠'}</span></div><div class="oc-ph">📞 ${esc(o.phone)}</div></div>
         <div style="text-align:right"><span class="sp sp-${o.status}">${sl[o.status]||o.status}</span><div class="oc-time">${d} ${t}</div></div>
       </div>
       <div class="oc-items">${items}</div>
-      ${o.orderType==='delivery'?`<div class="oc-addr">📍 ${o.address}</div>`:''}
-      ${o.notes?`<div class="oc-notes">📝 ${o.notes}</div>`:''}
+      ${o.orderType==='delivery'?`<div class="oc-addr">📍 ${esc(o.address)}</div>`:''}
+      ${o.notes?`<div class="oc-notes">📝 ${esc(o.notes)}</div>`:''}
       ${boy?`<div class="oc-assign">${boy}</div>`:''}
       <div class="oc-tot">₹${o.total}${o.deliveryCharge?` (incl. ₹${o.deliveryCharge} del.)`:''}</div>
       <div class="sr">
@@ -1482,6 +1500,34 @@ function renderOrders(){
 
 window.chgStatus=async function(id,status){
   try{
+    if(status==='cancelled'){
+      // BUGFIX: cancelling an order used to just flip its status — the stock that
+      // had been decremented for it stayed decremented forever, so a cancelled
+      // order's items kept showing as "sold" / lower availability than reality
+      // until the admin manually reset the day's menu. Now cancelling puts that
+      // stock back into the dailyMenu doc atomically, guarded so it can't be
+      // double-restocked if Cancel is somehow triggered twice.
+      const oSnap=await getDoc(doc(db,'orders',id));
+      if(oSnap.exists()){
+        const od=oSnap.data();
+        if(od.status!=='cancelled' && od.date && Array.isArray(od.items)){
+          const dailyRef=doc(db,'dailyMenu',od.date);
+          try{
+            await runTransaction(db,async tx=>{
+              const ms=await tx.get(dailyRef);
+              if(!ms.exists())return; // no stock doc to restore into (nothing was ever decremented)
+              const md=ms.data();
+              const upd=(md.items||[]).map(item=>{
+                const o=od.items.find(i=>i.id===item.id);
+                if(o) return {...item, availableQty:(Number(item.availableQty)||0)+(Number(o.qty)||0)};
+                return item;
+              });
+              tx.update(dailyRef,{items:upd});
+            });
+          }catch(e){console.error('Restock on cancel failed:',e);}
+        }
+      }
+    }
     await updateOrderStatus(id,status);
     // B6: Auto-assign when confirming if single delivery boy
     if(status==='confirmed') autoAssignIfSingleBoy(id);
@@ -1527,6 +1573,11 @@ function next7Days(){
   return out;
 }
 function weekdayKey(ds){return ['sun','mon','tue','wed','thu','fri','sat'][new Date(ds+'T00:00:00').getDay()];}
+// SECURITY: escape customer-supplied text (name/phone/address/notes) before it goes
+// into innerHTML anywhere. These fields come straight from customer.html's free-text
+// inputs with no server-side sanitization — without this a customer could put HTML/JS
+// in their name or order notes and have it execute in the admin's browser.
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function buildDefaultMenu(ds){
   const wd=weekdayKey(ds);
   const items=(masterItems||[]).filter(i=>i.name&&i.price>0&&i.weekdays&&i.weekdays[wd])
@@ -1869,14 +1920,14 @@ window.showPrint=function(type){
     let html=`<div class="pp-box"><h3>🍳 Kitchen Order List — ${formatDisplayDate(today)} ${now}</h3><b>TOTAL NEEDED:</b>`;
     Object.entries(summary).forEach(([n,q])=>{html+=`<div class="pr" style="font-weight:700"><span>${n}</span><span>${q} plates</span></div>`;});
     html+='<br><b>ORDER WISE:</b>';
-    active.forEach((o,i)=>{const t=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';html+=`<div style="margin-top:7px;padding:6px;border:1px solid #ddd;border-radius:6px"><b>#${i+1} ${o.name}</b> | ${o.phone} | ${o.orderType.toUpperCase()} | ${t}<br>${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(' | ')}</div>`;});
+    active.forEach((o,i)=>{const t=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';html+=`<div style="margin-top:7px;padding:6px;border:1px solid #ddd;border-radius:6px"><b>#${i+1} ${esc(o.name)}</b> | ${esc(o.phone)} | ${o.orderType.toUpperCase()} | ${t}<br>${(o.items||[]).map(i=>`${esc(i.name)} ×${i.qty}`).join(' | ')}</div>`;});
     html+=`<button onclick="doPrint()" style="margin-top:11px;width:100%;padding:10px;background:var(--dark);color:white;border:none;border-radius:9px;font-weight:700;cursor:pointer">🖨️ Print</button></div>`;
     area.innerHTML=html;
   }else if(type==='delivery'){
     const dels=allOrders.filter(o=>o.orderType==='delivery'&&['confirmed','preparing','ready','out_for_delivery'].includes(o.status));
     if(!dels.length){area.innerHTML='<div class="empty">No delivery orders</div>';return;}
     let html=`<div class="pp-box"><h3>🛵 Delivery List — ${formatDisplayDate(today)} ${now}</h3>`;
-    dels.forEach((o,i)=>{const t=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';html+=`<div class="ds"><b>#${i+1} — ${o.name}</b><br>📞 <b>${o.phone}</b> | ⏰ ${t}<br>📍 ${o.address}<br>${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(' | ')}<br><b>💰 ₹${o.total}</b>${o.notes?`<br>📝 ${o.notes}`:''} &nbsp;[ ] Delivered</div>`;});
+    dels.forEach((o,i)=>{const t=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';html+=`<div class="ds"><b>#${i+1} — ${esc(o.name)}</b><br>📞 <b>${esc(o.phone)}</b> | ⏰ ${t}<br>📍 ${esc(o.address)}<br>${(o.items||[]).map(i=>`${esc(i.name)} ×${i.qty}`).join(' | ')}<br><b>💰 ₹${o.total}</b>${o.notes?`<br>📝 ${esc(o.notes)}`:''} &nbsp;[ ] Delivered</div>`;});
     html+=`<button onclick="doPrint()" style="margin-top:9px;width:100%;padding:10px;background:var(--dark);color:white;border:none;border-radius:9px;font-weight:700;cursor:pointer">🖨️ Print</button></div>`;
     area.innerHTML=html;
   }else{
@@ -2337,10 +2388,10 @@ function renderCustList(custs){
   let html='<div style="font-size:.78rem;font-weight:700;color:var(--g);margin-bottom:8px">Total: '+custs.length+' customer'+(custs.length!==1?'s':'')+'</div>';
   custs.forEach(c=>{
     html+='<div onclick="viewCustomerProfile(\''+c.phone+'\')" style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid #f0f0f0;border-radius:10px;margin-bottom:6px;cursor:pointer">'+
-      '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--o),#c94a00);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">'+((c.name||'?')[0]||'?').toUpperCase()+'</div>'+
+      '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--o),#c94a00);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0">'+esc((c.name||'?')[0]||'?').toUpperCase()+'</div>'+
       '<div style="flex:1;min-width:0">'+
-        '<div style="font-weight:700;font-size:.84rem">'+(c.name||'—')+'</div>'+
-        '<div style="font-size:.7rem;color:#888">📞 '+c.phone+(c.location?' | 📍 '+c.location:'')+(c.houseNo?' — '+c.houseNo:'')+'</div>'+
+        '<div style="font-weight:700;font-size:.84rem">'+esc(c.name||'—')+'</div>'+
+        '<div style="font-size:.7rem;color:#888">📞 '+esc(c.phone)+(c.location?' | 📍 '+esc(c.location):'')+(c.houseNo?' — '+esc(c.houseNo):'')+'</div>'+
       '</div>'+
       '<a href="https://wa.me/91'+c.phone+'" target="_blank" onclick="event.stopPropagation()" style="background:#25d366;color:white;border-radius:8px;padding:6px 9px;font-size:.7rem;font-weight:700;text-decoration:none">💬</a>'+
       '<a href="tel:'+c.phone+'" onclick="event.stopPropagation()" style="background:#3b82f6;color:white;border-radius:8px;padding:6px 9px;font-size:.7rem;font-weight:700;text-decoration:none">📞</a>'+
@@ -2386,11 +2437,11 @@ window.viewCustomerProfile=async function(phone){
     try{const wSnap=await getDoc(doc(db,'wallets',phone));if(wSnap.exists())due=wSnap.data().due||0;}catch(e){}
 
     header.innerHTML=
-      '<div style="font-weight:800;font-size:1.05rem">'+(c.name||'Unknown')+'</div>'+
-      '<div style="font-size:.76rem;opacity:.9;margin-top:2px">📞 '+phone+'</div>'+
+      '<div style="font-weight:800;font-size:1.05rem">'+esc(c.name||'Unknown')+'</div>'+
+      '<div style="font-size:.76rem;opacity:.9;margin-top:2px">📞 '+esc(phone)+'</div>'+
       '<div style="font-size:.72rem;opacity:.85;margin-top:1px">'+level+'</div>';
 
-    let addr=[c.location,c.houseNo,c.addrLine2].filter(Boolean).join(' — ')||'Not set';
+    let addr=esc([c.location,c.houseNo,c.addrLine2].filter(Boolean).join(' — ')||'Not set');
     let bodyHtml='';
     bodyHtml+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'+
       '<div style="background:#fff7ed;border-radius:10px;padding:10px;text-align:center"><div style="font-size:1.3rem;font-weight:900;color:var(--o)">'+totalOrders+'</div><div style="font-size:.68rem;color:#888">Total Orders</div></div>'+
@@ -2719,8 +2770,8 @@ window.loadDues=async function(){
       const nm=d.name||'Unknown';
       return `<div onclick="viewDues('${d.phone}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;border-bottom:1px solid #eee;cursor:pointer;border-radius:9px">
         <div style="flex:1;min-width:0">
-          <div style="font-weight:800;font-size:.86rem">${nm}</div>
-          <div style="font-size:.72rem;color:var(--muted)">📞 ${d.phone} · ${d.count} order${d.count!==1?'s':''}${d.latest?' · latest '+new Date(d.latest+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div>
+          <div style="font-weight:800;font-size:.86rem">${esc(nm)}</div>
+          <div style="font-size:.72rem;color:var(--muted)">📞 ${esc(d.phone)} · ${d.count} order${d.count!==1?'s':''}${d.latest?' · latest '+new Date(d.latest+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
           <span style="font-weight:800;color:var(--r);font-size:.92rem">₹${d.total}</span>
@@ -2808,8 +2859,8 @@ window.viewDues=async function(phone){
     const orderTotal=unpaid.reduce((s,o)=>s+(Number(o.total)||0),0);
     const amount=orderTotal;
 
-    header.innerHTML='<div style="font-weight:800;font-size:1.05rem">'+(name||'Unknown')+'</div>'+
-      '<div style="font-size:.76rem;opacity:.9;margin-top:2px">📞 '+phone+'</div>'+
+    header.innerHTML='<div style="font-weight:800;font-size:1.05rem">'+esc(name||'Unknown')+'</div>'+
+      '<div style="font-size:.76rem;opacity:.9;margin-top:2px">📞 '+esc(phone)+'</div>'+
       '<div style="font-size:.9rem;font-weight:800;margin-top:4px">Total Due: ₹'+amount+'</div>';
 
     const upi=cfg.upiId||'';
@@ -2919,7 +2970,7 @@ function initAdminTrackMap(){
     const lat=pos.lat+(i*0.0005),lng=pos.lng+(i*0.0004);
     const icon=L.divIcon({html:`<div style="background:#3b82f6;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3)">${i+1}</div>`,iconSize:[36,36],iconAnchor:[18,18],className:''});
     const m=L.marker([lat,lng],{icon}).addTo(atMap);
-    m.bindPopup(`<b>${o.name}</b><br>📞 ${o.phone}<br>📍 ${o.address}<br>💰 ₹${o.total}`);
+    m.bindPopup(`<b>${esc(o.name)}</b><br>📞 ${esc(o.phone)}<br>📍 ${esc(o.address)}<br>💰 ₹${o.total}`);
     atCustMarkers.push(m);
   });
 

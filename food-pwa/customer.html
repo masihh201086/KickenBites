@@ -1144,12 +1144,21 @@ function buildCard(item){
   else{imgHtml=`<div class="mc-emoji">${item.emoji||'🍛'}${soldOut?'<div class="sold-tag">SOLD OUT</div>':''}</div>`;}
   const qtyBadge=soldOut?'':limited?`<span class="qbadge ${low?'qlow':'qok'}">${low?'⚠️ Only '+aq+' left':'✅ '+aq+' left'}</span>`:'';
   // ---- Stock fill bar (#14): shows how much of the day's batch is booked ----
+  // BUGFIX: always trust the REAL remaining stock (aq) shown to the customer.
+  // startQty is recalculated fresh from master every render, so if admin raises
+  // an item's day-qty mid-day, startQty jumps up while aq (saved stock) hasn't
+  // caught up yet — clamping remaining down to startQty made the bar look almost
+  // "SOLD OUT" even though aq (real availability) was actually fine/high.
+  // Fix: remaining is always the real aq; the "total" used for the percentage
+  // widens to whichever is bigger, so a capacity increase shows 0% booked
+  // (fully available) instead of a false near-empty bar.
   const startQty=Number(item.startQty)||0;
   let stockBar='';
   if(startQty>0){
-    const remaining=Math.max(0,Math.min(startQty,aq));
-    const booked=startQty-remaining;
-    const bookedPct=Math.round((booked/startQty)*100);           // how full (booked)
+    const remaining=Math.max(0,aq);
+    const total=Math.max(startQty,remaining);
+    const booked=Math.max(0,total-remaining);
+    const bookedPct=total>0?Math.round((booked/total)*100):0;    // how full (booked)
     const remainPct=100-bookedPct;                               // how much left
     // Colour reflects REMAINING stock: green (lots) → yellow → red (few)
     const barColor=remainPct>50?'#22c55e':remainPct>20?'#f59e0b':'#ef4444';
@@ -1454,13 +1463,31 @@ window.placeOrderClick=async function(){
       const ms=await tx.get(dailyRef);
       const nr=doc(ordersRef);newId=nr.id;
       if(ms.exists()){
-        // Real dailyMenu doc exists — just decrement stock on it
+        // Real dailyMenu doc exists — verify each ordered item still has enough
+        // stock in THIS transaction's fresh read before committing anything.
+        // BUGFIX: previously this just subtracted and clamped to 0, so two
+        // customers racing for the last few units of an item could BOTH get
+        // their orders through (oversell) instead of the second one being
+        // rejected. Now insufficient stock aborts the whole transaction.
         const md=ms.data();
+        for(const o of items){
+          const cur=(md.items||[]).find(item=>item.id===o.id);
+          if(cur && cur.availableQty>0 && cur.availableQty<o.qty){
+            throw new Error('Sorry, only '+cur.availableQty+' × '+o.name+' left — someone just booked the rest. Please adjust your cart and try again.');
+          }
+        }
         const upd=(md.items||[]).map(item=>{const o=items.find(i=>i.id===item.id);if(o&&item.availableQty>0)return{...item,availableQty:Math.max(0,item.availableQty-o.qty)};return item;});
         tx.update(dailyRef,{items:upd});
       }else{
         // No doc yet (menu came from the weekly default template).
         // Create it now from what the customer is seeing, minus this order's qty.
+        for(const o of items){
+          const cur=(menuConfig.items||[]).find(item=>item.id===o.id);
+          const q=cur?Number(cur.availableQty)||0:0;
+          if(q>0 && q<o.qty){
+            throw new Error('Sorry, only '+q+' × '+o.name+' left — someone just booked the rest. Please adjust your cart and try again.');
+          }
+        }
         const baseItems=(menuConfig.items||[]).map(item=>{
           const o=items.find(i=>i.id===item.id);
           const q=Number(item.availableQty)||0;

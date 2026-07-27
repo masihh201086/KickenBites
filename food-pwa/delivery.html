@@ -331,6 +331,9 @@ let delViewDate = '';
 let _deviceUnsub = null; // single-device login listener (#6)
 
 function genDeviceToken(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,10); }
+// SECURITY: escape customer-supplied text (name/address/notes) before it goes into
+// innerHTML — these come from customer.html's free-text inputs with no sanitization.
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // Claim this device as the ONE active session for this boy: writes a fresh token
 // to deliveryBoys/{phone}.activeDevice and remembers it locally.
@@ -657,13 +660,13 @@ function orderCard(o) {
   const mapsUrl = o.address ? `https://www.google.com/maps/search/${encodeURIComponent(o.address)}` : '#';
   return `<div class="oc ${isDone?'delivered':isOut?'active-del':''}">
     <div class="oc-top">
-      <div class="oc-name">#${o.id.slice(-5).toUpperCase()} — ${o.name}</div>
+      <div class="oc-name">#${o.id.slice(-5).toUpperCase()} — ${esc(o.name)}</div>
       <span class="oc-stag st-${o.status}">${sl[o.status]||o.status}</span>
     </div>
-    <div class="oc-addr">📍 ${o.address}</div>
-    <div class="oc-items">🍛 ${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ')}</div>
+    <div class="oc-addr">📍 ${esc(o.address)}</div>
+    <div class="oc-items">🍛 ${(o.items||[]).map(i=>`${esc(i.name)} ×${i.qty}`).join(', ')}</div>
     <div class="oc-tot">💰 ₹${o.total} | ⏰ ${t}</div>
-    ${o.notes?`<div class="oc-notes">📝 ${o.notes}</div>`:''}
+    ${o.notes?`<div class="oc-notes">📝 ${esc(o.notes)}</div>`:''}
     <div class="oc-btns">
       <a class="obtn ob-call" href="tel:${o.phone}">📞 Call</a>
       <a class="obtn ob-maps" href="${mapsUrl}" target="_blank">🗺️ Maps</a>
