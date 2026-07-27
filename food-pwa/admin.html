@@ -1473,6 +1473,7 @@ function renderOrders(){
         ${o.orderType==='delivery'&&!o.assignedBoy&&deliveryBoys.length>0?`<button class="sb2 sb-assign" onclick="assignBoy('${o.id}')">👤 Assign Boy</button>`:''}
         ${['pending_payment','confirmed','preparing'].includes(o.status)?`<button class="sb2 sb-cancel" onclick="chgStatus('${o.id}','cancelled')">✗ Cancel</button>`:''}
         <button class="sb2" onclick="waOrderSummary('${o.id}')" style="background:#25d366;color:white">📱 WA</button>
+        <button class="sb2" onclick="forwardOrderConfirmation('${o.id}')" style="background:#128c7e;color:white">📨 Forward Confirmation</button>
         ${o.orderType==='delivery'?`<button class="sb2" onclick="assignBoy('${o.id}')" style="background:#8b5cf6;color:white">🛵 ${o.assignedBoyName||'Assign'}</button>`:''}
       </div>
     </div>`;
@@ -2130,6 +2131,7 @@ function renderDeliveryBoys(){
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
         <span class="db-status ${isOnline?'dbs-online':'dbs-offline'}">${isOnline?'🟢 Online':'⚫ Offline'}</span>
+        <button onclick="sendBoyLoginLink('${phone}','${(b.name||'').replace(/'/g,'')}')" style="font-size:.68rem;color:#25d366;background:none;border:none;cursor:pointer;padding:2px 4px;font-weight:700">💬 Send Login Link</button>
         <button onclick="removeBoy('${phone}')" style="font-size:.68rem;color:var(--r);background:none;border:none;cursor:pointer;padding:2px 4px">Remove</button>
       </div>
     </div>`;
@@ -2175,6 +2177,19 @@ window.addDeliveryBoy=async function(){
     if(boysUnsub){boysUnsub();boysUnsub=null;}
     loadDeliveryBoys();
   }catch(e){alert('Error adding: '+e.message);}
+};
+
+// Send a delivery boy the login link over WhatsApp (#7)
+window.sendBoyLoginLink=function(phone,name){
+  const nl='\n';
+  const link=window.location.href.replace('admin.html','delivery.html');
+  const msg='🛵 *Kicken Bites — Delivery Login*'+nl+nl+
+    'Hi '+(name||'')+', open this link on YOUR phone to login for deliveries:'+nl+link+nl+nl+
+    'Enter your mobile number ('+phone+') and set/enter your PIN. '+nl+
+    '⚠️ Logging in on a new phone will log you out of any other device.';
+  const ph=phone.toString().replace(/[^0-9]/g,'').slice(-10);
+  window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
+  showToast('Opening login link for '+(name||ph));
 };
 
 window.removeBoy=async function(phone){
@@ -2615,6 +2630,40 @@ window.waOrderSummary=function(orderId){
   window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg),'_blank');
 };
 
+// Manually re-send the customer's order-confirmation message from admin (#11).
+// Mirrors customer.html's sendCustomerConfirmWA format (bold items, date line, track/pickup line)
+// for cases the automatic confirmation didn't reach the customer.
+window.forwardOrderConfirmation=function(orderId){
+  var o=allOrders.find(function(x){return x.id===orderId;});
+  if(!o){alert('Order not found');return;}
+  var nl='\n';
+  var items=(o.items||[]).map(function(i){return '  • *'+i.name+'* x'+i.qty+' = Rs'+(i.subtotal||i.qty*i.price);}).join(nl);
+  var isDelivery = o.orderType==='delivery' || (o.address && o.address!=='Takeaway');
+  var trackLink = window.location.href.replace('admin.html','track.html')+'?order='+orderId;
+  var locationLine = isDelivery ? '📍 Deliver to: '+(o.address||'') : '📍 *Pickup from:* Kicken Bites, Netaji Kunj 2027, GAIL Pata';
+  var deliveryLine = isDelivery ? (nl+'👇 *CLICK TO TRACK YOUR ORDER* 👇'+nl+trackLink) : (nl+'⏰ *Pickup time:* 30-45 minutes');
+  var payLine = o.payLater ? '💳 Payment: Cash on Delivery' : '💳 Payment: Received ✅';
+  var dateLine='';
+  if(o.date){
+    var dd=new Date(o.date+'T00:00:00');
+    var disp=dd.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+    var t=new Date();var ts=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+    var tm=new Date(t.getTime()+86400000);var tms=tm.getFullYear()+'-'+String(tm.getMonth()+1).padStart(2,'0')+'-'+String(tm.getDate()).padStart(2,'0');
+    var rel=o.date===ts?'Today · ':o.date===tms?'Tomorrow · ':'';
+    dateLine='📅 *Order for: '+rel+disp+'*'+nl+nl;
+  }
+  var msg='🍗 *KICKEN BITES*'+nl+'✅ *Order Confirmed!*'+nl+nl+
+    'Hi *'+o.name+'*!'+nl+'Your order is confirmed and being prepared fresh!'+nl+nl+
+    dateLine+'*Order Details:*'+nl+items+nl+nl+
+    '💰 *Total: Rs '+o.total+'*'+(o.deliveryCharge?' (incl. Rs '+o.deliveryCharge+' delivery)':'')+nl+
+    locationLine+nl+payLine+deliveryLine+nl+nl+
+    'Thank you for ordering from Kicken Bites! 🙏';
+  var phone=(o.phone||'').toString().replace(/[^0-9]/g,'').slice(-10);
+  if(phone.length!==10){alert('No valid phone on this order');return;}
+  window.open('https://wa.me/91'+phone+'?text='+encodeURIComponent(msg),'_blank');
+  showToast('Forwarding confirmation to '+o.name);
+};
+
 // Manually assign delivery boy to order
 window.assignBoy=async function(orderId){
   if(!deliveryBoys.length){alert('No delivery boys added yet');return;}
@@ -2779,14 +2828,12 @@ window.viewDues=async function(phone){
       });
       h+='<div style="display:flex;justify-content:space-between;padding:10px 0;font-weight:900;font-size:.9rem"><span>Total</span><span style="color:var(--r)">₹'+orderTotal+'</span></div>';
     }
-    // UPI QR for the exact due amount
+    // Plain UPI ID for the exact due amount (no QR — Session 4 #10)
     if(upi&&amount>0){
-      const ud='upi://pay?pa='+encodeURIComponent(upi)+'&pn='+encodeURIComponent(upiName)+'&am='+amount+'&cu=INR&tn='+encodeURIComponent('Kicken Bites dues');
       h+='<div style="text-align:center;background:#f9fafb;border-radius:12px;padding:12px;margin:12px 0">'+
-        '<div style="font-size:.72rem;font-weight:800;color:var(--muted);margin-bottom:7px">SCAN TO PAY ₹'+amount+'</div>'+
-        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data='+encodeURIComponent(ud)+'" style="width:170px;height:170px;border-radius:8px" alt="UPI QR">'+
-        '<div style="font-size:.76rem;font-weight:700;margin-top:7px">'+upi+'</div>'+
-        '<button onclick="copyUpiId(\''+upi+'\')" style="margin-top:6px;padding:6px 14px;background:var(--dark);color:white;border:none;border-radius:9px;font-size:.72rem;font-weight:700;cursor:pointer">📋 Copy UPI ID</button>'+
+        '<div style="font-size:.72rem;font-weight:800;color:var(--muted);margin-bottom:7px">PAY ₹'+amount+' VIA UPI</div>'+
+        '<div style="font-size:.9rem;font-weight:800;margin-top:2px">'+upi+'</div>'+
+        '<button onclick="copyUpiId(\''+upi+'\')" style="margin-top:8px;padding:6px 14px;background:var(--dark);color:white;border:none;border-radius:9px;font-size:.72rem;font-weight:700;cursor:pointer">📋 Copy UPI ID</button>'+
       '</div>';
     }else if(!upi){
       h+='<div style="background:#fffbeb;border-radius:10px;padding:10px;font-size:.74rem;color:#92400e;margin:12px 0">⚠️ Set your UPI ID in Setup to show a payment QR here.</div>';

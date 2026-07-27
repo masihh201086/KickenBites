@@ -328,6 +328,39 @@ window.setDelDate=function(ds){
 let isGPS = false, watchId = null, updateCount = 0;
 let allOrders = [], boy = null, genOtp = '', loginPhone = '';
 let delViewDate = '';
+let _deviceUnsub = null; // single-device login listener (#6)
+
+function genDeviceToken(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,10); }
+
+// Claim this device as the ONE active session for this boy: writes a fresh token
+// to deliveryBoys/{phone}.activeDevice and remembers it locally.
+async function claimDevice(phone){
+  const token = genDeviceToken();
+  try{ await setDoc(doc(db,'deliveryBoys',phone),{activeDevice:token},{merge:true}); }catch(e){}
+  try{ localStorage.setItem('boyDeviceToken', token); }catch(e){}
+  return token;
+}
+
+// Watch for another device claiming this account; if our token no longer matches
+// what's in Firestore, this session is stale — kick it out.
+function watchDeviceSession(){
+  if(!boy?.phone) return;
+  const myToken = localStorage.getItem('boyDeviceToken')||'';
+  _deviceUnsub = onSnapshot(doc(db,'deliveryBoys',boy.phone), snap=>{
+    if(!snap.exists()) return;
+    const active = snap.data().activeDevice;
+    if(active && myToken && active!==myToken){
+      forceLogoutOtherDevice();
+    }
+  });
+}
+async function forceLogoutOtherDevice(){
+  if(_deviceUnsub){ _deviceUnsub(); _deviceUnsub=null; }
+  if(isGPS) await stopGPS().catch(()=>{});
+  localStorage.removeItem('boyPhone'); localStorage.removeItem('boyName'); localStorage.removeItem('boyDeviceToken');
+  alert('⚠️ You were logged out because your account was logged in on another device.');
+  location.reload();
+}
 
 // --- SESSION CHECK ---
 const sp = localStorage.getItem('boyPhone'), sn = localStorage.getItem('boyName');
@@ -370,6 +403,7 @@ window.verifyPin = async function() {
       boy = snap.data();
       localStorage.setItem('boyPhone', loginPhone);
       localStorage.setItem('boyName', boy.name||'');
+      await claimDevice(loginPhone);
       startApp();
     } else { showErr('Wrong PIN. Try again.'); document.getElementById('lpin').value=''; }
   } catch(e) { showErr('Error. Check internet.'); }
@@ -388,6 +422,7 @@ window.createPin = async function() {
     await setDoc(doc(db,'deliveryBoys',loginPhone), {pin}, {merge:true});
     localStorage.setItem('boyPhone',loginPhone);
     localStorage.setItem('boyName',boy.name||'');
+    await claimDevice(loginPhone);
     startApp();
   } catch(e) { showErr('Error creating PIN. Check internet.'); }
 };
@@ -420,6 +455,7 @@ window.resetPin = async function() {
     boy = snap.data();
     localStorage.setItem('boyPhone',loginPhone);
     localStorage.setItem('boyName',boy.name||'');
+    await claimDevice(loginPhone);
     startApp();
   } catch(e) { showErr('Error resetting PIN.'); }
 };
@@ -429,7 +465,17 @@ window.backStep1 = function() {
   ['pinSec','newSec','otpSec'].forEach(s=>document.getElementById(s).style.display='none');
 };
 
-function startApp() {
+async function startApp() {
+  // Single-device check (#6): if a restored session's device token no longer
+  // matches Firestore, another device has taken over this account — bounce to login.
+  try{
+    const myToken = localStorage.getItem('boyDeviceToken')||'';
+    if (boy?.phone && myToken){
+      const snap = await getDoc(doc(db,'deliveryBoys',boy.phone));
+      const active = snap.exists()?snap.data().activeDevice:null;
+      if (active && active!==myToken){ await forceLogoutOtherDevice(); return; }
+    }
+  }catch(e){ console.error('deviceCheck',e); }
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainApp').style.display='block';
   document.getElementById('loggedAs').textContent = `👤 ${boy?.name||boy?.phone||''}`;
@@ -442,6 +488,7 @@ function startApp() {
   try{ loadOrders(); }catch(e){ console.error('loadOrders',e); showLoadError(); }
   try{ listenForAssignments(); }catch(e){ console.error('assignments',e); }
   try{ listenForSalaryPaid(); }catch(e){ console.error('salaryPaid',e); }
+  try{ watchDeviceSession(); }catch(e){ console.error('deviceWatch',e); }
   // Safety net: if orders haven't loaded within 6s, stop showing "Loading…"
   setTimeout(function(){
     var a=document.getElementById('tab-active');
@@ -538,9 +585,10 @@ function notifyBoy(msg){
 
 window.doLogout = async function() {
   if (!confirm('Logout?')) return;
+  if (_deviceUnsub){ _deviceUnsub(); _deviceUnsub=null; }
   if (isGPS) await stopGPS();
   if (boy?.phone) await setDoc(doc(db,'deliveryBoys',boy.phone),{isOnline:false},{merge:true}).catch(()=>{});
-  localStorage.removeItem('boyPhone'); localStorage.removeItem('boyName');
+  localStorage.removeItem('boyPhone'); localStorage.removeItem('boyName'); localStorage.removeItem('boyDeviceToken');
   location.reload();
 };
 

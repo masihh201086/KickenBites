@@ -1291,7 +1291,7 @@ function renderOrderDayChips(){
     return '<button class="dbtn'+(sel?' active':'')+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
       '<div style="font-size:.58rem;opacity:.85;font-weight:700">'+lbl+'</div>'+
       '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
-      (hasOrder?'<div style="position:absolute;top:4px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--green,#22c55e)" title="You have an order this day"></div>':'')+
+      (hasOrder?'<div style="position:absolute;top:3px;right:4px;width:10px;height:10px;border-radius:50%;background:var(--green,#22c55e);border:2px solid white;box-shadow:0 0 0 1px var(--green,#22c55e)" title="You have an order this day"></div>':'')+
       '</button>';
   }).join('');
 }
