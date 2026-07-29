@@ -81,10 +81,11 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .mc.selected{border-color:var(--orange);box-shadow:var(--sh-brand);transform:translateY(-2px);}
 .mc.soldout{opacity:.55;}
 /* Image container — fixed aspect ratio, no cropping */
-.mc-img-wrap{width:100%;aspect-ratio:4/3;overflow:hidden;background:#f5f5f5;position:relative;}
-.mc-img-wrap img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;transition:transform .3s;}
-.mc:hover .mc-img-wrap img{transform:scale(1.03);}
-.mc-emoji{width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,#fff8f0,#ffe8d0);display:flex;align-items:center;justify-content:center;font-size:3.5rem;position:relative;}
+.mc-img-wrap{width:100%;aspect-ratio:5/4;overflow:hidden;background:#f5f5f5;position:relative;}
+.mc-img-wrap::after{content:'';position:absolute;inset:auto 0 0 0;height:38%;background:linear-gradient(to top,rgba(0,0,0,.34),transparent);pointer-events:none;}
+.mc-img-wrap img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;transition:transform .35s ease;}
+.mc:hover .mc-img-wrap img{transform:scale(1.04);}
+.mc-emoji{width:100%;aspect-ratio:5/4;background:linear-gradient(135deg,#fff8f0,#ffe8d0);display:flex;align-items:center;justify-content:center;font-size:4.2rem;position:relative;}
 .sold-tag{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.72);color:#fff;font-weight:900;font-size:1.15rem;padding:9px 22px;border-radius:50px;letter-spacing:.06em;box-shadow:0 2px 8px rgba(0,0,0,.3);}
 .trending-tag{position:absolute;top:8px;left:8px;background:#ef4444;color:white;font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:20px;}
 .mc-body{padding:11px 12px;}
@@ -103,10 +104,24 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .qok{background:#dcfce7;color:#15803d;}
 .qlow{background:#fee2e2;color:#b91c1c;}
 .rating-badge{font-size:.68rem;color:#f59e0b;font-weight:700;}
-.mc-footer{display:flex;align-items:center;justify-content:space-between;padding:8px 12px 10px;}
+.mc-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px 12px;}
 .qty-ctrl{display:flex;align-items:center;gap:8px;}
 .qbtn{width:36px;height:36px;border-radius:50%;border:2px solid var(--orange);background:white;color:var(--orange);font-size:1.2rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s,transform .1s;}
 .qbtn:active{transform:scale(.92);}
+
+/* --- qty 0: collapse stepper into a single wide ADD call-to-action --- */
+.mc:not(.selected) .qty-ctrl .qbtn:first-child,
+.mc:not(.selected) .qty-ctrl .qnum{display:none;}
+.mc:not(.selected) .qty-ctrl .qbtn:last-child{
+  width:auto;min-width:100px;height:38px;padding:0 18px;border:none;border-radius:12px;
+  background:var(--ograd);color:#fff;font-size:0;box-shadow:var(--sh-brand);}
+.mc:not(.selected) .qty-ctrl .qbtn:last-child::after{
+  content:'ADD  +';font-family:var(--font-head);font-size:.84rem;font-weight:700;letter-spacing:.05em;}
+.mc:not(.selected) .qty-ctrl .qbtn:last-child:disabled{background:#e8e8e8;color:#aaa;box-shadow:none;}
+
+/* --- qty > 0: stepper as a tidy pill group --- */
+.mc.selected .qty-ctrl{background:var(--op);border-radius:22px;padding:3px 4px;gap:4px;}
+.mc.selected .qbtn{border-color:transparent;background:white;box-shadow:var(--sh-sm);}
 .qbtn:active{background:var(--orange);color:white;}
 .qbtn:disabled{border-color:#ccc;color:#ccc;cursor:not-allowed;}
 .qnum{font-weight:700;font-size:.95rem;min-width:18px;text-align:center;}
