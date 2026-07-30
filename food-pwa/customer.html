@@ -1063,7 +1063,9 @@ function renderMyOrders(all) {
     // A1: customer may cancel only BEFORE the order goes out for delivery.
     const canCancel = ['pending_payment','confirmed','preparing','ready'].includes(o.status);
     // A1 refund: a cancelled order that was already paid shows a WhatsApp-refund button.
-    const wasPaid = o.paymentConfirmed===true || o.status==='confirmed' || o.paid===true;
+    // "Paid" for refund purposes means actually paid online — NOT pay-later (cash),
+    // which sets customerPaid:true but never took money online, so nothing to refund.
+    const wasPaid = (o.customerPaid===true || o.paymentConfirmed===true || o.paid===true) && o.payLater!==true;
     const showRefund = o.status==='cancelled' && wasPaid && o.refundDone!==true;
     return `<div class="oh ${o.status}">
       <div class="oh-top">

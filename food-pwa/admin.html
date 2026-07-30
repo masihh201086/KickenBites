@@ -1522,12 +1522,14 @@ function renderOrders(){
   renderItemBookingBars();
   const list=document.getElementById('ordersList');
   let filtered=curFilter==='all'?[...allOrders]:allOrders.filter(o=>o.status===curFilter);
-  // FIX 5: Active orders on top, then by newest first
-  const statusPriority={pending_payment:0,confirmed:1,preparing:2,ready:3,out_for_delivery:4,delivered:5,cancelled:6};
+  // Un-acknowledged cancellations need the admin's attention (refund pending), so they
+  // float to the very top. Acknowledged cancellations sink to the bottom as before.
+  const statusPriority={pending_payment:1,confirmed:2,preparing:3,ready:4,out_for_delivery:5,delivered:6,cancelled:7};
   filtered.sort((a,b)=>{
-    const ap=statusPriority[a.status]??9, bp=statusPriority[b.status]??9;
-    if(ap!==bp) return ap-bp;
-    return (b.createdAt||'').localeCompare(a.createdAt||''); // newest first within same status
+    const aAlert=(a.status==='cancelled'&&a.ackCancel!==true)?0:(statusPriority[a.status]??9);
+    const bAlert=(b.status==='cancelled'&&b.ackCancel!==true)?0:(statusPriority[b.status]??9);
+    if(aAlert!==bAlert) return aAlert-bAlert;
+    return (b.createdAt||'').localeCompare(a.createdAt||''); // newest first within same group
   });
   if(!filtered.length){list.innerHTML='<div class="empty">📭 No orders</div>';return;}
   const sl={pending_payment:'Awaiting Pay',confirmed:'Confirmed',preparing:'Preparing',ready:'Ready',out_for_delivery:'Out for Delivery',delivered:'Delivered',cancelled:'Cancelled'};
