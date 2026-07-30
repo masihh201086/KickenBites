@@ -323,10 +323,33 @@ function renderDelDayChips(){
     const dObj=new Date(d.date+'T00:00:00');
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':WDFULL[dObj.getDay()];
     const sel=delViewDate===d.date;
+    const hasOrders=_delDaysWithOrders.has(d.date);
+    const dot=hasOrders?'<div style="width:7px;height:7px;border-radius:50%;background:var(--g);margin:3px auto 0;box-shadow:0 0 0 2px rgba(34,197,94,.2)"></div>':'<div style="width:7px;height:7px;margin:3px auto 0"></div>';
     return '<button onclick="setDelDate(\''+d.date+'\')" style="flex-shrink:0;min-width:60px;padding:7px 9px;border-radius:10px;border:2px solid '+(sel?'var(--o)':'#e5e5e5')+';background:'+(sel?'#fff7ed':'white')+';cursor:pointer;font-family:inherit">'+
       '<div style="font-size:.56rem;opacity:.85;color:var(--muted);font-weight:700">'+lbl+'</div>'+
-      '<div style="font-weight:800;font-size:.8rem;color:'+(sel?'var(--o)':'#333')+'">'+d.wd+' '+d.dayNum+'</div></button>';
+      '<div style="font-weight:800;font-size:.8rem;color:'+(sel?'var(--o)':'#333')+'">'+d.wd+' '+d.dayNum+'</div>'+dot+'</button>';
   }).join('');
+}
+// A13: track which of the next 7 days have delivery orders, so chips can show a green dot.
+// One lightweight listener per day; refreshed whenever the boy's order view loads.
+let _delDaysWithOrders=new Set();
+let _delDayUnsubs=[];
+function watchDelDaysWithOrders(){
+  // clear old listeners
+  _delDayUnsubs.forEach(u=>{try{u();}catch(e){}});
+  _delDayUnsubs=[];
+  next7Days().forEach(d=>{
+    const q=query(collection(db,'orders'),where('date','==',d.date));
+    const unsub=onSnapshot(q,snap=>{
+      const has=snap.docs.some(doc=>{
+        const o=doc.data();
+        return o.orderType==='delivery' && ['confirmed','preparing','ready','out_for_delivery','delivered'].includes(o.status);
+      });
+      if(has) _delDaysWithOrders.add(d.date); else _delDaysWithOrders.delete(d.date);
+      renderDelDayChips();
+    }, err=>{});
+    _delDayUnsubs.push(unsub);
+  });
 }
 function updateDelDateLbl(){
   const today=getTodayDate();
@@ -508,6 +531,7 @@ async function startApp() {
   });
   try{ requestNotifPerm(); }catch(e){ console.error('notifPerm',e); }
   try{ loadOrders(); }catch(e){ console.error('loadOrders',e); showLoadError(); }
+  try{ watchDelDaysWithOrders(); }catch(e){ console.error('dayWatch',e); }
   try{ listenForAssignments(); }catch(e){ console.error('assignments',e); }
   try{ listenForSalaryPaid(); }catch(e){ console.error('salaryPaid',e); }
   try{ watchDeviceSession(); }catch(e){ console.error('deviceWatch',e); }

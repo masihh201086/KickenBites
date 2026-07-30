@@ -884,6 +884,7 @@ async function initDash(){
   renderOrdDayChips();
   updateOrdDateUI();
   preloadOrderDots();
+  watchItemBookingBars();
   // If a non-today date was restored, load its orders now.
   if(ordViewDate!==today){ setOrdersDate(ordViewDate); }
 }
@@ -955,6 +956,7 @@ window.setOrdersDate=async function(ds){
   const today=getTodayDate();
   updateOrdDateUI();
   renderOrdDayChips();
+  watchItemBookingBars();
   if(ds===today){
     // Back to the live feed
     allOrders=todayOrders; updateStats(); renderOrders();
@@ -1497,6 +1499,20 @@ async function renderItemBookingBars(){
   if(!rows.length){card.style.display='none';return;}
   card.style.display='block';
   wrap.innerHTML=rows.join('');
+}
+
+// A6 FIX: keep the Items-Booked bar LIVE. Previously it only re-read stock via a
+// one-time getDoc when renderOrders ran, so editing a quantity on the Menu tab
+// wasn't reflected here until a page reload. This listens to the same dailyMenu
+// doc the customer page watches, so admin sees stock/booking changes instantly.
+let itemBookUnsub=null;
+function watchItemBookingBars(){
+  const ds=ordViewDate||getTodayDate();
+  if(itemBookUnsub){try{itemBookUnsub();}catch(e){}itemBookUnsub=null;}
+  itemBookUnsub=onSnapshot(doc(db,'dailyMenu',ds),()=>{
+    // Only refresh if the admin is still viewing this date
+    if((ordViewDate||getTodayDate())===ds) renderItemBookingBars();
+  }, err=>{});
 }
 
 function renderOrders(){
