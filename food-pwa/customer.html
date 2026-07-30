@@ -667,7 +667,7 @@ async function pinMatches(stored, entered){
   return stored===h;
 }
 function isHashedPin(v){ return typeof v==='string' && /^[0-9a-f]{64}$/.test(v); }
-let ordersUnsub=null, menuUnsub=null, selDateUnsub=null, itemRatings={};
+let ordersUnsub=null, menuUnsub=null, selDateUnsub=null, masterUnsub=null, itemRatings={};
 
 const today = getTodayDate();
 document.getElementById('todayLbl').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
@@ -1154,6 +1154,27 @@ async function loadMenu() {
         d=await mergeMasterPrices(d);
         menuConfig=d;renderMenu(d.items||[]);updateBill();
       }
+    });
+    // Live-update when the ADMIN edits the master menu (adds an item, changes a
+    // price/name, or changes a day quantity). The master lives in config/menu, which
+    // the dailyMenu listener above does NOT watch — so without this, a new item only
+    // showed up after the customer refreshed. On any master change we refresh the
+    // cached master and re-merge the day currently being viewed.
+    if(masterUnsub){try{masterUnsub();}catch(e){}}
+    masterUnsub=onSnapshot(doc(db,'config','menu'), async snap=>{
+      if(!snap.exists())return;
+      _masterCfg=snap.data(); // keep cache fresh for mergeMasterPrices
+      try{
+        const viewing=selectedDate||today;
+        const base=(menuConfig&&Array.isArray(menuConfig.items))
+          ? {...menuConfig}
+          : {date:viewing, isOpen:true, items:[]};
+        base.date=viewing;
+        const merged=await mergeMasterPrices(base);
+        if(merged&&(merged.items||[]).length){
+          menuConfig=merged; renderMenu(merged.items||[]); updateBill();
+        }
+      }catch(e){console.error('master live merge',e);}
     });
     // Now that the page is functional, restore the last-viewed date if it was a valid
     // upcoming date (never a stale past date). selectDate handles showing that day's menu.
