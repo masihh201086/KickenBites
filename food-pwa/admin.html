@@ -511,6 +511,15 @@ input:checked+.slider:before{transform:translateX(20px);}
 
   <div class="panel" id="tab-setup">
     <div class="card">
+      <div class="ct">🔗 Quick Access</div>
+      <div style="font-size:.74rem;color:var(--muted);margin-bottom:9px;line-height:1.5">See what customers and delivery see. Opens in a new tab.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <a href="customer.html" target="_blank" style="text-decoration:none;background:var(--ograd);color:white;padding:12px;border-radius:11px;text-align:center;font-family:var(--font-head);font-weight:700;font-size:.82rem">🛒 Customer View</a>
+        <a href="delivery.html" target="_blank" style="text-decoration:none;background:var(--dark);color:white;padding:12px;border-radius:11px;text-align:center;font-family:var(--font-head);font-weight:700;font-size:.82rem">🛵 Delivery View</a>
+        <button onclick="openLiveTracking()" style="grid-column:1/3;background:#3b82f6;color:white;border:none;padding:12px;border-radius:11px;font-family:var(--font-head);font-weight:700;font-size:.82rem;cursor:pointer">📍 Live Delivery Tracking</button>
+      </div>
+    </div>
+    <div class="card">
       <div class="ct">Shop Details</div>
       <div class="sg2"><label>Shop Name</label><input class="si" id="sName" placeholder="Kicken Bites"></div>
       <div class="sg2"><label>UPI ID</label><input class="si" id="sUpi" placeholder="e.g. q797038315@ybl"></div>
@@ -755,6 +764,15 @@ window.shareCollageWA=function(){
   }
 })();
 window.doLogout=function(){localStorage.removeItem(SESS_KEY);document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';};
+
+// A7: open live delivery tracking. The admin already has a live map on the Delivery tab;
+// jump there. If a boy is out, the map shows their live position.
+window.openLiveTracking=function(){
+  try{ sw('del'); }catch(e){}
+  const card=document.getElementById('boyLiveCard');
+  setTimeout(()=>{ if(card) card.scrollIntoView({behavior:'smooth',block:'start'}); },200);
+  showToast('📍 Live tracking — see the Delivery tab map');
+};
 
 // ---- INIT ----
 async function initDash(){

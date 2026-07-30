@@ -103,6 +103,7 @@ h1,h2,h3,.lb-title{font-family:var(--font-head);}
 .ob-pickup{background:var(--o);color:white;}
 .ob-deliver{flex:1;background:linear-gradient(135deg,var(--g),#16a34a);color:white;border-radius:9px;padding:9px;font-size:.82rem;font-weight:800;box-shadow:0 3px 10px rgba(34,197,94,.3);text-align:center;cursor:pointer;border:none;}
 .del-done-tag{flex:1;text-align:center;padding:8px;background:#f0fdf4;color:var(--g);border-radius:9px;font-size:.8rem;font-weight:700;}
+.future-note{margin-top:8px;padding:8px 10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;font-size:.72rem;color:#9a3412;font-weight:600;}
 
 .coords{font-size:.68rem;color:#999;text-align:center;margin-top:5px;}
 .upd-badge{font-size:.68rem;color:var(--g);text-align:center;margin-top:3px;}
@@ -700,6 +701,8 @@ function orderCard(o) {
   const t = o.createdAt ? new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : '';
   const isOut = o.status==='out_for_delivery';
   const isDone = o.status==='delivered';
+  // A4: a delivery can only be actioned on its own day or a past day — never a future date.
+  const isFuture = (o.date||'') > getTodayDate();
   const mapsUrl = o.address ? `https://www.google.com/maps/search/${encodeURIComponent(o.address)}` : '#';
   return `<div class="oc ${isDone?'delivered':isOut?'active-del':''}">
     <div class="oc-top">
@@ -714,21 +717,28 @@ function orderCard(o) {
       <a class="obtn ob-call" href="tel:${o.phone}">📞 Call</a>
       <a class="obtn ob-maps" href="${mapsUrl}" target="_blank">🗺️ Maps</a>
       <button class="obtn ob-wa" onclick="waMsgDelay('${o.phone}','${(o.name||'').replace(/'/g,'')}')">💬 WA</button>
-      ${!isDone&&!isOut?`<button class="obtn ob-pickup" onclick="markPickedUp('${o.id}')">🛵 Picked Up</button>`:''}
-      ${isOut?`<button class="ob-deliver" onclick="markDelivered('${o.id}','${o.name.replace(/'/g,'')}')">✅ Delivered</button>`:''}
+      ${isFuture?'':`${!isDone&&!isOut?`<button class="obtn ob-pickup" onclick="markPickedUp('${o.id}')">🛵 Picked Up</button>`:''}
+      ${isOut?`<button class="ob-deliver" onclick="markDelivered('${o.id}','${o.name.replace(/'/g,'')}')">✅ Delivered</button>`:''}`}
       ${isDone?`<div class="del-done-tag">✅ Delivered!</div>`:''}
     </div>
+    ${isFuture?`<div class="future-note">📅 Scheduled for ${new Date(o.date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})} — you can deliver this on the day.</div>`:''}
   </div>`;
 }
 
 window.markPickedUp = async function(id) {
-  try { await updateDoc(doc(db,'orders',id),{status:'out_for_delivery',pickedUpAt:new Date().toISOString()}); showToast('🛵 Picked up! Customer can now track you.'); }
+  try {
+    const snap=await getDoc(doc(db,'orders',id));
+    if(snap.exists() && (snap.data().date||'')>getTodayDate()){ alert('This order is scheduled for a future date — you can pick it up on the day.'); return; }
+    await updateDoc(doc(db,'orders',id),{status:'out_for_delivery',pickedUpAt:new Date().toISOString()}); showToast('🛵 Picked up! Customer can now track you.');
+  }
   catch(e) { alert('Error. Check internet.'); }
 };
 
 window.markDelivered = async function(id, name) {
   if (!confirm(`Confirm delivery to ${name}?`)) return;
   try {
+    const snap=await getDoc(doc(db,'orders',id));
+    if(snap.exists() && (snap.data().date||'')>getTodayDate()){ alert('This order is scheduled for a future date — you can deliver it on the day.'); return; }
     await updateDoc(doc(db,'orders',id),{status:'delivered',deliveredAt:new Date().toISOString()});
     showToast(`✅ Delivered to ${name}!`);
   } catch(e) { alert('Error. Check internet.'); }

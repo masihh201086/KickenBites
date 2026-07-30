@@ -30,6 +30,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .ls{position:fixed;inset:0;background:var(--obg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:11px;z-index:500;}
 .spin{width:36px;height:36px;border:4px solid var(--op);border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes delivPulse{0%,100%{box-shadow:0 4px 16px rgba(34,197,94,.4)}50%{box-shadow:0 4px 22px rgba(34,197,94,.7)}}
 
 /* LOGIN */
 #loginScreen{position:fixed;inset:0;background:linear-gradient(160deg,var(--dark),#0f3460);display:flex;align-items:center;justify-content:center;z-index:400;padding:20px;display:none;}
@@ -953,13 +954,30 @@ function showDeliveredBannerIfPending(){
   let b=document.getElementById('deliveredBanner'); if(b)b.remove();
   b=document.createElement('div');
   b.id='deliveredBanner';
-  b.style.cssText='background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border-radius:12px;padding:13px;margin:10px 0;font-weight:700';
+  b.style.cssText='background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border-radius:12px;padding:13px;margin:10px 0;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(34,197,94,.4);animation:delivPulse 1.6s ease-in-out infinite';
   const oid=info.id?('#'+String(info.id).slice(-5).toUpperCase()):'';
+  b.setAttribute('onclick', "openDeliveredOrder('"+(info.id||'')+"')");
   b.innerHTML='<div style="text-align:center">🎉 <b>Order '+oid+' delivered!</b></div>'+
     (info.items?'<div style="text-align:center;font-size:.8rem;opacity:.95;margin-top:2px;font-weight:600">'+info.items+(info.total?' · ₹'+info.total:'')+'</div>':'')+
-    '<div style="text-align:center;font-size:.78rem;opacity:.9;margin-top:3px">We hope you enjoyed it! <span style="text-decoration:underline;cursor:pointer;font-weight:800" onclick="this.closest(\'#deliveredBanner\').remove()">Dismiss</span></div>';
+    '<div style="text-align:center;font-size:.78rem;opacity:.95;margin-top:3px">👆 Tap to view &amp; rate · <span style="text-decoration:underline;font-weight:800" onclick="event.stopPropagation();this.closest(\'#deliveredBanner\').remove()">Dismiss</span></div>';
   host.insertBefore(b, host.firstChild);
 }
+// A3: tapping the delivered banner takes the customer straight to that order (Orders tab).
+window.openDeliveredOrder=function(orderId){
+  const b=document.getElementById('deliveredBanner'); if(b)b.remove();
+  switchTab('myorders');
+  setTimeout(()=>{
+    // Try to scroll the specific order into view and flash it
+    const cards=document.querySelectorAll('#myOrdersList .oh');
+    let target=null;
+    cards.forEach(c=>{ if(orderId && c.innerHTML.includes(String(orderId).slice(-6).toUpperCase())) target=c; });
+    if(target){
+      target.scrollIntoView({behavior:'smooth',block:'center'});
+      target.style.transition='box-shadow .3s'; target.style.boxShadow='0 0 0 3px #22c55e';
+      setTimeout(()=>{target.style.boxShadow='';},1600);
+    }
+  },250);
+};
 
 // ---- MY ORDERS ----
 function loadMyOrders(phone) {
