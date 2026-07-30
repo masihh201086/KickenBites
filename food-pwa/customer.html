@@ -248,6 +248,8 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .reorder-btn{margin-top:7px;padding:6px 12px;background:var(--orange);color:white;border:none;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;}
 .track-order-btn{margin-top:7px;margin-left:6px;padding:6px 12px;background:var(--dark);color:white;border:none;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;}
 .rate-order-btn{margin-top:7px;margin-left:6px;padding:6px 12px;background:#f59e0b;color:white;border:none;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;}
+.cancel-order-btn{margin-top:7px;margin-left:6px;padding:6px 12px;background:white;color:var(--red);border:1.5px solid var(--red);border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;}
+.refund-btn{margin-top:7px;margin-left:6px;padding:6px 12px;background:#25d366;color:white;border:none;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;}
 
 /* PROFILE */
 .prof-hdr{background:linear-gradient(135deg,var(--orange),var(--ol));padding:22px 16px;text-align:center;color:white;}
@@ -1058,6 +1060,11 @@ function renderMyOrders(all) {
     const items=(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
     const isActive=['confirmed','preparing','ready','out_for_delivery'].includes(o.status);
     const canRate = o.status==='delivered';
+    // A1: customer may cancel only BEFORE the order goes out for delivery.
+    const canCancel = ['pending_payment','confirmed','preparing','ready'].includes(o.status);
+    // A1 refund: a cancelled order that was already paid shows a WhatsApp-refund button.
+    const wasPaid = o.paymentConfirmed===true || o.status==='confirmed' || o.paid===true;
+    const showRefund = o.status==='cancelled' && wasPaid && o.refundDone!==true;
     return `<div class="oh ${o.status}">
       <div class="oh-top">
         <div><div class="oh-id">Order #${o.id.slice(-6).toUpperCase()}</div><div class="oh-date">${formatDate(o.date)} at ${time}</div></div>
@@ -1065,10 +1072,13 @@ function renderMyOrders(all) {
       </div>
       <div class="oh-items">${items}</div>
       <div class="oh-total">₹${o.total} | ${o.orderType==='delivery'?'🛵':'🏠'} ${o.orderType}</div>
+      ${o.status==='cancelled'&&o.cancelledBy==='admin'?`<div style="background:var(--rp);color:var(--red);font-size:.76rem;font-weight:600;padding:7px 9px;border-radius:8px;margin-top:7px">⚠️ This order was cancelled by the shop${o.cancelReason?': '+esc(o.cancelReason):'.'}</div>`:''}
       <div>
         <button class="reorder-btn" onclick="reorder('${o.id}')">🔁 Reorder</button>
         ${isActive?`<button class="track-order-btn" onclick="openTrackingFor('${o.id}','${o.phone||''}',${o.total||0},'${encodeURIComponent(o.address||'')}','${encodeURIComponent(items)}')">📍 Track</button>`:''}
         ${canRate?`<button class="rate-order-btn" onclick="openRating('${o.id}')">⭐ Rate</button>`:''}
+        ${canCancel?`<button class="cancel-order-btn" onclick="cancelMyOrder('${o.id}')">✖ Cancel</button>`:''}
+        ${showRefund?`<button class="refund-btn" onclick="requestRefund('${o.id}',${o.total||0})">💬 Refund via WhatsApp</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1091,6 +1101,51 @@ window.reorder = async function(orderId) {
   });
   if(added>0){renderMenu(menuConfig.items);updateBill();switchTab('order');showToast(added+' item(s) added to cart'+(skipped.length?' ('+skipped.join(', ')+' unavailable)':''));}
   else showToast('None of those items are available today');
+};
+
+// A1: Customer cancels their own order — allowed only BEFORE it goes out for delivery.
+// Restores the stock atomically (same guarded pattern the admin cancel uses) and marks
+// who cancelled it, so the admin dashboard can show/count it correctly.
+window.cancelMyOrder = async function(orderId){
+  if(!confirm('Cancel this order? This cannot be undone.')) return;
+  try{
+    const snap=await getDoc(doc(db,'orders',orderId));
+    if(!snap.exists()){showToast('Order not found');return;}
+    const od=snap.data();
+    if(['out_for_delivery','delivered','cancelled'].includes(od.status)){
+      showToast('This order can no longer be cancelled'); renderMyOrders(_allMyOrders); return;
+    }
+    // Restore stock (guarded so it can't double-restock)
+    if(od.date && Array.isArray(od.items)){
+      const dailyRef=doc(db,'dailyMenu',od.date);
+      try{
+        await runTransaction(db,async tx=>{
+          const ms=await tx.get(dailyRef);
+          if(!ms.exists())return;
+          const md=ms.data();
+          const upd=(md.items||[]).map(item=>{
+            const o=od.items.find(i=>i.id===item.id);
+            if(o) return {...item, availableQty:(Number(item.availableQty)||0)+(Number(o.qty)||0)};
+            return item;
+          });
+          tx.update(dailyRef,{items:upd});
+        });
+      }catch(e){console.error('restock on customer cancel',e);}
+    }
+    await updateOrderStatus(orderId,'cancelled',{cancelledBy:'customer',cancelledAt:new Date().toISOString()});
+    showToast('✅ Order cancelled');
+  }catch(e){showToast('Could not cancel. Check internet.');console.error(e);}
+};
+
+// A1 refund: opens WhatsApp to the shop asking for a refund on a paid+cancelled order.
+window.requestRefund = async function(orderId,total){
+  let adminPhone='';
+  try{const c=await getMasterCfg(); adminPhone=(c&&c.adminPhone)||'';}catch(e){}
+  if(!adminPhone) adminPhone='919795482664';
+  const short=orderId.slice(-6).toUpperCase();
+  const name=(currentProfile&&currentProfile.name)||'';
+  const msg=`Hello Kicken Bites 👋%0AI cancelled my order *#${short}* (₹${total}).%0AName: ${encodeURIComponent(name)}%0APlease process my refund. Thank you!`;
+  window.open(`https://wa.me/${adminPhone.replace(/[^0-9]/g,'')}?text=${msg}`,'_blank');
 };
 
 // ---- MENU ----

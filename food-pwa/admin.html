@@ -96,6 +96,7 @@ input:checked+.slider:before{transform:translateX(20px);}
 .oc.out_for_delivery{border-left-color:var(--dark);}
 .oc.delivered{border-left-color:var(--g);opacity:.7;}
 .oc.cancelled{border-left-color:var(--r);opacity:.55;}
+.oc.cancel-alert{opacity:1;border-left-color:var(--r);box-shadow:0 0 0 2px var(--r),0 4px 16px rgba(239,68,68,.28);background:#fff5f5;}
 .oc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
 .oc.hl{box-shadow:0 0 0 3px var(--o),0 4px 16px rgba(230,92,0,.35)!important;animation:ocPulse 1s ease-in-out 3;}
 @keyframes ocPulse{0%,100%{box-shadow:0 0 0 3px var(--o),0 4px 16px rgba(230,92,0,.35)}50%{box-shadow:0 0 0 6px var(--o),0 4px 22px rgba(230,92,0,.5)}}
@@ -286,6 +287,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="sb"><div class="sn" id="stRev">₹0</div><div class="sl">Revenue</div></div>
       <div class="sb"><div class="sn" id="stPend">0</div><div class="sl">Awaiting Pay</div></div>
       <div class="sb"><div class="sn" id="stDel">0</div><div class="sl">Delivered</div></div>
+      <div class="sb"><div class="sn" id="stCancel" style="color:var(--r)">0</div><div class="sl">Cancelled</div></div>
     </div>
     <div class="card" style="padding:11px;margin-top:0">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -1263,6 +1265,7 @@ function updateStats(){
   document.getElementById('stRev').textContent='₹'+conf.reduce((s,o)=>s+(o.total||0),0);
   document.getElementById('stPend').textContent=allOrders.filter(o=>o.status==='pending_payment').length;
   document.getElementById('stDel').textContent=allOrders.filter(o=>o.status==='delivered').length;
+  {const c=document.getElementById('stCancel');if(c)c.textContent=allOrders.filter(o=>o.status==='cancelled').length;}
   // Payment breakdown (cancelled excluded from both sides)
   const live=allOrders.filter(o=>o.status!=='cancelled');
   const paid=live.filter(o=>o.customerPaid===true&&!o.payLater);
@@ -1534,7 +1537,7 @@ function renderOrders(){
     const d=ocDate?ocDate.toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
     const items=(o.items||[]).map(i=>`${esc(i.name)} ×${i.qty}`).join(', ');
     const boy=o.assignedBoy?`🛵 Assigned: ${esc(o.assignedBoy)}`:'';
-    return `<div class="oc ${o.status}" id="oc_${o.id}">
+    return `<div class="oc ${o.status}${o.status==='cancelled'&&o.ackCancel!==true?' cancel-alert':''}" id="oc_${o.id}">
       <div class="oc-top">
         <div><div class="oc-name">${esc(o.name)}<span class="tag ${o.orderType==='delivery'?'td':'tt'}">${o.orderType==='delivery'?'🛵':'🏠'}</span></div><div class="oc-ph">📞 ${esc(o.phone)}</div></div>
         <div style="text-align:right"><span class="sp sp-${o.status}">${sl[o.status]||o.status}</span><div class="oc-time">${d} ${t}</div></div>
@@ -1552,7 +1555,9 @@ function renderOrders(){
         ${o.status==='ready'&&o.orderType==='takeaway'?`<button class="sb2 sb-del" onclick="chgStatus('${o.id}','delivered')">✅ Collected</button>`:''}
         ${o.status==='out_for_delivery'?`<button class="sb2 sb-del" onclick="chgStatus('${o.id}','delivered')">✅ Delivered</button>`:''}
         ${o.orderType==='delivery'&&!o.assignedBoy&&deliveryBoys.length>0?`<button class="sb2 sb-assign" onclick="assignBoy('${o.id}')">👤 Assign Boy</button>`:''}
-        ${['pending_payment','confirmed','preparing'].includes(o.status)?`<button class="sb2 sb-cancel" onclick="chgStatus('${o.id}','cancelled')">✗ Cancel</button>`:''}
+        ${['pending_payment','confirmed','preparing','ready'].includes(o.status)?`<button class="sb2 sb-cancel" onclick="chgStatus('${o.id}','cancelled')">✗ Cancel</button>`:''}
+        ${o.status==='cancelled'?`<button class="sb2" onclick="waCancelNotify('${o.id}')" style="background:#25d366;color:white">📱 Notify Cancel</button>`:''}
+        ${o.status==='cancelled'&&o.ackCancel!==true?`<button class="sb2" onclick="ackCancel('${o.id}')" style="background:var(--dark);color:white">✓ Acknowledge</button>`:''}
         <button class="sb2" onclick="waOrderSummary('${o.id}')" style="background:#25d366;color:white">📱 WA</button>
         <button class="sb2" onclick="forwardOrderConfirmation('${o.id}')" style="background:#128c7e;color:white">📨 Forward Confirmation</button>
         ${o.orderType==='delivery'?`<button class="sb2" onclick="assignBoy('${o.id}')" style="background:#8b5cf6;color:white">🛵 ${o.assignedBoyName||'Assign'}</button>`:''}
@@ -1591,7 +1596,7 @@ window.chgStatus=async function(id,status){
         }
       }
     }
-    await updateOrderStatus(id,status);
+    await updateOrderStatus(id,status, status==='cancelled'?{cancelledBy:'admin',cancelledAt:new Date().toISOString()}:{});
     // B6: Auto-assign when confirming if single delivery boy
     if(status==='confirmed') autoAssignIfSingleBoy(id);
     // On a non-today view there is no live listener, so refresh manually
@@ -1605,6 +1610,31 @@ window.startDelivery=async function(orderId){
     await updateOrderStatus(orderId,'out_for_delivery',{deliveryStartedAt:new Date().toISOString()});
     await setDeliveryStatus({...(await getDoc(doc(db,'delivery','status'))).data()||{},deliveryStarted:true,updatedAt:new Date().toISOString()});
     showToast('🛵 Delivery started! Customer can now track.');
+  }catch(e){alert('Error: '+e.message);}
+};
+
+// A5: send an individual WhatsApp cancellation message to the customer who booked.
+window.waCancelNotify=async function(orderId){
+  try{
+    const snap=await getDoc(doc(db,'orders',orderId));
+    if(!snap.exists()){alert('Order not found');return;}
+    const o=snap.data();
+    const short=orderId.slice(-6).toUpperCase();
+    const items=(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
+    const day=formatDisplayDate(o.date||getTodayDate());
+    const msg=`Hello ${o.name||''} 👋%0A%0AWe're sorry — your Kicken Bites order *#${short}* for *${day}* has been cancelled.%0A%0AItems: ${encodeURIComponent(items)}%0ATotal: ₹${o.total}%0A%0A${o.paymentConfirmed||o.status==='confirmed'?'Your payment will be refunded shortly. ':''}Sorry for the inconvenience. 🙏`;
+    const ph=(o.phone||'').replace(/[^0-9]/g,'');
+    const wph=ph.length===10?'91'+ph:ph;
+    window.open(`https://wa.me/${wph}?text=${msg}`,'_blank');
+  }catch(e){alert('Error: '+e.message);}
+};
+
+// A5: admin acknowledges a cancelled order (clears the red highlight, stops it nagging).
+window.ackCancel=async function(orderId){
+  try{
+    await updateOrderStatus(orderId,'cancelled',{ackCancel:true, refundDone:true});
+    showToast('✓ Acknowledged');
+    if(ordViewDate&&ordViewDate!==getTodayDate()) setOrdersDate(ordViewDate);
   }catch(e){alert('Error: '+e.message);}
 };
 
