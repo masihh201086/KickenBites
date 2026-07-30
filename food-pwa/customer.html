@@ -406,6 +406,8 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
             <div class="ig"><label>Landmark</label><input type="text" id="cLandmark" placeholder="Near..."></div>
             <div class="ig"><label>Area *</label><input type="text" id="cArea" placeholder="Colony / Area"></div>
           </div>
+          <div class="ig"><label>Pincode *</label><input type="tel" id="cPincode" placeholder="6-digit pincode" maxlength="6" inputmode="numeric"></div>
+          <div id="pincodeMsg" style="display:none;font-size:.78rem;font-weight:600;padding:9px 11px;border-radius:9px;margin-top:2px"></div>
         </div>
       </div>
       <div class="sec" id="taSec" style="display:none">
@@ -651,6 +653,49 @@ import { db, getTodayDate, formatDisplayDate, getTodayMenu, getDailyMenu, listen
 // ---- STATE ----
 let menuConfig={}, quantities={}, orderType='delivery', currentOrderId=null, currentTotal=0;
 let currentProfile=null, lastOrder={}, selectedDate='', loginPhoneVal='', genOtp='';
+
+// ===== SERVICE AREA (A10 distance + A11 pincode) =====
+// Base = Netaji Kunj, GAIL Gaon, Dibiyapur. We deliver within SERVICE_RADIUS_KM of it,
+// and (when GPS isn't available) only to the operating pincode. These can later be moved
+// into admin config; the values here are the safe defaults.
+const SERVICE={ baseLat:26.63583, baseLng:79.57333, radiusKm:15, pincode:'206244' };
+function distanceKm(lat1,lng1,lat2,lng2){
+  const R=6371, toRad=d=>d*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLng=toRad(lng2-lng1);
+  const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+// Try to get the customer's GPS quickly; resolves null if denied/unavailable/slow.
+function getGpsQuick(timeoutMs=6000){
+  return new Promise(res=>{
+    if(!navigator.geolocation){res(null);return;}
+    let done=false;
+    const t=setTimeout(()=>{if(!done){done=true;res(null);}},timeoutMs);
+    navigator.geolocation.getCurrentPosition(
+      p=>{if(!done){done=true;clearTimeout(t);res({lat:p.coords.latitude,lng:p.coords.longitude});}},
+      ()=>{if(!done){done=true;clearTimeout(t);res(null);}},
+      {enableHighAccuracy:false,timeout:timeoutMs,maximumAge:300000}
+    );
+  });
+}
+// Returns {ok:true} if deliverable, or {ok:false,reason:'...'} otherwise.
+// Rule: if GPS available → must be within radiusKm. Else → pincode must match (known
+// service pincode). Preset areas (NTPC/GAIL/PATA) are always in-area.
+async function checkServiceArea(loc, pincode){
+  // Known in-town preset areas are always fine.
+  if(loc && loc!=='Others') return {ok:true};
+  const gps=await getGpsQuick();
+  if(gps){
+    const d=distanceKm(gps.lat,gps.lng,SERVICE.baseLat,SERVICE.baseLng);
+    if(d>SERVICE.radiusKm) return {ok:false,reason:`Sorry, you're about ${d.toFixed(0)} km away. We currently deliver within ${SERVICE.radiusKm} km of Dibiyapur. We'll be there soon! 🙏`};
+    return {ok:true};
+  }
+  // No GPS → fall back to pincode
+  if(pincode && pincode!==SERVICE.pincode){
+    return {ok:false,reason:`We'll be there soon! 🙏 We're currently delivering only in Dibiyapur (${SERVICE.pincode}). Your pincode ${pincode} isn't served yet.`};
+  }
+  return {ok:true};
+}
 
 // --- PIN security (P-R1): PINs are stored as SHA-256 hashes, never plaintext. ---
 // hashPin() turns a 4-digit PIN into a hex hash using the browser's built-in
@@ -1582,10 +1627,20 @@ window.placeOrderClick=async function(){
       const house=document.getElementById('cHouseOther').value.trim();
       const street=document.getElementById('cStreet').value.trim();
       const area=document.getElementById('cArea').value.trim();
+      const pincode=document.getElementById('cPincode').value.trim();
       if(!house||!area){alert('Please fill address details');return;}
+      if(!/^\d{6}$/.test(pincode)){alert('Please enter a valid 6-digit pincode');return;}
+      // A10/A11: service-area gate (distance if GPS, else pincode)
+      const svc=await checkServiceArea('Others', pincode);
+      if(!svc.ok){
+        const m=document.getElementById('pincodeMsg');
+        if(m){m.style.display='block';m.style.background='#fef2f2';m.style.color='#b91c1c';m.textContent=svc.reason;}
+        else alert(svc.reason);
+        return;
+      }
       addrLine1=`${house}, ${street}`.trim();
       addrLine2=`${document.getElementById('cLandmark').value.trim()}, ${area}`.trim();
-      address=`Others — ${addrLine1}, ${addrLine2}`;
+      address=`Others — ${addrLine1}, ${addrLine2} — PIN ${pincode}`;
     }else{
       const house=document.getElementById('cHouse').value.trim();
       if(!house){alert('Please enter house/flat number');return;}
