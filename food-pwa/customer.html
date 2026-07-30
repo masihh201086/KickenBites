@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <meta name="theme-color" content="#e65c00">
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -647,6 +648,25 @@ import { db, getTodayDate, formatDisplayDate, getTodayMenu, getDailyMenu, listen
 // ---- STATE ----
 let menuConfig={}, quantities={}, orderType='delivery', currentOrderId=null, currentTotal=0;
 let currentProfile=null, lastOrder={}, selectedDate='', loginPhoneVal='', genOtp='';
+
+// --- PIN security (P-R1): PINs are stored as SHA-256 hashes, never plaintext. ---
+// hashPin() turns a 4-digit PIN into a hex hash using the browser's built-in
+// crypto (no library). pinMatches() accepts either the new hash OR a legacy
+// plaintext PIN (older accounts created before hashing) so nobody is locked out;
+// callers upgrade the stored value to a hash on the next successful login.
+async function hashPin(pin){
+  try{
+    const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode('kb:'+pin));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){ return 'plain:'+pin; } // extreme fallback (non-secure context); still not raw
+}
+async function pinMatches(stored, entered){
+  if(stored==null) return false;
+  if(stored===entered) return true;               // legacy plaintext match
+  const h=await hashPin(entered);
+  return stored===h;
+}
+function isHashedPin(v){ return typeof v==='string' && /^[0-9a-f]{64}$/.test(v); }
 let ordersUnsub=null, menuUnsub=null, selDateUnsub=null, itemRatings={};
 
 const today = getTodayDate();
@@ -739,7 +759,7 @@ window.goStep2 = async function() {
       document.getElementById('newSec').style.display='block';
       document.getElementById('pinSec').style.display='none';
     }
-  } catch(e) { localStorage.setItem('custPhone',phone); localStorage.setItem('custSession','ok'); showApp(); }
+  } catch(e) { showStep('ls1'); showErr('Could not connect. Check internet and try again.'); }
 };
 
 window.verifyPin = async function() {
@@ -748,8 +768,12 @@ window.verifyPin = async function() {
   if (pin.length!==4) { showErr('Please enter 4-digit PIN'); return; }
   try {
     const snap = await getDoc(doc(db,'customers',loginPhoneVal));
-    if (snap.exists() && snap.data().pin===pin) {
+    if (snap.exists() && await pinMatches(snap.data().pin, pin)) {
       currentProfile = snap.data();
+      // Upgrade legacy plaintext PIN to a hash silently on successful login
+      if(!isHashedPin(currentProfile.pin)){
+        try{ const h=await hashPin(pin); await setDoc(doc(db,'customers',loginPhoneVal),{pin:h},{merge:true}); currentProfile.pin=h; }catch(e){}
+      }
       localStorage.setItem('custPhone',loginPhoneVal);
       localStorage.setItem('custSession','ok');
       syncLocalStorage(currentProfile);
@@ -765,7 +789,8 @@ window.createPin = async function() {
   if (pin.length!==4||!/^\d{4}$/.test(pin)) { showErr('PIN must be exactly 4 digits'); return; }
   if (pin!==pinC) { showErr('PINs do not match'); return; }
   try {
-    const profile = {phone:loginPhoneVal, name:'', location:'', houseNo:'', pin, createdAt:new Date().toISOString()};
+    const pinHash = await hashPin(pin);
+    const profile = {phone:loginPhoneVal, name:'', location:'', houseNo:'', pin:pinHash, createdAt:new Date().toISOString()};
     await setDoc(doc(db,'customers',loginPhoneVal), profile);
     currentProfile = profile;
     localStorage.setItem('custPhone',loginPhoneVal);
@@ -790,12 +815,13 @@ window.sendOtpRequestWA = function(){
   window.open('https://wa.me/91'+ADMIN+'?text='+encodeURIComponent(msg),'_blank');
 };
 
-window.verifyOtp = function() {
+window.verifyOtp = async function() {
   const otp = document.getElementById('lOtp').value.trim();
   const pin = document.getElementById('lReset').value.trim();
   if (otp!==genOtp) { showErr('Wrong OTP'); return; }
   if (pin.length!==4) { showErr('PIN must be 4 digits'); return; }
-  setDoc(doc(db,'customers',loginPhoneVal),{pin},{merge:true}).then(()=>{
+  const pinHash = await hashPin(pin);
+  setDoc(doc(db,'customers',loginPhoneVal),{pin:pinHash},{merge:true}).then(()=>{
     localStorage.setItem('custPhone',loginPhoneVal);
     localStorage.setItem('custSession','ok');
     showApp();
@@ -857,7 +883,7 @@ window.changePinPrompt = async function() {
   if(newPin!==conf){alert('PINs do not match');return;}
   const phone=currentProfile?.phone||localStorage.getItem('custPhone');
   if(!phone){alert('Please login first');return;}
-  try{await setDoc(doc(db,'customers',phone),{pin:newPin},{merge:true});if(currentProfile)currentProfile.pin=newPin;showToast('✅ PIN changed!');}
+  try{const ph=await hashPin(newPin);await setDoc(doc(db,'customers',phone),{pin:ph},{merge:true});if(currentProfile)currentProfile.pin=ph;showToast('✅ PIN changed!');}
   catch(e){alert('Error changing PIN');}
 };
 

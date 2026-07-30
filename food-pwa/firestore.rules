@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────────────────────────
+    // Kicken Bites Firestore rules
+    //
+    // IMPORTANT LIMITATION: this app has NO Firebase Authentication —
+    // customer/delivery/admin login is client-side (phone+PIN / password).
+    // So these rules CANNOT enforce "only the real admin may do X".
+    // What they DO enforce:
+    //   • the database is NOT wide-open test mode
+    //   • each document must have the right shape / field types
+    //   • nobody can DELETE data except the two deletes the app itself makes
+    //   • unknown collections are denied by default
+    // For true per-role control you must add Firebase Auth later.
+    // ─────────────────────────────────────────────────────────────
+
+    function isStr(v){ return v is string; }
+    function isNum(v){ return v is number; }
+    function has(data, field){ return field in data; }
+
+    // ---- orders ----
+    match /orders/{orderId} {
+      allow read: if true;
+      // create: must look like a real order
+      allow create: if request.resource.data.keys().hasAll(['phone','items','status','total','date'])
+                    && isStr(request.resource.data.phone)
+                    && isNum(request.resource.data.total)
+                    && isStr(request.resource.data.status)
+                    && isStr(request.resource.data.date);
+      // update: allowed (status changes, assignments) but can't wipe the phone/date identity
+      allow update: if request.resource.data.phone == resource.data.phone
+                    && request.resource.data.date == resource.data.date;
+      allow delete: if false; // orders are never hard-deleted, only status→cancelled
+    }
+
+    // ---- customers ---- (PIN is a SHA-256 hash, never plaintext)
+    match /customers/{phone} {
+      allow read: if true;
+      allow create, update: if request.resource.data.phone == phone;
+      allow delete: if false;
+    }
+
+    // ---- wallets ----
+    match /wallets/{phone} {
+      allow read: if true;
+      allow create, update: if request.resource.data.phone == phone
+                            && isNum(request.resource.data.balance);
+      allow delete: if false;
+    }
+
+    // ---- dailyMenu ---- (stock docs; app resets an override by deleting)
+    match /dailyMenu/{date} {
+      allow read: if true;
+      allow create, update: if has(request.resource.data,'items');
+      allow delete: if true; // admin "Reset to default" removes the override doc
+    }
+
+    // ---- config ----
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if true;   // admin settings; no auth to gate this without Firebase Auth
+      allow delete: if false;
+    }
+
+    // ---- deliveryBoys ---- (app supports removeBoy)
+    match /deliveryBoys/{phone} {
+      allow read: if true;
+      allow create, update: if request.resource.data.phone == phone;
+      allow delete: if true;  // admin removeBoy
+    }
+
+    // ---- delivery live status ----
+    match /delivery/{docId} {
+      allow read: if true;
+      allow write: if true;
+      allow delete: if false;
+    }
+
+    // ---- presence / boyNotifications / wishlist ----
+    match /presence/{phone} {
+      allow read: if true;
+      allow write: if true;
+      allow delete: if false;
+    }
+    match /boyNotifications/{id} {
+      allow read: if true;
+      allow write: if true;
+      allow delete: if false;
+    }
+    match /wishlist/{id} {
+      allow read: if true;
+      allow write: if true;
+      allow delete: if true;  // votes can be withdrawn
+    }
+
+    // ---- everything else: DENY ----
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

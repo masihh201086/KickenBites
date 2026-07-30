@@ -245,7 +245,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     <p style="color:var(--muted);font-size:.8rem;margin:5px 0 16px">Admin Login</p>
     <input class="li" type="password" id="lpass" placeholder="Password" onkeyup="if(event.key==='Enter')doLogin()">
     <button class="lbtn" onclick="doLogin()">Login →</button>
-    <p style="font-size:.7rem;color:var(--muted);margin-top:10px">Default: <b>1234</b></p>
+    <p id="loginMsg" style="font-size:.72rem;color:var(--r);margin-top:10px;min-height:1em"></p>
   </div>
 </div>
 
@@ -617,14 +617,34 @@ let cfg={}, masterItems=[], allOrders=[], todayOrders=[], ordViewDate='', ordDat
 let deliveryBoys=[], IMGBB='', curImgIdx=null, ordersUnsub=null, tomorrowUnsub=null, deliveryUnsub=null;
 
 // ---- LOGIN ----
+const LOCK_KEY='adminLock', TRY_KEY='adminTries', SESS_KEY='adminSession';
+const MAX_TRIES=5, LOCK_MS=60000, SESSION_MS=12*60*60*1000; // 5 tries, 60s lock, 12h session
+function loginMsg(t){ const el=document.getElementById('loginMsg'); if(el) el.textContent=t||''; }
 window.doLogin=function(){
+  const lockUntil=Number(localStorage.getItem(LOCK_KEY)||0);
+  if(lockUntil>Date.now()){
+    loginMsg('Too many attempts. Try again in '+Math.ceil((lockUntil-Date.now())/1000)+'s.');
+    return;
+  }
   const saved=localStorage.getItem(PK)||'1234';
   if(document.getElementById('lpass').value===saved){
-    localStorage.setItem('adminSession','ok'); // Save session
+    localStorage.removeItem(TRY_KEY); localStorage.removeItem(LOCK_KEY);
+    localStorage.setItem(SESS_KEY, String(Date.now())); // timestamp enables expiry
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('app').style.display='block';
     initDash();
-  }else alert('Wrong password!');
+  }else{
+    const tries=Number(localStorage.getItem(TRY_KEY)||0)+1;
+    localStorage.setItem(TRY_KEY,String(tries));
+    if(tries>=MAX_TRIES){
+      localStorage.setItem(LOCK_KEY,String(Date.now()+LOCK_MS));
+      localStorage.removeItem(TRY_KEY);
+      loginMsg('Too many attempts. Locked for '+(LOCK_MS/1000)+'s.');
+    }else{
+      loginMsg('Wrong password. '+(MAX_TRIES-tries)+' attempt(s) left.');
+    }
+    document.getElementById('lpass').value='';
+  }
 };
 
 window.showCollagePopup = function(dataUrl){
@@ -718,16 +738,21 @@ window.shareCollageWA=function(){
   }, 1000);
 };
 
-// Auto-restore session on page load
+// Auto-restore session on page load — expires after SESSION_MS
 (function(){
-  if(localStorage.getItem('adminSession')==='ok'){
+  const ts=Number(localStorage.getItem(SESS_KEY)||0);
+  // Accept legacy 'ok' value once (older sessions) but treat as fresh timestamp
+  const legacy=localStorage.getItem(SESS_KEY)==='ok';
+  if((ts>0 && (Date.now()-ts)<SESSION_MS) || legacy){
+    if(legacy) localStorage.setItem(SESS_KEY,String(Date.now()));
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('app').style.display='block';
-    // initDash called after DOM ready
     window.addEventListener('DOMContentLoaded',()=>initDash());
+  }else if(ts>0){
+    localStorage.removeItem(SESS_KEY); // expired
   }
 })();
-window.doLogout=function(){localStorage.removeItem('adminSession');document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';};
+window.doLogout=function(){localStorage.removeItem(SESS_KEY);document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';};
 
 // ---- INIT ----
 async function initDash(){
