@@ -654,43 +654,14 @@ import { db, getTodayDate, formatDisplayDate, getTodayMenu, getDailyMenu, listen
 let menuConfig={}, quantities={}, orderType='delivery', currentOrderId=null, currentTotal=0;
 let currentProfile=null, lastOrder={}, selectedDate='', loginPhoneVal='', genOtp='';
 
-// ===== SERVICE AREA (A10 distance + A11 pincode) =====
-// Base = Netaji Kunj, GAIL Gaon, Dibiyapur. We deliver within SERVICE_RADIUS_KM of it,
-// and (when GPS isn't available) only to the operating pincode. These can later be moved
-// into admin config; the values here are the safe defaults.
-const SERVICE={ baseLat:26.63583, baseLng:79.57333, radiusKm:15, pincode:'206244' };
-function distanceKm(lat1,lng1,lat2,lng2){
-  const R=6371, toRad=d=>d*Math.PI/180;
-  const dLat=toRad(lat2-lat1), dLng=toRad(lng2-lng1);
-  const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-// Try to get the customer's GPS quickly; resolves null if denied/unavailable/slow.
-function getGpsQuick(timeoutMs=6000){
-  return new Promise(res=>{
-    if(!navigator.geolocation){res(null);return;}
-    let done=false;
-    const t=setTimeout(()=>{if(!done){done=true;res(null);}},timeoutMs);
-    navigator.geolocation.getCurrentPosition(
-      p=>{if(!done){done=true;clearTimeout(t);res({lat:p.coords.latitude,lng:p.coords.longitude});}},
-      ()=>{if(!done){done=true;clearTimeout(t);res(null);}},
-      {enableHighAccuracy:false,timeout:timeoutMs,maximumAge:300000}
-    );
-  });
-}
+// ===== SERVICE AREA (A11 pincode) =====
+// Base = Netaji Kunj, GAIL Gaon, Dibiyapur. We currently deliver ONLY to the operating
+// pincode (206244). GPS/distance was removed on request — pincode is the single gate.
+const SERVICE={ pincode:'206244' };
 // Returns {ok:true} if deliverable, or {ok:false,reason:'...'} otherwise.
-// Rule: if GPS available → must be within radiusKm. Else → pincode must match (known
-// service pincode). Preset areas (NTPC/GAIL/PATA) are always in-area.
+// Preset areas (NTPC/GAIL/PATA) are always in-area; "Others" must match the service pincode.
 async function checkServiceArea(loc, pincode){
-  // Known in-town preset areas are always fine.
   if(loc && loc!=='Others') return {ok:true};
-  const gps=await getGpsQuick();
-  if(gps){
-    const d=distanceKm(gps.lat,gps.lng,SERVICE.baseLat,SERVICE.baseLng);
-    if(d>SERVICE.radiusKm) return {ok:false,reason:`Sorry, you're about ${d.toFixed(0)} km away. We currently deliver within ${SERVICE.radiusKm} km of Dibiyapur. We'll be there soon! 🙏`};
-    return {ok:true};
-  }
-  // No GPS → fall back to pincode
   if(pincode && pincode!==SERVICE.pincode){
     return {ok:false,reason:`We'll be there soon! 🙏 We're currently delivering only in Dibiyapur (${SERVICE.pincode}). Your pincode ${pincode} isn't served yet.`};
   }
