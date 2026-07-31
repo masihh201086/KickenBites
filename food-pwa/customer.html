@@ -1269,16 +1269,27 @@ async function loadMenu() {
     selectedDate=today;
     renderOrderDayChips();
     let data=await getTodayMenu();
+    // BUGFIX (closed-date): buildDefaultMenuC() hardcodes isOpen:true. A date the
+    // admin had CLOSED but whose items array was empty fell into the rebuild below,
+    // so its whole data object was replaced by an open default menu — silently
+    // re-opening the day and letting customers order. Capture the admin's real
+    // close flag BEFORE the rebuild and re-apply it after.
+    const adminClosed = !!(data && data.isDefault!==true && data.isOpen===false);
     if(!data||data.isDefault||!(data.items||[]).length){
       const mcfg=await getMasterCfg();
       const def=buildDefaultMenuC(today,mcfg);
       if(def)data=def;
     }
+    if(adminClosed && data) data={...data,isOpen:false};
     clearTimeout(timeout);
     data=await mergeMasterPrices(data);
     applyMenu(data);
     menuUnsub=listenToTodayMenu(async d=>{
       if(d&&!d.isDefault&&(d.items||[]).length&&selectedDate===today){
+        // BUGFIX (closed-date): if the admin toggles today's "Accept orders" OFF
+        // while the customer page is open, close it LIVE instead of re-rendering
+        // the item cards as if the shop were still taking orders.
+        if(d.isOpen===false){ await applyMenu({...d,isOpen:false}); return; }
         d=await mergeMasterPrices(d);
         menuConfig=d;renderMenu(d.items||[]);updateBill();
       }
@@ -1544,12 +1555,16 @@ window.selectDate=async function(which,val){
   const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('dateLbl').textContent='📅 Ordering for: '+disp;
   let data=await getDailyMenu(ds);
+  // BUGFIX (closed-date): same as loadMenu — keep the admin's close flag from being
+  // wiped out by the weekly-template rebuild below.
+  const adminClosed = !!(data && data.isDefault!==true && data.isOpen===false);
   // No override (or a stale auto-default doc) → build from weekly default
   if(!data||data.isDefault||!(data.items||[]).length){
     const mcfg=await getMasterCfg();
     const def=buildDefaultMenuC(ds,mcfg);
     if(def)data=def;
   }
+  if(adminClosed && data) data={...data,isOpen:false};
   if(!data||!data.isOpen||!(data.items||[]).length){
     document.getElementById('menuList').innerHTML=`<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>No menu for ${disp}</p></div>`;
     quantities={};menuConfig={};updateBill();
@@ -1572,6 +1587,14 @@ window.selectDate=async function(which,val){
     let d=snap.data();
     if(!(d.items||[]).length)return;             // ignore empty snapshots
     if(d.isDefault)return;                        // ignore the default-template marker
+    // BUGFIX (closed-date): admin closed this date while the customer was viewing it
+    if(d.isOpen===false){
+      const dispC=new Date(listenDs+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+      const mlC=document.getElementById('menuList');
+      if(mlC) mlC.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>No menu for '+dispC+'</p></div>';
+      quantities={};menuConfig={};updateBill();
+      return;
+    }
     d=await mergeMasterPrices(d);
     menuConfig=d;
     renderMenu(d.items||[]);
@@ -1704,6 +1727,12 @@ window.placeOrderClick=async function(){
         // their orders through (oversell) instead of the second one being
         // rejected. Now insufficient stock aborts the whole transaction.
         const md=ms.data();
+        // BUGFIX (closed-date): a stale/cached page left open across the admin's
+        // "Accept orders on this date" toggle could still submit an order. The
+        // transaction now reads the LIVE doc and refuses if that date is closed.
+        if(md.isOpen===false){
+          throw new Error('Sorry, orders are closed for '+ds+'. Please pick another day.');
+        }
         for(const o of items){
           const cur=(md.items||[]).find(item=>item.id===o.id);
           if(cur && cur.availableQty>0 && cur.availableQty<o.qty){
@@ -1715,6 +1744,11 @@ window.placeOrderClick=async function(){
       }else{
         // No doc yet (menu came from the weekly default template).
         // Create it now from what the customer is seeing, minus this order's qty.
+        // BUGFIX (closed-date): never create an order for a date the page itself
+        // knows is closed.
+        if(menuConfig && menuConfig.isOpen===false){
+          throw new Error('Sorry, orders are closed for '+ds+'. Please pick another day.');
+        }
         for(const o of items){
           const cur=(menuConfig.items||[]).find(item=>item.id===o.id);
           const q=cur?Number(cur.availableQty)||0:0;
