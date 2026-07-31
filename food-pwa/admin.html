@@ -248,6 +248,37 @@ input:checked+.slider:before{transform:translateX(20px);}
     <input class="li" type="password" id="lpass" placeholder="Password" onkeyup="if(event.key==='Enter')doLogin()">
     <button class="lbtn" onclick="doLogin()">Login →</button>
     <p id="loginMsg" style="font-size:.72rem;color:var(--r);margin-top:10px;min-height:1em"></p>
+    <p style="margin-top:4px"><span id="lnkForgotPwd" onclick="forgotAdminPwd()" style="font-size:.72rem;color:#93c5fd;cursor:pointer;text-decoration:underline">Password bhool gaye?</span></p>
+
+    <!-- FIRST-TIME SETUP (shown only when no password is stored in Firestore) -->
+    <div id="admSetupBox" style="display:none;text-align:left;margin-top:12px;background:rgba(255,255,255,.08);border-radius:12px;padding:13px">
+      <div style="font-weight:800;font-size:.86rem;margin-bottom:5px;color:#fff">🔐 Ek baar ka setup</div>
+      <p style="font-size:.72rem;color:#cbd5e1;margin-bottom:10px;line-height:1.45">Purana <b>1234</b> wala password band ho gaya hai. Abhi apna naya admin password set kar lijiye — ye Firestore me surakshit (hashed) save hoga, isliye <b>har device</b> par chalega.</p>
+      <input class="li" type="password" id="setPass1" placeholder="Naya password (kam se kam 6 character)">
+      <input class="li" type="password" id="setPass2" placeholder="Dobara likhiye">
+      <button class="lbtn" onclick="saveFirstAdminPwd()">Password set karein →</button>
+      <p id="setupMsg" style="font-size:.72rem;color:#fca5a5;margin-top:8px;min-height:1em"></p>
+    </div>
+
+    <!-- RECOVERY CODE (shown once after setup / after a password change) -->
+    <div id="admCodeBox" style="display:none;text-align:left;margin-top:12px;background:#fff7ed;border:2px solid #fb923c;border-radius:12px;padding:13px">
+      <div style="font-weight:800;font-size:.86rem;margin-bottom:5px;color:#9a3412">🗝️ Recovery code — ise likh kar rakh lijiye</div>
+      <p style="font-size:.72rem;color:#7c2d12;margin-bottom:9px;line-height:1.45">Password bhool jaayein to <b>sirf isi code se</b> naya password ban sakta hai. Ye dobara nahi dikhega.</p>
+      <div id="admCodeVal" style="font-family:monospace;font-size:1.15rem;font-weight:800;letter-spacing:1px;background:#fff;border-radius:8px;padding:11px;text-align:center;color:#7c2d12;margin-bottom:9px"></div>
+      <button class="lbtn" style="background:#25d366;margin-bottom:7px" onclick="sendRecoveryCodeWA()">💬 WhatsApp par apne number bhejein</button>
+      <button class="lbtn" style="background:#334155" onclick="ackRecoveryCode()">Maine likh liya — aage badhein</button>
+    </div>
+
+    <!-- FORGOT PASSWORD (recovery code) -->
+    <div id="admRecoverBox" style="display:none;text-align:left;margin-top:12px;background:rgba(255,255,255,.08);border-radius:12px;padding:13px">
+      <div style="font-weight:800;font-size:.86rem;margin-bottom:5px;color:#fff">🗝️ Recovery code se reset</div>
+      <p style="font-size:.72rem;color:#cbd5e1;margin-bottom:10px;line-height:1.45">Jo code setup ke waqt diya tha, wahi daaliye — phir naya password bana lijiye.</p>
+      <input class="li" type="text" id="recCode" placeholder="Recovery code (KB-XXXX-XXXX)" autocapitalize="characters">
+      <input class="li" type="password" id="recPass1" placeholder="Naya password">
+      <input class="li" type="password" id="recPass2" placeholder="Dobara likhiye">
+      <button class="lbtn" onclick="doAdminRecover()">Password reset karein →</button>
+      <p id="recMsg" style="font-size:.72rem;color:#fca5a5;margin-top:8px;min-height:1em"></p>
+    </div>
   </div>
 </div>
 
@@ -555,7 +586,8 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
     <div class="card">
       <div class="ct">Change Password</div>
-      <div class="sg2"><label>New Password</label><input class="si" type="password" id="sPass" placeholder="New password"></div>
+      <p style="font-size:.72rem;color:var(--muted);margin-bottom:9px">Password Firestore me hashed save hota hai — badalne par <b>sab devices</b> par lagu ho jaata hai. Save karte hi ek naya recovery code milega, use likh kar rakhiye.</p>
+      <div class="sg2"><label>New Password</label><input class="si" type="password" id="sPass" placeholder="New password (min 6)"></div>
       <div class="sg2"><label>Confirm</label><input class="si" type="password" id="sPassC" placeholder="Confirm"></div>
     </div>
     <!-- ALL CUSTOMERS -->
@@ -628,35 +660,171 @@ const PK='adminPwd_v4';
 let cfg={}, masterItems=[], allOrders=[], todayOrders=[], ordViewDate='', ordDatesWithOrders=new Set(), curFilter='all', selMenuDate='', selMenuHasOverride=false, adminMap=null, adminMarker=null;
 let deliveryBoys=[], IMGBB='', curImgIdx=null, ordersUnsub=null, tomorrowUnsub=null, deliveryUnsub=null;
 
-// ---- LOGIN ----
+// ---- LOGIN (BUG-01 core + BUG-07) ----
+// Password ab localStorage me NAHI hai. config/security me PBKDF2 hash + salt jaata hai,
+// isliye password change har device par lagta hai aur '1234' fallback poori tarah khatam.
+// Galat attempts ka counter bhi Firestore me hai, taaki site-data clear karke bypass na ho.
 const LOCK_KEY='adminLock', TRY_KEY='adminTries', SESS_KEY='adminSession';
-const MAX_TRIES=5, LOCK_MS=60000, SESSION_MS=12*60*60*1000; // 5 tries, 60s lock, 12h session
+const SEC_DOC='security', PWCACHE='adminPwdCache_v1';
+const MAX_TRIES=5, LOCK_MS=60000, SESSION_MS=12*60*60*1000; // 5 tries, 60s base lock, 12h session
+const PBKDF2_ITER=200000;
 function loginMsg(t){ const el=document.getElementById('loginMsg'); if(el) el.textContent=t||''; }
-window.doLogin=function(){
+
+function randHex(n){ const a=new Uint8Array(n); crypto.getRandomValues(a); return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+async function pwHash(pwd, saltHex){
+  const key=await crypto.subtle.importKey('raw', new TextEncoder().encode(pwd), {name:'PBKDF2'}, false, ['deriveBits']);
+  const salt=Uint8Array.from((saltHex.match(/../g)||[]).map(h=>parseInt(h,16)));
+  const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt:salt,iterations:PBKDF2_ITER,hash:'SHA-256'}, key, 256);
+  return Array.from(new Uint8Array(bits)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function makeRecoveryCode(){
+  const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', a=new Uint8Array(8); crypto.getRandomValues(a);
+  const s=Array.from(a).map(b=>A[b%A.length]).join('');
+  return 'KB-'+s.slice(0,4)+'-'+s.slice(4,8);
+}
+function normCode(c){ return String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+
+// null = doc hi nahi hai (pehli baar) | undefined = network fail | object = mila
+async function getSec(){
+  try{ const snap=await getDoc(doc(db,'config',SEC_DOC)); return snap.exists()?snap.data():null; }
+  catch(e){ return undefined; }
+}
+function enterApp(){
+  localStorage.removeItem(TRY_KEY); localStorage.removeItem(LOCK_KEY);
+  localStorage.setItem(SESS_KEY, String(Date.now())); // timestamp enables expiry
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  initDash();
+}
+function showBox(id){ ['admSetupBox','admCodeBox','admRecoverBox'].forEach(function(b){ const el=document.getElementById(b); if(el) el.style.display=(b===id?'block':'none'); }); }
+
+// Naya password likhna (setup / change / recover) — salt aur hash dono naye
+async function writeAdminPwd(pwd, opts){
+  opts=opts||{};
+  const salt=randHex(16), hash=await pwHash(pwd, salt);
+  const payload={pwdHash:hash, pwdSalt:salt, pwdSetAt:Date.now(), tries:0, lockUntil:0, lockCount:0};
+  if(opts.newCode){
+    payload.recSalt=randHex(16);
+    payload.recHash=await pwHash(normCode(opts.newCode), payload.recSalt);
+  }
+  await setDoc(doc(db,'config',SEC_DOC), payload, {merge:true});
+  try{ localStorage.setItem(PWCACHE, JSON.stringify({salt:salt,hash:hash})); }catch(e){}
+  try{ localStorage.removeItem(PK); }catch(e){}   // legacy device password ab bekaar
+  return true;
+}
+
+// Net na ho to aakhri kamyaab login ka cached hash — '1234' yahan bhi kabhi nahi chalega
+async function offlineLogin(pwd){
+  let c=null; try{ c=JSON.parse(localStorage.getItem(PWCACHE)||'null'); }catch(e){}
+  if(!c||!c.salt||!c.hash){ loginMsg('Internet nahi mila. Is device par pehli baar login ke liye net zaroori hai.'); return; }
   const lockUntil=Number(localStorage.getItem(LOCK_KEY)||0);
-  if(lockUntil>Date.now()){
-    loginMsg('Too many attempts. Try again in '+Math.ceil((lockUntil-Date.now())/1000)+'s.');
+  if(lockUntil>Date.now()){ loginMsg('🔒 Bahut galat attempts. '+Math.ceil((lockUntil-Date.now())/1000)+'s baad try karein.'); return; }
+  const h=await pwHash(pwd, c.salt);
+  if(h===c.hash){ loginMsg(''); enterApp(); return; }
+  const tries=Number(localStorage.getItem(TRY_KEY)||0)+1;
+  localStorage.setItem(TRY_KEY,String(tries));
+  if(tries>=MAX_TRIES){ localStorage.setItem(LOCK_KEY,String(Date.now()+LOCK_MS)); localStorage.removeItem(TRY_KEY); loginMsg('🔒 Bahut galat attempts. '+(LOCK_MS/1000)+'s ke liye band.'); }
+  else loginMsg('Galat password. '+(MAX_TRIES-tries)+' try baaki (offline mode).');
+  document.getElementById('lpass').value='';
+}
+
+window.doLogin=async function(){
+  const el=document.getElementById('lpass'), pwd=el?el.value:'';
+  if(!pwd){ loginMsg('Password daaliye.'); return; }
+  loginMsg('⏳ Check kar raha hoon…');
+  const sec=await getSec();
+  if(sec===undefined){ return offlineLogin(pwd); }                 // net fail
+  if(!sec || !sec.pwdHash || !sec.pwdSalt){                        // pehli baar
+    loginMsg(''); showBox('admSetupBox');
+    const s1=document.getElementById('setPass1'); if(s1) s1.focus();
     return;
   }
-  const saved=localStorage.getItem(PK)||'1234';
-  if(document.getElementById('lpass').value===saved){
-    localStorage.removeItem(TRY_KEY); localStorage.removeItem(LOCK_KEY);
-    localStorage.setItem(SESS_KEY, String(Date.now())); // timestamp enables expiry
-    document.getElementById('loginScreen').style.display='none';
-    document.getElementById('app').style.display='block';
-    initDash();
-  }else{
-    const tries=Number(localStorage.getItem(TRY_KEY)||0)+1;
-    localStorage.setItem(TRY_KEY,String(tries));
-    if(tries>=MAX_TRIES){
-      localStorage.setItem(LOCK_KEY,String(Date.now()+LOCK_MS));
-      localStorage.removeItem(TRY_KEY);
-      loginMsg('Too many attempts. Locked for '+(LOCK_MS/1000)+'s.');
-    }else{
-      loginMsg('Wrong password. '+(MAX_TRIES-tries)+' attempt(s) left.');
-    }
-    document.getElementById('lpass').value='';
+  const now=Date.now(), lockUntil=Number(sec.lockUntil||0);
+  if(lockUntil>now){ loginMsg('🔒 Bahut galat attempts. '+Math.ceil((lockUntil-now)/1000)+'s baad try karein.'); el.value=''; return; }
+  let h;
+  try{ h=await pwHash(pwd, sec.pwdSalt); }catch(e){ loginMsg('Browser purana hai — login nahi ho paya.'); return; }
+  if(h===sec.pwdHash){
+    try{ await setDoc(doc(db,'config',SEC_DOC),{tries:0,lockUntil:0,lockCount:0},{merge:true}); }catch(e){}
+    try{ localStorage.setItem(PWCACHE, JSON.stringify({salt:sec.pwdSalt,hash:sec.pwdHash})); }catch(e){}
+    try{ localStorage.removeItem(PK); }catch(e){}
+    loginMsg(''); enterApp(); return;
   }
+  const tries=Number(sec.tries||0)+1, upd={tries:tries};
+  if(tries>=MAX_TRIES){
+    const stage=Number(sec.lockCount||0);
+    upd.tries=0; upd.lockCount=stage+1;
+    upd.lockUntil=now+Math.min(LOCK_MS*Math.pow(2,stage), 30*60000);  // 60s → 2m → 4m … max 30m
+    try{ await setDoc(doc(db,'config',SEC_DOC),upd,{merge:true}); }catch(e){}
+    loginMsg('🔒 Bahut galat attempts. '+Math.ceil((upd.lockUntil-now)/1000)+'s ke liye band.');
+  }else{
+    try{ await setDoc(doc(db,'config',SEC_DOC),upd,{merge:true}); }catch(e){}
+    loginMsg('Galat password. '+(MAX_TRIES-tries)+' try baaki.');
+  }
+  el.value='';
+};
+
+// ---- pehli baar password set karna ----
+window.saveFirstAdminPwd=async function(){
+  const m=document.getElementById('setupMsg');
+  const p1=document.getElementById('setPass1').value, p2=document.getElementById('setPass2').value;
+  if(p1.length<6){ m.textContent='Password kam se kam 6 character ka rakhein.'; return; }
+  if(p1!==p2){ m.textContent='Dono password alag hain.'; return; }
+  if(p1==='1234'||p1==='123456'){ m.textContent='Ye password bahut aasaan hai — dusra rakhein.'; return; }
+  m.textContent='⏳ Save kar raha hoon…';
+  const code=makeRecoveryCode();
+  try{ await writeAdminPwd(p1,{newCode:code}); }
+  catch(e){ m.textContent='Save nahi hua: '+e.message; return; }
+  m.textContent='';
+  window._pendingRecCode=code;
+  document.getElementById('admCodeVal').textContent=code;
+  showBox('admCodeBox');
+};
+
+// ---- recovery code dikhana / bhejna ----
+window.sendRecoveryCodeWA=function(){
+  const code=window._pendingRecCode||'';
+  if(!code){ return; }
+  const num=(window.ADMIN_PHONE_DYNAMIC||'919795482664');
+  const nl='%0A';
+  const msg='*Kicken Bites Admin — Recovery Code*'+nl+nl+'Code: *'+code+'*'+nl+nl+'Ise safe rakhein. Admin password bhoolne par isi se reset hoga.';
+  window.open('https://wa.me/'+num+'?text='+msg,'_blank');
+};
+window.ackRecoveryCode=function(){
+  window._pendingRecCode=null;
+  showBox('');
+  if(localStorage.getItem(SESS_KEY)) return;   // already inside
+  enterApp();
+};
+
+// ---- password bhool gaye ----
+window.forgotAdminPwd=function(){ loginMsg(''); showBox('admRecoverBox'); };
+window.doAdminRecover=async function(){
+  const m=document.getElementById('recMsg');
+  const code=normCode(document.getElementById('recCode').value);
+  const p1=document.getElementById('recPass1').value, p2=document.getElementById('recPass2').value;
+  if(!code){ m.textContent='Recovery code daaliye.'; return; }
+  if(p1.length<6){ m.textContent='Naya password kam se kam 6 character ka rakhein.'; return; }
+  if(p1!==p2){ m.textContent='Dono password alag hain.'; return; }
+  m.textContent='⏳ Check kar raha hoon…';
+  const sec=await getSec();
+  if(sec===undefined){ m.textContent='Internet nahi mila — reset ke liye net zaroori hai.'; return; }
+  if(!sec||!sec.recHash||!sec.recSalt){ m.textContent='Is account par koi recovery code set nahi hai.'; return; }
+  const now=Date.now(), lockUntil=Number(sec.lockUntil||0);
+  if(lockUntil>now){ m.textContent='🔒 '+Math.ceil((lockUntil-now)/1000)+'s baad try karein.'; return; }
+  const h=await pwHash(code, sec.recSalt);
+  if(h!==sec.recHash){
+    const tries=Number(sec.tries||0)+1, upd={tries:tries};
+    if(tries>=MAX_TRIES){ const stage=Number(sec.lockCount||0); upd.tries=0; upd.lockCount=stage+1; upd.lockUntil=now+Math.min(LOCK_MS*Math.pow(2,stage),30*60000); }
+    try{ await setDoc(doc(db,'config',SEC_DOC),upd,{merge:true}); }catch(e){}
+    m.textContent='Galat recovery code.'; return;
+  }
+  const nc=makeRecoveryCode();
+  try{ await writeAdminPwd(p1,{newCode:nc}); }
+  catch(e){ m.textContent='Save nahi hua: '+e.message; return; }
+  m.textContent='';
+  window._pendingRecCode=nc;
+  document.getElementById('admCodeVal').textContent=nc;
+  showBox('admCodeBox');
 };
 
 window.showCollagePopup = function(dataUrl){
@@ -2408,7 +2576,18 @@ function loadSetupFields(){
 
 window.saveSetup=async function(){
   const np=document.getElementById('sPass').value,nc=document.getElementById('sPassC').value;
-  if(np){if(np!==nc){alert('Passwords do not match');return;}localStorage.setItem(PK,np);}
+  // BUG-01: password ab device par nahi, Firestore me hashed jaata hai — sab devices par lagta hai
+  if(np){
+    if(np!==nc){alert('Passwords do not match');return;}
+    if(np.length<6){alert('Password kam se kam 6 character ka rakhein');return;}
+    if(np==='1234'||np==='123456'){alert('Ye password bahut aasaan hai — dusra rakhein');return;}
+    try{
+      const nc2=makeRecoveryCode();
+      await writeAdminPwd(np,{newCode:nc2});
+      document.getElementById('sPass').value=''; document.getElementById('sPassC').value='';
+      alert('✅ Password badal gaya (sab devices par).\n\n🗝️ NAYA RECOVERY CODE:\n'+nc2+'\n\nIse likh kar rakh lijiye — purana code ab kaam nahi karega.');
+    }catch(e){ alert('Password save nahi hua: '+e.message); return; }
+  }
   const imgbbKey=document.getElementById('sImgbb').value.trim();
   if(imgbbKey){IMGBB=imgbbKey;localStorage.setItem('imgbbKey',imgbbKey);}
   const adminPhone=document.getElementById('sAdminPhone').value.trim();

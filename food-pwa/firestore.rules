@@ -57,10 +57,29 @@ service cloud.firestore {
       allow delete: if true; // admin "Reset to default" removes the override doc
     }
 
-    // ---- config ----
+    // ---- config/security ---- (admin password hash + lockout counter)
+    // BUG-01/BUG-07: password ka PBKDF2 hash yahan rehta hai, device par nahi.
+    // Lock ek baar lag jaaye to expiry se pehle koi seedhe Firestore se saaf na kar sake —
+    // ye rule enforceable hai (request.time ko rules khud dekhte hain).
+    match /config/security {
+      allow read: if true;
+      allow create: if request.resource.data.pwdHash is string
+                    && request.resource.data.pwdSalt is string;
+      allow update: if request.resource.data.pwdHash is string
+                    && request.resource.data.pwdSalt is string
+                    && (
+                         !('lockUntil' in resource.data)
+                         || resource.data.lockUntil == 0
+                         || request.time.toMillis() > resource.data.lockUntil
+                         || request.resource.data.lockUntil >= resource.data.lockUntil
+                       );
+      allow delete: if false;
+    }
+
+    // ---- config ---- (baaki settings: menu/master/upi etc.)
     match /config/{docId} {
       allow read: if true;
-      allow write: if true;   // admin settings; no auth to gate this without Firebase Auth
+      allow write: if docId != 'security';   // security doc ke apne rules upar hain
       allow delete: if false;
     }
 
