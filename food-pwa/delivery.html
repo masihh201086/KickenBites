@@ -137,7 +137,7 @@ h1,h2,h3,.lb-title{font-family:var(--font-head);}
       <div id="pinSec" style="display:none">
         <input class="li" type="password" id="lpin" placeholder="4-digit PIN" maxlength="4" inputmode="numeric">
         <button class="lbtn" onclick="verifyPin()">Login →</button>
-        <span class="forgot" onclick="forgotPin()">Forgot PIN? Reset via OTP</span>
+        <span class="forgot" onclick="forgotPin()">PIN bhool gaye? Shop se reset karwaiye</span>
         <button class="outline-btn" onclick="backStep1()">← Change number</button>
       </div>
       <div id="newSec" style="display:none">
@@ -149,12 +149,10 @@ h1,h2,h3,.lb-title{font-family:var(--font-head);}
       </div>
       <div id="otpSec" style="display:none">
         <div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:11px;padding:12px;margin-bottom:11px;font-size:.8rem;color:#1e40af;line-height:1.6">
-          🔑 Tap below to send a PIN-reset request to the shop on WhatsApp. The shop will reply with your OTP — enter it here to set a new PIN.
+          🔑 Neeche wala button dabaiye — shop ko WhatsApp par reset ki request chali jaayegi. Shop aapka <b>naya PIN</b> wahin reply kar dega. Us PIN se login kar ke apna PIN badal lijiye.
         </div>
-        <button class="lbtn" style="background:#25d366;margin-bottom:11px" onclick="sendOtpRequestWA()">💬 Send OTP Request to Shop</button>
-        <input class="li" type="number" id="lotp" placeholder="Enter OTP from shop" maxlength="4" inputmode="numeric">
-        <input class="li" type="password" id="lrpin" placeholder="New 4-digit PIN" maxlength="4" inputmode="numeric">
-        <button class="lbtn" onclick="resetPin()">Reset & Login →</button>
+        <button class="lbtn" style="background:#25d366;margin-bottom:11px" onclick="sendPinResetRequestWA()">💬 Shop ko reset request bhejein</button>
+        <div id="resetSentMsg" style="display:none;background:#f0fdf4;border-radius:10px;padding:10px;margin-bottom:11px;font-size:.78rem;color:#166534;line-height:1.5">✅ Request bhej di gayi. Shop ke naya PIN bhejte hi yahan "← Back" dabaiye aur us PIN se login kijiye.</div>
         <button class="outline-btn" onclick="backStep1()">← Back</button>
       </div>
     </div>
@@ -440,14 +438,36 @@ window.step1 = async function() {
   } catch(e) { showErr('Error connecting. Check internet.'); }
 };
 
+// PIN ab plaintext me store nahi hota. hashPin() wahi scheme use karta hai jo
+// customer.html me hai (SHA-256 of 'kb:'+pin), taaki admin ek hi tarah ka hash
+// dono ke liye likh sake. pinMatches() purane plaintext PIN bhi maan leta hai
+// (taaki koi boy locked out na ho) aur agli kaamyaab login par hash me badal deta hai.
+async function hashPin(pin){
+  try{
+    const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode('kb:'+pin));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){ return 'plain:'+pin; }
+}
+async function pinMatches(stored, entered){
+  if(stored==null) return false;
+  if(stored===entered) return true;              // legacy plaintext
+  const h=await hashPin(entered);
+  return stored===h;
+}
+function isHashedPin(v){ return typeof v==='string' && /^[0-9a-f]{64}$/.test(v); }
+
 window.verifyPin = async function() {
   hideMsg();
   const pin = document.getElementById('lpin').value.trim();
   if (pin.length!==4) { showErr('Please enter 4-digit PIN'); return; }
   try {
     const snap = await getDoc(doc(db,'deliveryBoys',loginPhone));
-    if (snap.exists() && snap.data().pin===pin) {
+    if (snap.exists() && await pinMatches(snap.data().pin, pin)) {
       boy = snap.data();
+      // purana plaintext PIN mila to chupchaap hash me upgrade kar do
+      if(!isHashedPin(boy.pin)){
+        try{ const h=await hashPin(pin); await setDoc(doc(db,'deliveryBoys',loginPhone),{pin:h},{merge:true}); boy.pin=h; }catch(e){}
+      }
       localStorage.setItem('boyPhone', loginPhone);
       localStorage.setItem('boyName', boy.name||'');
       await claimDevice(loginPhone);
@@ -465,8 +485,9 @@ window.createPin = async function() {
   try {
     const snap = await getDoc(doc(db,'deliveryBoys',loginPhone));
     if (!snap.exists()) { showErr('Not registered. Ask admin.'); return; }
-    boy = {...snap.data(), pin, phone:loginPhone};
-    await setDoc(doc(db,'deliveryBoys',loginPhone), {pin}, {merge:true});
+    const pinH = await hashPin(pin);
+    boy = {...snap.data(), pin:pinH, phone:loginPhone};
+    await setDoc(doc(db,'deliveryBoys',loginPhone), {pin:pinH}, {merge:true});
     localStorage.setItem('boyPhone',loginPhone);
     localStorage.setItem('boyName',boy.name||'');
     await claimDevice(loginPhone);
@@ -475,36 +496,25 @@ window.createPin = async function() {
 };
 
 window.forgotPin = function() {
-  genOtp = Math.floor(1000+Math.random()*9000).toString();  // kept in memory, NOT shown
+  // Browser me OTP banana hata diya gaya — wo OTP isi phone par banta tha, isliye
+  // koi bhi kisi ka bhi account khol sakta tha. Ab reset sirf admin karta hai.
   document.getElementById('pinSec').style.display='none';
   document.getElementById('otpSec').style.display='block';
+  const m=document.getElementById('resetSentMsg'); if(m) m.style.display='none';
 };
-// Send the reset OTP to the shop's WhatsApp so the shop can relay it to the delivery boy
-window.sendOtpRequestWA = function(){
-  const ADMIN='9712951947';
+window.sendPinResetRequestWA = async function(){
+  let adminPhone='';
+  try{ const s=await getDoc(doc(db,'config','menu')); adminPhone=(s.exists()&&s.data().adminPhone)||''; }catch(e){}
+  if(!adminPhone) adminPhone='919795482664';
+  adminPhone=adminPhone.replace(/[^0-9]/g,'');
+  if(adminPhone.length===10) adminPhone='91'+adminPhone;
   const nl='\n';
-  const msg='🔑 *Kicken Bites — Delivery PIN Reset*'+nl+nl+
-    'Delivery boy *'+(loginPhone||'')+'* requested a PIN reset.'+nl+
-    'Their OTP is: *'+genOtp+'*'+nl+nl+
-    'Please share this OTP with them so they can set a new PIN.';
-  window.open('https://wa.me/91'+ADMIN+'?text='+encodeURIComponent(msg),'_blank');
-};
-
-window.resetPin = async function() {
-  hideMsg();
-  const otp = document.getElementById('lotp').value.trim();
-  const pin = document.getElementById('lrpin').value.trim();
-  if (otp!==genOtp) { showErr('Wrong OTP'); return; }
-  if (pin.length!==4||!/^\d{4}$/.test(pin)) { showErr('PIN must be 4 digits'); return; }
-  try {
-    await setDoc(doc(db,'deliveryBoys',loginPhone),{pin},{merge:true});
-    const snap = await getDoc(doc(db,'deliveryBoys',loginPhone));
-    boy = snap.data();
-    localStorage.setItem('boyPhone',loginPhone);
-    localStorage.setItem('boyName',boy.name||'');
-    await claimDevice(loginPhone);
-    startApp();
-  } catch(e) { showErr('Error resetting PIN.'); }
+  const msg='🔑 *Kicken Bites — Delivery PIN Reset Request*'+nl+nl+
+    'Mera PIN bhool gaya hoon, please reset kar dijiye.'+nl+nl+
+    'Mobile: *'+(loginPhone||'')+'*'+nl+nl+
+    'Aap admin app me Delivery Boys me is number par PIN Reset dabakar naya PIN yahin bhej dijiye. Dhanyavaad!';
+  window.open('https://wa.me/'+adminPhone+'?text='+encodeURIComponent(msg),'_blank');
+  const m=document.getElementById('resetSentMsg'); if(m) m.style.display='block';
 };
 
 window.backStep1 = function() {

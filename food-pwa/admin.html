@@ -928,8 +928,22 @@ window.shareCollageWA=function(){
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('app').style.display='block';
     window.addEventListener('DOMContentLoaded',()=>initDash());
-  }else if(ts>0){
-    localStorage.removeItem(SESS_KEY); // expired
+  }else{
+    if(ts>0) localStorage.removeItem(SESS_KEY); // expired
+    // BUG-01: agar Firestore me abhi tak koi admin password set hi nahi hai,
+    // to login screen par seedhe setup box dikhao — user ko pehle koi dummy
+    // password type karke "Login" dabane ki zarurat na pade.
+    setTimeout(async function(){
+      try{
+        const sec=await getSec();
+        if(sec===undefined) return;                       // net nahi mila — normal login rehne do
+        if(!sec || !sec.pwdHash || !sec.pwdSalt){
+          loginMsg('');
+          showBox('admSetupBox');
+          const f=document.getElementById('setPass1'); if(f) f.focus();
+        }
+      }catch(e){}
+    },0);
   }
 })();
 window.doLogout=function(){localStorage.removeItem(SESS_KEY);document.getElementById('app').style.display='none';document.getElementById('loginScreen').style.display='flex';};
@@ -2484,6 +2498,7 @@ function renderDeliveryBoys(){
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
         <span class="db-status ${isOnline?'dbs-online':'dbs-offline'}">${isOnline?'🟢 Online':'⚫ Offline'}</span>
         <button onclick="sendBoyLoginLink('${phone}','${(b.name||'').replace(/'/g,'')}')" style="font-size:.68rem;color:#25d366;background:none;border:none;cursor:pointer;padding:2px 4px;font-weight:700">💬 Send Login Link</button>
+        <button onclick="resetBoyPin('${phone}','${(b.name||'').replace(/'/g,'')}')" style="font-size:.68rem;color:#9a3412;background:none;border:none;cursor:pointer;padding:2px 4px;font-weight:700">🔑 PIN Reset</button>
         <button onclick="removeBoy('${phone}')" style="font-size:.68rem;color:var(--r);background:none;border:none;cursor:pointer;padding:2px 4px">Remove</button>
       </div>
     </div>`;
@@ -2723,6 +2738,65 @@ window.filterCustList=function(q){
   renderCustList(filtered);
 };
 
+// ---- PIN RESET (admin ke through) ----
+// Customer/delivery boy ko koi recovery code yaad rakhne ki zarurat nahi.
+// Wo admin se kehte hain, admin yahan se naya PIN bana kar WhatsApp par bhej deta hai.
+// PIN kabhi plaintext me store nahi hota — customer.html wala hi scheme use hota hai
+// (SHA-256 of 'kb:'+pin), isliye dono apps ise waise hi padh lete hain.
+async function hashPinKB(pin){
+  try{
+    const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode('kb:'+pin));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){ return 'plain:'+pin; }
+}
+function genPin4(){ const a=new Uint8Array(2); crypto.getRandomValues(a); return String(1000+((a[0]<<8|a[1])%9000)); }
+
+// Naya PIN dikhane + WhatsApp bhejne ka chhota popup
+function showPinPopup(kind, phone, name, pin){
+  const old=document.getElementById('pinResetPopup'); if(old) old.remove();
+  const ph=String(phone).replace(/[^0-9]/g,'').slice(-10);
+  const who=kind==='boy'?'Delivery':'Customer';
+  const link=window.location.href.replace('admin.html', kind==='boy'?'delivery.html':'customer.html');
+  const nl='\n';
+  const msg='🔑 *Kicken Bites — Naya PIN*'+nl+nl+
+    'Hi '+(name||'')+', aapka PIN reset kar diya gaya hai.'+nl+nl+
+    'Naya PIN: *'+pin+'*'+nl+nl+
+    'Login: '+link+nl+
+    'Mobile '+ph+' aur yehi PIN daaliye. Login ke baad apna PIN badal lijiye.';
+  const ov=document.createElement('div');
+  ov.id='pinResetPopup';
+  ov.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML='<div style="background:#fff;border-radius:16px;max-width:380px;width:100%;padding:17px">'
+    +'<div style="font-weight:800;font-size:1rem;text-align:center;margin-bottom:3px">🔑 '+who+' ka naya PIN</div>'
+    +'<div style="font-size:.74rem;color:#888;text-align:center;margin-bottom:11px">'+esc(name||'')+' — '+esc(ph)+'</div>'
+    +'<div style="font-family:monospace;font-size:1.7rem;font-weight:900;letter-spacing:5px;background:#fff7ed;border:2px solid #fb923c;border-radius:10px;padding:13px;text-align:center;color:#9a3412;margin-bottom:11px">'+pin+'</div>'
+    +'<div style="font-size:.72rem;color:#888;text-align:center;margin-bottom:11px;line-height:1.5">Purana PIN ab kaam nahi karega. Ye PIN dobara nahi dikhega — bhej dijiye ya likh lijiye.</div>'
+    +'<button id="pinWaBtn" style="width:100%;background:#25d366;color:#fff;border:none;padding:13px;border-radius:10px;font-weight:800;font-size:.9rem;cursor:pointer;margin-bottom:8px">💬 WhatsApp par bhejein</button>'
+    +'<button onclick="document.getElementById(\'pinResetPopup\').remove()" style="width:100%;background:#eee;border:none;padding:11px;border-radius:10px;font-weight:700;cursor:pointer">Band karein</button>'
+    +'</div>';
+  document.body.appendChild(ov);
+  document.getElementById('pinWaBtn').onclick=function(){ window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank'); };
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+}
+
+async function doPinReset(kind, phone, name){
+  const coll = kind==='boy' ? 'deliveryBoys' : 'customers';
+  const who  = kind==='boy' ? 'delivery boy' : 'customer';
+  if(!confirm('Is '+who+' ka PIN reset karein?\n\n'+(name||'')+' — '+phone+'\n\nPurana PIN turant band ho jaayega aur naya PIN aapko dikhaya jaayega.')) return;
+  try{
+    const snap=await getDoc(doc(db,coll,String(phone)));
+    if(!snap.exists()){ alert('Ye '+who+' Firestore me mila hi nahi ('+phone+').'); return; }
+    const pin=genPin4();
+    // phone bhi bhej rahe hain kyunki firestore.rules update par `phone == docId` maangta hai
+    // (purane doc me field na ho to bhi write pass ho jaaye)
+    await setDoc(doc(db,coll,String(phone)),{phone:String(phone), pin:await hashPinKB(pin), pinResetAt:Date.now(), pinResetBy:'admin'},{merge:true});
+    showPinPopup(kind, phone, name, pin);
+    showToast('✅ Naya PIN ban gaya');
+  }catch(e){ alert('PIN reset nahi hua: '+e.message); }
+}
+window.resetCustomerPin=function(phone,name){ return doPinReset('cust', phone, name); };
+window.resetBoyPin=function(phone,name){ return doPinReset('boy', phone, name); };
+
 // ---- CUSTOMER PROFILE (full detail modal) ----
 window.viewCustomerProfile=async function(phone){
   const modal=document.getElementById('custProfileModal');
@@ -2769,6 +2843,8 @@ window.viewCustomerProfile=async function(phone){
       '<a href="https://wa.me/91'+phone+'" target="_blank" style="flex:1;text-align:center;background:#25d366;color:white;padding:9px;border-radius:10px;font-weight:700;font-size:.8rem;text-decoration:none">💬 WhatsApp</a>'+
       '<a href="tel:'+phone+'" style="flex:1;text-align:center;background:#3b82f6;color:white;padding:9px;border-radius:10px;font-weight:700;font-size:.8rem;text-decoration:none">📞 Call</a>'+
     '</div>';
+    // PIN reset — customer PIN bhool jaaye to yahan se naya bana kar bhej dijiye
+    bodyHtml+='<button onclick="resetCustomerPin(\''+esc(phone)+'\',\''+esc((c.name||'').replace(/'/g,''))+'\')" style="width:100%;background:#fff7ed;border:2px solid #fb923c;color:#9a3412;padding:9px;border-radius:10px;font-weight:700;font-size:.8rem;cursor:pointer;margin-bottom:14px">🔑 PIN Reset karein</button>';
     bodyHtml+='<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Recent Orders ('+orders.length+')</div>';
     if(!orders.length){
       bodyHtml+='<div style="text-align:center;padding:15px;color:#999;font-size:.78rem">No orders yet</div>';
