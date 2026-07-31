@@ -1315,11 +1315,23 @@ async function loadMenu() {
 
 async function applyMenu(cfg){
   hide('loadingScreen');
-  if(!cfg||!cfg.isOpen||!(cfg.items||[]).length){document.getElementById('closedBox').style.display='block';return;}
+  if(!cfg||!cfg.isOpen||!(cfg.items||[]).length){
+    // Today is closed or has no items — but KEEP the date chips visible so the
+    // customer can still pick another day. Only the item area shows the notice.
+    document.getElementById('menuSec').style.display='block';
+    renderOrderDayChips();
+    const dispToday=new Date(today+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+    document.getElementById('dateLbl').textContent='📅 Ordering for: '+dispToday;
+    const ml=document.getElementById('menuList');
+    if(ml) ml.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>No menu for today.<br>Pick another day above 👆 or watch WhatsApp for updates!</p></div>';
+    quantities={};menuConfig={};updateBill();
+    return;
+  }
   menuConfig=cfg;
   document.getElementById('shopName').textContent=(cfg.shopName||'Kicken Bites');
   document.getElementById('dateLbl').textContent='📅 Ordering for: '+new Date(today+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('menuSec').style.display='block';
+  renderOrderDayChips();
   updateBill();
   // Load ratings FIRST, then render menu with reviews
   await loadItemRatings();
