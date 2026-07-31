@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#1a1a2e">
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1486,10 +1487,20 @@ async function renderItemBookingBars(){
   live.forEach(o=>(o.items||[]).forEach(i=>{const key=i.id!=null?i.id:i.name;bookedById[key]=(bookedById[key]||0)+(Number(i.qty)||0);}));
   // real remaining stock per item id, straight from the dailyMenu doc customers see
   let realStockById={};
+  let dayClosed=false;   // BUG-08: the card used to look completely normal on a
+                         // date whose shop toggle was OFF, which reads as "still
+                         // taking orders". Flag it so the title can say CLOSED.
   try{
     const ms=await getDoc(doc(db,'dailyMenu',ds));
-    if(ms.exists()) (ms.data().items||[]).forEach(it=>{ if(it&&it.id!=null) realStockById[it.id]=Number(it.availableQty)||0; });
+    if(ms.exists()){
+      const mdd=ms.data();
+      if(mdd.isDefault!==true && mdd.isOpen===false) dayClosed=true;
+      (mdd.items||[]).forEach(it=>{ if(it&&it.id!=null) realStockById[it.id]=Number(it.availableQty)||0; });
+    }
   }catch(e){console.error('renderItemBookingBars stock fetch',e);}
+  if(dayClosed&&titleEl){
+    titleEl.innerHTML+=' <span style="font-size:.72rem;font-weight:800;color:#ef4444;background:#ffebee;padding:2px 7px;border-radius:20px">🚫 ORDERS CLOSED</span>';
+  }
   // Guard against a stale async response landing after the admin already switched dates
   if((ordViewDate||getTodayDate())!==ds)return;
   const wd=weekdayKey(ds);
@@ -1589,34 +1600,37 @@ function renderOrders(){
 window.chgStatus=async function(id,status){
   try{
     if(status==='cancelled'){
-      // BUGFIX: cancelling an order used to just flip its status — the stock that
-      // had been decremented for it stayed decremented forever, so a cancelled
-      // order's items kept showing as "sold" / lower availability than reality
-      // until the admin manually reset the day's menu. Now cancelling puts that
-      // stock back into the dailyMenu doc atomically, guarded so it can't be
-      // double-restocked if Cancel is somehow triggered twice.
-      const oSnap=await getDoc(doc(db,'orders',id));
-      if(oSnap.exists()){
-        const od=oSnap.data();
-        if(od.status!=='cancelled' && od.date && Array.isArray(od.items)){
-          const dailyRef=doc(db,'dailyMenu',od.date);
-          try{
-            await runTransaction(db,async tx=>{
-              const ms=await tx.get(dailyRef);
-              if(!ms.exists())return; // no stock doc to restore into (nothing was ever decremented)
-              const md=ms.data();
-              const upd=(md.items||[]).map(item=>{
-                const o=od.items.find(i=>i.id===item.id);
-                if(o) return {...item, availableQty:(Number(item.availableQty)||0)+(Number(o.qty)||0)};
-                return item;
-              });
-              tx.update(dailyRef,{items:upd});
+      // Cancelling returns that order's stock to the dailyMenu doc.
+      // BUG-03: the guard this comment claimed did not actually exist — the
+      // already-cancelled check ran OUTSIDE the transaction and the status flip
+      // was a separate write afterwards, so a customer cancel racing an admin
+      // cancel could return the stock twice. Order read, restock and status flip
+      // are now one transaction, with a restocked flag as a permanent guard.
+      const orderRef=doc(db,'orders',id);
+      await runTransaction(db,async tx=>{
+        const os=await tx.get(orderRef);
+        if(!os.exists()) throw new Error('Order not found');
+        const od=os.data();
+        if(od.status==='cancelled') return; // already done, nothing to undo
+        let dailyRef=null, upd=null;
+        if(od.restocked!==true && od.date && Array.isArray(od.items)){
+          dailyRef=doc(db,'dailyMenu',od.date);
+          const ms=await tx.get(dailyRef);
+          if(ms.exists()){
+            upd=(ms.data().items||[]).map(item=>{
+              const o=od.items.find(i=>i.id===item.id);
+              if(o) return {...item, availableQty:(Number(item.availableQty)||0)+(Number(o.qty)||0)};
+              return item;
             });
-          }catch(e){console.error('Restock on cancel failed:',e);}
+          }
         }
-      }
+        if(dailyRef&&upd) tx.update(dailyRef,{items:upd});
+        tx.update(orderRef,{status:'cancelled',restocked:true,cancelledBy:'admin',
+          cancelledAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+      });
+    } else {
+      await updateOrderStatus(id,status,{});
     }
-    await updateOrderStatus(id,status, status==='cancelled'?{cancelledBy:'admin',cancelledAt:new Date().toISOString()}:{});
     // B6: Auto-assign when confirming if single delivery boy
     if(status==='confirmed') autoAssignIfSingleBoy(id);
     // On a non-today view there is no live listener, so refresh manually

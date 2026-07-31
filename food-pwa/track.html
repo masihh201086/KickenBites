@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#e65c00">
+<link rel="manifest" href="manifest.json">
 <title>Track Order — Kicken Bites</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -262,7 +263,14 @@ if (!orderId) {
   document.getElementById('trackContent').innerHTML = '<div class="ns-box"><div class="ns-icon">❌</div><div class="ns-title">Invalid tracking link</div></div>';
 } else {
   onSnapshot(doc(db,'orders',orderId), snap => {
-    if (!snap.exists()) return;
+    // BUG-05: a wrong/expired order id used to hit a bare `return` here, so the
+    // page just sat there looking like it was still loading. Say so instead.
+    if (!snap.exists()) {
+      document.getElementById('trackContent').innerHTML =
+        '<div class="ns-box"><div class="ns-icon">🔍</div><div class="ns-title">Order not found</div>' +
+        '<div style="font-size:.8rem;color:#888;margin-top:6px">This tracking link is invalid or the order was removed.</div></div>';
+      return;
+    }
     const o = snap.data();
     if (o.status==='delivered') showDelivered(o);
   });

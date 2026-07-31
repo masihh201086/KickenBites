@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#e65c00">
+<link rel="manifest" href="manifest.json">
 <title>Delivery Boy — Kicken Bites</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -595,13 +596,18 @@ function listenForAssignments(){
   if(!boy?.phone) return;
   // Listen for orders assigned to this boy
   const today=getTodayDate();
-  const q=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone),where('date','==',today));
+  // BUG-15: this was a two-field where() query, which Firestore refuses to run
+  // without a composite index that this project does not have — so assignment
+  // notifications silently never fired. Query one field, filter the other here.
+  const q=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone));
   let knownIds=new Set();
   onSnapshot(q,snap=>{
     snap.docs.forEach(d=>{
+      const od=d.data();
+      if((od.date||'')!==today) return;
       if(!knownIds.has(d.id)){
         knownIds.add(d.id);
-        const o=d.data();
+        const o=od;
         if(knownIds.size>1||(knownIds.size===1&&o.status!=='delivered')){
           notifyBoy(`📦 New order assigned! ${o.name} — ₹${o.total}`);
         }
@@ -739,6 +745,13 @@ window.markDelivered = async function(id, name) {
   try {
     const snap=await getDoc(doc(db,'orders',id));
     if(snap.exists() && (snap.data().date||'')>getTodayDate()){ alert('This order is scheduled for a future date — you can deliver it on the day.'); return; }
+    // BUG-13: any logged-in boy could mark ANY order delivered. If the admin has
+    // assigned this order to someone, only that person may close it. Unassigned
+    // orders stay open to whoever is on duty (single-boy days).
+    if(snap.exists()){
+      const ab=snap.data().assignedBoyPhone;
+      if(ab && boy?.phone && ab!==boy.phone){ alert('This order is assigned to another delivery partner.'); return; }
+    }
     await updateDoc(doc(db,'orders',id),{status:'delivered',deliveredAt:new Date().toISOString()});
     showToast(`✅ Delivered to ${name}!`);
   } catch(e) { alert('Error. Check internet.'); }
@@ -860,11 +873,15 @@ async function loadEarnings(){
     // Query ALL delivered orders for this boy (no compound query = no index needed)
     // Query all today's delivered orders (since assignedBoyPhone may not always be set)
     const q1=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone));
-    const q2=query(collection(db,'orders'),where('date','==',todayStr),where('status','==','delivered'));
+    // BUG-16: this one WAS a compound where() (date + status) despite the comment
+    // above — it needs a composite index this project does not have, and because
+    // both queries share a Promise.all its rejection took the whole earnings
+    // calculation down with it. Query by date only, filter status here.
+    const q2=query(collection(db,'orders'),where('date','==',todayStr));
     const [snap1,snap2]=await Promise.all([gd(q1),gd(q2)]);
     const allOrdersMap={};
     snap1.docs.forEach(d=>{allOrdersMap[d.id]={id:d.id,...d.data()};});
-    snap2.docs.forEach(d=>{allOrdersMap[d.id]={id:d.id,...d.data()};});
+    snap2.docs.forEach(d=>{const o=d.data(); if(o.status==='delivered') allOrdersMap[d.id]={id:d.id,...o};});
     const allOrdersList=Object.values(allOrdersMap);
 
     // Also get from localStorage history

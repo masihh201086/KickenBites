@@ -1182,32 +1182,42 @@ window.reorder = async function(orderId) {
 window.cancelMyOrder = async function(orderId){
   if(!confirm('Cancel this order? This cannot be undone.')) return;
   try{
-    const snap=await getDoc(doc(db,'orders',orderId));
-    if(!snap.exists()){showToast('Order not found');return;}
-    const od=snap.data();
-    if(['out_for_delivery','delivered','cancelled'].includes(od.status)){
-      showToast('This order can no longer be cancelled'); renderMyOrders(_allMyOrders); return;
-    }
-    // Restore stock (guarded so it can't double-restock)
-    if(od.date && Array.isArray(od.items)){
-      const dailyRef=doc(db,'dailyMenu',od.date);
-      try{
-        await runTransaction(db,async tx=>{
-          const ms=await tx.get(dailyRef);
-          if(!ms.exists())return;
-          const md=ms.data();
-          const upd=(md.items||[]).map(item=>{
+    // BUG-03: the "is it already cancelled?" check used to sit OUTSIDE the
+    // transaction, and the status flip happened after it in a separate write.
+    // So two cancels racing (customer + admin, or a double tap) could both pass
+    // the check and each add the stock back — inflating availableQty. Everything
+    // now happens inside ONE transaction, plus a restocked flag so the stock can
+    // never be returned twice even across sessions.
+    const orderRef=doc(db,'orders',orderId);
+    await runTransaction(db,async tx=>{
+      const os=await tx.get(orderRef);
+      if(!os.exists()) throw new Error('NOT_FOUND');
+      const od=os.data();
+      if(['out_for_delivery','delivered','cancelled'].includes(od.status)) throw new Error('TOO_LATE');
+      // all reads must happen before any write inside a Firestore transaction
+      let dailyRef=null, upd=null;
+      if(od.restocked!==true && od.date && Array.isArray(od.items)){
+        dailyRef=doc(db,'dailyMenu',od.date);
+        const ms=await tx.get(dailyRef);
+        if(ms.exists()){
+          upd=(ms.data().items||[]).map(item=>{
             const o=od.items.find(i=>i.id===item.id);
             if(o) return {...item, availableQty:(Number(item.availableQty)||0)+(Number(o.qty)||0)};
             return item;
           });
-          tx.update(dailyRef,{items:upd});
-        });
-      }catch(e){console.error('restock on customer cancel',e);}
-    }
-    await updateOrderStatus(orderId,'cancelled',{cancelledBy:'customer',cancelledAt:new Date().toISOString()});
+        }
+      }
+      if(dailyRef&&upd) tx.update(dailyRef,{items:upd});
+      tx.update(orderRef,{status:'cancelled',restocked:true,cancelledBy:'customer',
+        cancelledAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    });
     showToast('✅ Order cancelled');
-  }catch(e){showToast('Could not cancel. Check internet.');console.error(e);}
+  }catch(e){
+    const m=String(e.message||'');
+    if(m==='NOT_FOUND') showToast('Order not found');
+    else if(m==='TOO_LATE'){ showToast('This order can no longer be cancelled'); renderMyOrders(_allMyOrders); }
+    else { showToast('Could not cancel. Check internet.'); console.error(e); }
+  }
 };
 
 // A1 refund: opens WhatsApp to the shop asking for a refund on a paid+cancelled order.
@@ -1922,16 +1932,26 @@ window.useWallet=async function(){
   const phone=lastOrder?.phone||currentProfile?.phone;
   if(!phone||!currentOrderId)return;
   try{
-    const snap=await getDoc(doc(db,'wallets',phone));
-    const bal=snap.exists()?(snap.data().balance||0):0;
-    if(bal<currentTotal){alert(`Insufficient wallet balance (₹${bal}). Please pay via UPI.`);return;}
-    // Deduct from wallet
-    await setDoc(doc(db,'wallets',phone),{balance:bal-currentTotal,updatedAt:new Date().toISOString()},{merge:true});
+    // BUG-10: this used to read the balance, subtract, then write — two separate
+    // steps. Two tabs paying at the same moment both read the OLD balance and the
+    // second write overwrote the first, so the wallet was charged once for two
+    // orders. One transaction now reads and writes together.
+    const wRef=doc(db,'wallets',phone);
+    await runTransaction(db,async tx=>{
+      const ws=await tx.get(wRef);
+      const bal=ws.exists()?(Number(ws.data().balance)||0):0;
+      if(bal<currentTotal) throw new Error('LOW_BALANCE:'+bal);
+      tx.set(wRef,{phone:phone,balance:bal-currentTotal,updatedAt:new Date().toISOString()},{merge:true});
+    });
     await confirmPayment(currentOrderId);
     hide('payScreen');
     showToast('✅ Paid from wallet!');
     showSuccess();
-  }catch(e){alert('Error using wallet: '+e.message);}
+  }catch(e){
+    if(String(e.message||'').startsWith('LOW_BALANCE:')){
+      alert('Insufficient wallet balance (₹'+String(e.message).split(':')[1]+'). Please pay via UPI.');
+    } else alert('Error using wallet: '+e.message);
+  }
 };
 
 window.payLater=async function(){
@@ -2041,15 +2061,20 @@ window.sendCustomerConfirmWA=function(){
   setTimeout(function(){ location.href=waUrl; }, 300);
 };
 
+// BUG-09: customer-supplied name/address/notes were written straight into
+// innerHTML on the success screen. Same esc() helper admin.html and
+// delivery.html already use.
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
 // ---- SUCCESS ----
 function showSuccess(){
   document.getElementById('succOrderId').textContent=currentOrderId.slice(-8).toUpperCase();
   const{total,delivery}=getTotal();
-  let s=`<b>${lastOrder.name}</b> | 📞 ${lastOrder.phone}<br>`;
-  lastOrder.items.forEach(i=>{s+=`<b>${i.name}</b> ×${i.qty} = ₹${i.subtotal}<br>`;});
+  let s=`<b>${esc(lastOrder.name)}</b> | 📞 ${esc(lastOrder.phone)}<br>`;
+  lastOrder.items.forEach(i=>{s+=`<b>${esc(i.name)}</b> ×${i.qty} = ₹${i.subtotal}<br>`;});
   if(delivery)s+=`Delivery: ₹${delivery}<br>`;
-  s+=`<b>Total: ₹${total}</b><br>📍 ${lastOrder.address}`;
-  if(lastOrder.notes)s+=`<br>📝 ${lastOrder.notes}`;
+  s+=`<b>Total: ₹${total}</b><br>📍 ${esc(lastOrder.address)}`;
+  if(lastOrder.notes)s+=`<br>📝 ${esc(lastOrder.notes)}`;
   document.getElementById('succDetails').innerHTML=s;
   show('successScreen');
   if(currentProfile?.phone) loadMyOrders(currentProfile.phone);
