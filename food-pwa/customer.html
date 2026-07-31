@@ -472,7 +472,10 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 
   <div class="panel" id="tab-profile">
     <div class="prof-hdr">
-      <div class="prof-av" id="profAv">👤</div>
+      <div class="prof-av" id="profAv" onclick="document.getElementById('profPicInput').click()" style="cursor:pointer;overflow:hidden;position:relative">👤
+        <div style="position:absolute;bottom:0;right:0;background:white;color:var(--orange);width:20px;height:20px;border-radius:50%;font-size:.7rem;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3)">📷</div>
+      </div>
+      <input type="file" id="profPicInput" accept="image/*" style="display:none" onchange="uploadProfilePic(event)">
       <div class="prof-name" id="profName">Guest</div>
       <div class="prof-ph" id="profPhone">Not logged in</div>
     </div>
@@ -860,7 +863,8 @@ function updateProfileUI(p) {
   if (!p) return;
   const name = p.name||localStorage.getItem('custName')||'';
   const phone = p.phone||localStorage.getItem('custPhone')||'';
-  document.getElementById('profAv').textContent = (name||phone||'?')[0].toUpperCase();
+  if(p.photoUrl){ showProfilePic(p.photoUrl); }
+  else { document.getElementById('profAv').textContent = (name||phone||'?')[0].toUpperCase(); }
   document.getElementById('profName').textContent = name||'Tap to set name';
   document.getElementById('profPhone').textContent = '📞 '+phone;
   document.getElementById('piName').value = name;
@@ -894,6 +898,39 @@ window.saveProfile = async function() {
   try{await setDoc(doc(db,'customers',phone),currentProfile,{merge:true});updateProfileUI(currentProfile);autoFill(currentProfile);loadMyOrders(phone);showToast('✅ Profile saved!');switchTab('order');}
   catch(e){alert('Error saving profile');}
 };
+
+// Customer profile photo — upload to imgbb (same service as item photos), save URL on
+// the customer doc, show as a round avatar. imgbb URLs are public (fine for an avatar).
+window.uploadProfilePic = async function(e){
+  const file=e.target.files&&e.target.files[0]; if(!file)return;
+  const phone=currentProfile?.phone||localStorage.getItem('custPhone');
+  if(!phone){alert('Please login first');e.target.value='';return;}
+  let key='';
+  try{const c=await getMasterCfg(); key=(c&&c.imgbbKey)||'';}catch(_){}
+  if(!key){alert('Photo upload not set up yet. Please try later.');e.target.value='';return;}
+  const av=document.getElementById('profAv');
+  const prev=av?av.innerHTML:'';
+  if(av)av.innerHTML='⏳';
+  try{
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
+    const fd=new FormData();fd.append('image',b64);fd.append('key',key);
+    const resp=await fetch('https://api.imgbb.com/1/upload',{method:'POST',body:fd});
+    const data=await resp.json();
+    if(data.success){
+      const url=data.data.url;
+      await setDoc(doc(db,'customers',phone),{photoUrl:url,updatedAt:new Date().toISOString()},{merge:true});
+      if(currentProfile)currentProfile.photoUrl=url;
+      showProfilePic(url);
+      showToast('✅ Photo updated!');
+    }else{ if(av)av.innerHTML=prev; showToast('Upload failed, try again'); }
+  }catch(err){ if(av)av.innerHTML=prev; showToast('Could not upload photo'); }
+  e.target.value='';
+};
+function showProfilePic(url){
+  const av=document.getElementById('profAv'); if(!av||!url)return;
+  av.innerHTML='<img src="'+url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'+
+    '<div style="position:absolute;bottom:0;right:0;background:white;color:var(--orange);width:20px;height:20px;border-radius:50%;font-size:.7rem;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3)">📷</div>';
+}
 
 window.changePinPrompt = async function() {
   const newPin=prompt('Enter new 4-digit PIN:');

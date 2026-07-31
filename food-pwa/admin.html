@@ -1846,9 +1846,15 @@ window.togToday=function(idx){masterItems[idx].todayActive=!!document.getElement
 window.toggleShopOpen=async function(){
   if(!selMenuDate)return;
   const isOpen=document.getElementById('shopOpen').checked;
-  // Snapshot current on-screen items/qty so nothing gets lost (same fields saveTodayMenu uses)
+  // IMPORTANT: opening/closing a date must NOT change that day's menu items.
+  // Snapshot whatever is currently on screen; if nothing is selected on screen,
+  // fall back to the items already saved for that date so we never blank the menu.
   masterItems.forEach((item,idx)=>{const qe=document.getElementById('tq_'+idx);if(qe)item.availableQty=parseInt(qe.value)||0;item.todayActive=!!document.getElementById('tt_'+idx)?.checked;});
-  const active=masterItems.filter(i=>i.todayActive);
+  let active=masterItems.filter(i=>i.todayActive);
+  if(!active.length){
+    // Nothing selected on screen — keep the day's existing items instead of wiping them.
+    try{ const existing=await getDailyMenu(selMenuDate); if(existing&&Array.isArray(existing.items)&&existing.items.length) active=existing.items; }catch(e){}
+  }
   const lc={'NTPC Township':Number(document.getElementById('lcNTPC').value)||0,'GAIL Gaon':Number(document.getElementById('lcGAIL').value)||0,'PATA Gate':Number(document.getElementById('lcPATA').value)||0,'GAIL Vihar':Number(document.getElementById('lcGVIHAR').value)||0,'Others':Number(document.getElementById('lcOTHERS').value)||0};
   try{
     await saveDailyMenu(selMenuDate,{date:selMenuDate,isOpen,locationCharges:lc,shopName:cfg.shopName||'Kicken Bites',upiId:cfg.upiId||'',upiName:cfg.upiName||'',imgbbKey:cfg.imgbbKey||'',items:active});
