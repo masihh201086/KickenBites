@@ -294,6 +294,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div class="tab" data-tab="master" onclick="sw('master')">🗂️ Master</div>
     <div class="tab" data-tab="ratings" onclick="sw('ratings')">⭐ Ratings</div>
     <div class="tab" data-tab="wish" onclick="sw('wish')">🌟 Wish</div>
+    <div class="tab" data-tab="party" onclick="sw('party')">🎉 Party</div>
     <div class="tab" data-tab="dues" onclick="sw('dues')">💳 Dues</div>
     <div class="tab" data-tab="setup" onclick="sw('setup')">⚙️ Setup</div>
     <div class="tab" id="moreTab" onclick="toggleMoreMenu(event)" style="position:relative">⋯ More
@@ -312,11 +313,6 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div id="pinReqList"></div>
     </div>
     <!-- PARTY BOOKINGS — hidden until there is at least one upcoming booking -->
-    <div class="card" id="partyCard" style="display:none;padding:11px;border:2px solid #a855f7;background:#faf5ff;margin-bottom:9px">
-      <div class="ct" style="margin:0 0 7px 0;color:#6b21a8;cursor:pointer" onclick="togglePartyCard()"><span id="partyHdrArrow">▸</span> 🎉 Party Bookings <span id="partyCount" style="background:#7c3aed;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span>
-        <button id="partyToggle" onclick="event.stopPropagation();togglePartyAll()" style="display:none;float:right;background:#ede9fe;color:#6b21a8;border:none;padding:3px 9px;border-radius:8px;font-size:.68rem;font-weight:700;cursor:pointer">Sabhi dikhayein</button></div>
-      <div id="partyList"></div>
-    </div>
     <div class="card" style="padding:11px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
         <div class="ct" style="margin:0">📋 Orders By Date</div>
@@ -400,6 +396,21 @@ input:checked+.slider:before{transform:translateX(20px);}
   </div>
 
   <!-- TODAY -->
+  <!-- PARTY (own tab now — Session D) -->
+  <div class="panel" id="tab-party">
+    <div class="card" style="padding:13px;border:2px solid #a855f7;background:#faf5ff">
+      <div class="ct" style="margin:0 0 9px 0;color:#6b21a8;display:flex;align-items:center;justify-content:space-between">
+        <span>🎉 Party Bookings <span id="partyCount" style="background:#7c3aed;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span></span>
+        <button id="partyToggle" onclick="togglePartyAll()" style="display:none;background:#ede9fe;color:#6b21a8;border:none;padding:4px 11px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">Sabhi dikhayein</button>
+      </div>
+      <div id="partyList"></div>
+      <div id="partyEmpty" style="display:none;text-align:center;padding:26px 10px;color:var(--muted)">
+        <div style="font-size:2rem">🎉</div>
+        <p style="font-size:.82rem;margin-top:6px">Abhi koi party booking nahi.<br>Customer party planner se book karega to yahan dikhega.</p>
+      </div>
+    </div>
+  </div>
+
   <div class="panel" id="tab-today">
     <div class="card">
       <div class="ct">Select Menu Date</div>
@@ -2924,27 +2935,39 @@ window.dismissPinReq=async function(role,phone){
 let partyUnsub=null;
 function renderPartyBookings(all){
   _partyAll=all||[];
-  const card=document.getElementById('partyCard'), box=document.getElementById('partyList'), cnt=document.getElementById('partyCount');
-  const tgl=document.getElementById('partyToggle');
-  if(!card||!box) return;
+  const box=document.getElementById('partyList'), cnt=document.getElementById('partyCount');
+  const tgl=document.getElementById('partyToggle'), empty=document.getElementById('partyEmpty');
+  if(!box) return;
   const today=getTodayDate();
   const live=_partyAll.filter(function(b){ return b.status!=='dismissed' && String(b.partyDate||'')>=today; });
   const list=partyShowAll?_partyAll.slice():live;
+  if(cnt) cnt.textContent=live.length;
+  // red dot on the Party tab when upcoming bookings exist
+  try{
+    const ptab=document.querySelector('.tab[data-tab="party"]');
+    if(ptab){
+      let dot=ptab.querySelector('.party-dot');
+      if(live.length>0){
+        if(!dot){ dot=document.createElement('span'); dot.className='party-dot'; dot.style.cssText='display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-left:4px;vertical-align:middle'; ptab.appendChild(dot); }
+      } else if(dot){ dot.remove(); }
+    }
+  }catch(e){}
   if(tgl){
     tgl.style.display=_partyAll.length?'inline-block':'none';
     tgl.textContent=partyShowAll?'Sirf aane wali':'Sabhi dikhayein ('+_partyAll.length+')';
   }
+  // Party ab apna alag tab hai — koi collapse nahi. Empty state alag div me.
   if(!list.length){
-    if(!_partyAll.length){ card.style.display='none'; box.innerHTML=''; return; }
-    card.style.display='block'; box.innerHTML='<div style="font-size:.78rem;color:#888;padding:6px 2px">Koi aane wali booking nahi.</div>';
-    if(cnt) cnt.textContent='0';
+    box.innerHTML='';
+    if(empty){
+      empty.style.display='block';
+      empty.querySelector('p').innerHTML = _partyAll.length
+        ? 'Koi aane wali booking nahi.<br>Purani dekhne ke liye "Sabhi dikhayein" dabaiye.'
+        : 'Abhi koi party booking nahi.<br>Customer party planner se book karega to yahan dikhega.';
+    }
     return;
   }
-  card.style.display='block';
-  if(cnt) cnt.textContent=live.length;
-  const hdr=document.getElementById('partyHdrArrow');
-  if(hdr) hdr.textContent=partyCollapsed?'▸':'▾';
-  if(partyCollapsed){ box.innerHTML=''; if(tgl) tgl.style.display='none'; return; }
+  if(empty) empty.style.display='none';
   list.sort(function(a,b){ return String(a.partyDate||'').localeCompare(String(b.partyDate||'')); });
   box.innerHTML=list.map(function(b){
     const items=(b.items||[]).map(function(i){ return esc(i.name)+' × '+i.qty; }).join(', ');
