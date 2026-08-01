@@ -443,6 +443,9 @@ input:checked+.slider:before{transform:translateX(20px);}
         <button onclick="downloadCollage()" style="width:100%;padding:11px;background:var(--dark);color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:.84rem">⬇️ Download Collage Image</button>
       </div>
     </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn" onclick="openCustomerLink()" style="flex:1;margin-top:0;background:#334155;color:#fff">🔗 Link kholkar dekhein</button>
+    </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-g" onclick="copyWAMsg()" style="flex:1;margin-top:0">📋 Copy Text</button>
       <button class="btn btn-wa" onclick="forwardWAMsg()" style="flex:1;margin-top:0">📤 Open WhatsApp</button>
@@ -1426,7 +1429,7 @@ function sendCustomerWA(order){
   const msg=
     '🍗 *KICKEN BITES*'+nl+
     '✅ *Order Confirmed!*'+nl+nl+
-    'Hi *'+order.name+'*,'+nl+
+    'Hi '+wab(order.name)+','+nl+
     'Your order has been received and confirmed!'+nl+nl+
     '*Your Order:*'+nl+items+nl+nl+
     '💰 Total: Rs '+order.total+
@@ -2168,6 +2171,15 @@ window.saveTodayMenu=async function(){
   btn.textContent='💾 Save & Publish Menu';btn.disabled=false;
 };
 
+// WhatsApp *bold* tabhi banta hai jab asterisk ke bilkul saath koi space na ho,
+// aur text ke andar dusra asterisk na ho. Item ke naam me galti se aaya hua
+// space bold ko tod deta tha (WhatsApp par literal * dikhte the), isliye har
+// dynamic value ab isi helper se bold hoti hai.
+function wab(v){
+  let t=String(v==null?'':v).replace(/\*/g,'').replace(/\s+/g,' ').trim();
+  return t?('*'+t+'*'):'';
+}
+
 // WhatsApp menu message
 window.genWAMessage=function(){
   const active=masterItems.filter(i=>i.todayActive);
@@ -2176,7 +2188,7 @@ window.genWAMessage=function(){
   const link=window.location.href.replace('admin.html','customer.html');
   // Plain text version (asterisks = WhatsApp bold) — this is what gets copied/sent
   let msg=`🍗 *KICKEN BITES*\n📅 *${date}'s Menu*\n\n`;
-  active.forEach(i=>{msg+=`• *${i.name}* — ₹${i.price}${i.availableQty>0?' ('+i.availableQty+' plates)':''}\n`;});
+  active.forEach(i=>{msg+=`• ${wab(i.name)} — ₹${i.price}${i.availableQty>0?' ('+i.availableQty+' plates)':''}\n`;});
   msg+=`\n🔥 *Limited Quantity Available!*\n👇 *CLICK TO ORDER* 👇\n${link}`;
   window._waMsgText=msg;
   document.getElementById('waMsgContent').innerHTML=formatWAPreview(msg,link);
@@ -2191,7 +2203,7 @@ window.genReminderMsg=function(){
   const link=window.location.href.replace('admin.html','customer.html');
   let msg='🔔 *REMINDER — KICKEN BITES*\n📅 *'+date+'*\n\nHungry? Today\'s fresh menu is ready 👇\n\n';
   const _bk={}; (todayOrders||[]).filter(o=>(o.status||'')!=='cancelled').forEach(o=>(o.items||[]).forEach(it=>{_bk[it.name]=(_bk[it.name]||0)+(Number(it.qty)||0);}));
-  active.forEach(i=>{const rem=Math.max(0,(Number(i.availableQty)||0)-(_bk[i.name]||0));msg+='• *'+i.name+'* — ₹'+i.price+(rem>0?' ('+rem+' left)':' (SOLD OUT)')+'\n';});
+  active.forEach(i=>{const rem=Math.max(0,(Number(i.availableQty)||0)-(_bk[i.name]||0));msg+='• '+wab(i.name)+' — ₹'+i.price+(rem>0?' ('+rem+' left)':' (SOLD OUT)')+'\n';});
   msg+='\n⏰ *Order soon — limited plates!*\n👇 *CLICK TO ORDER* 👇\n'+link;
   window._waMsgText=msg;
   document.getElementById('waMsgContent').innerHTML=formatWAPreview(msg,link);
@@ -2214,7 +2226,7 @@ window.sendOrdersReminder=async function(){
   try{ const ms=await getDoc(doc(db,'dailyMenu',ds)); if(ms.exists()){ (ms.data().items||[]).forEach(it=>{ if(it.id!=null && it.availableQty!=null) remainById[it.id]=Number(it.availableQty); }); } }catch(e){}
   const remOf=i=> (remainById[i.id]!=null ? remainById[i.id] : qtyForDay(i,wd));
   let msg='🔔 *REMINDER — KICKEN BITES*\n📅 *'+dateLbl+'*\n\nHungry? Fresh menu is ready 👇\n\n';
-  items.forEach(i=>{const rem=Math.max(0,remOf(i));msg+='• *'+i.name+'* — ₹'+i.price+(rem>0?' ('+rem+' left)':' (SOLD OUT)')+'\n';});
+  items.forEach(i=>{const rem=Math.max(0,remOf(i));msg+='• '+wab(i.name)+' — ₹'+i.price+(rem>0?' ('+rem+' left)':' (SOLD OUT)')+'\n';});
   msg+='\n⏰ *Order soon — limited plates!*\n👇 *CLICK TO ORDER* 👇\n'+link;
   window._waMsgText=msg;
   try{ document.getElementById('waMsgContent').innerHTML=formatWAPreview(msg,link); document.getElementById('waMsgBox').style.display='block'; }catch(e){}
@@ -2224,14 +2236,22 @@ window.sendOrdersReminder=async function(){
   showToast('🔔 Collage ready — download it, then tap Send on WhatsApp');
 };
 
-// Turns *bold* WhatsApp text into a readable in-app preview with a green CTA button for the link
+window.openCustomerLink=function(){
+  try{ window.open(window.location.href.replace('admin.html','customer.html'),'_blank'); }catch(e){}
+};
+
+// Preview ko bilkul WhatsApp jaisa dikhana hai — warna galti yahan chhup jaati
+// hai aur customer ke phone par jaakar pakdi jaati hai (yahi hua tha).
+// (1) WhatsApp me BUTTON hota hi nahi; link plain text hi rehta hai — isliye
+//     preview bhi ab link ko waise hi dikhata hai, hara button nahi banata.
+// (2) Bold tabhi banta hai jab asterisk ke andar wala text space se shuru ya
+//     khatm na ho. Ye regex WhatsApp jitna hi sakht hai, taaki toota hua bold
+//     preview me hi pakda jaaye.
 function formatWAPreview(text,link){
   let esc=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  esc=esc.replace(/\*([^*\n]+)\*/g,'<b>$1</b>'); // *bold* -> <b>
+  esc=esc.replace(/\*(\S(?:[^*\n]*\S)?)\*/g,'<b>$1</b>');
   if(link){
-    esc=esc.split(link).join(
-      '<a href="'+link+'" target="_blank" class="cta-btn">🛒 CLICK TO ORDER</a>'
-    );
+    esc=esc.split(link).join('<span style="color:#1d4ed8;text-decoration:underline;word-break:break-all">'+link+'</span>');
   }
   return esc;
 }
@@ -2967,7 +2987,7 @@ window.confirmParty=async function(id){
     const ph=String(b.phone||'').replace(/[^0-9]/g,'');
     if(ph.length===10){
       const d=b.partyDate?new Date(b.partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}):'';
-      const items=(b.items||[]).map(function(i){ return '  • *'+i.name+'* × '+i.qty; }).join('\n');
+      const items=(b.items||[]).map(function(i){ return '  • '+wab(i.name)+' × '+i.qty; }).join('\n');
       const msg='🎉 *PARTY BOOKING CONFIRMED — KICKEN BITES*\n\n'
         +'Namaste '+(b.name||'')+' ji,\n'
         +'Aapki party booking confirm ho gayi hai. ✅\n\n'
@@ -3335,7 +3355,7 @@ window.waOrderSummary=function(orderId){
   var o=allOrders.find(function(x){return x.id===orderId;});
   if(!o)return;
   var nl='\n';
-  var itemLines=(o.items||[]).map(function(i){return '  • *'+i.name+'* x'+i.qty+' = Rs'+(i.subtotal||i.qty*i.price);}).join(nl);
+  var itemLines=(o.items||[]).map(function(i){return '  • '+wab(i.name)+' x'+i.qty+' = Rs'+(i.subtotal||i.qty*i.price);}).join(nl);
   var statusMap={pending_payment:'Awaiting Payment',confirmed:'Confirmed',preparing:'Preparing',ready:'Ready',out_for_delivery:'Out for Delivery',delivered:'Delivered'};
   var status=statusMap[o.status]||o.status;
   var msg='KICKEN BITES - Order Summary'+nl+nl+
@@ -3358,7 +3378,7 @@ window.forwardOrderConfirmation=function(orderId){
   var o=allOrders.find(function(x){return x.id===orderId;});
   if(!o){alert('Order not found');return;}
   var nl='\n';
-  var items=(o.items||[]).map(function(i){return '  • *'+i.name+'* x'+i.qty+' = Rs'+(i.subtotal||i.qty*i.price);}).join(nl);
+  var items=(o.items||[]).map(function(i){return '  • '+wab(i.name)+' x'+i.qty+' = Rs'+(i.subtotal||i.qty*i.price);}).join(nl);
   var isDelivery = o.orderType==='delivery' || (o.address && o.address!=='Takeaway');
   var trackLink = window.location.href.replace('admin.html','track.html')+'?order='+orderId;
   var locationLine = isDelivery ? '📍 Deliver to: '+(o.address||'') : '📍 *Pickup from:* Kicken Bites, Netaji Kunj 2027, GAIL Pata';
@@ -3374,7 +3394,7 @@ window.forwardOrderConfirmation=function(orderId){
     dateLine='📅 *Order for: '+rel+disp+'*'+nl+nl;
   }
   var msg='🍗 *KICKEN BITES*'+nl+'✅ *Order Confirmed!*'+nl+nl+
-    'Hi *'+o.name+'*!'+nl+'Your order is confirmed and being prepared fresh!'+nl+nl+
+    'Hi '+wab(o.name)+'!'+nl+'Your order is confirmed and being prepared fresh!'+nl+nl+
     dateLine+'*Order Details:*'+nl+items+nl+nl+
     '💰 *Total: Rs '+o.total+'*'+(o.deliveryCharge?' (incl. Rs '+o.deliveryCharge+' delivery)':'')+nl+
     locationLine+nl+payLine+deliveryLine+nl+nl+
@@ -3464,9 +3484,9 @@ window.remindOneDue=async function(phone,name,total){
   const nl='\n';
   const payLink=window.location.href.replace('admin.html','customer.html');
   let msg='🔔 *'+shop+' — Payment Reminder*'+nl+nl+
-    'Hi *'+(name||'Customer')+'*,'+nl+
+    'Hi '+wab(name||'Customer')+','+nl+
     'You have a pending Pay-Later balance of *₹'+total+'*.'+nl+nl+
-    (upi?('📲 Pay via UPI: *'+upi+'*'+nl+nl):'')+
+    (upi?('📲 Pay via UPI: '+wab(upi)+nl+nl):'')+
     '💳 Or pay online → Profile → Pay Dues Now:'+nl+payLink+nl+nl+
     'Kindly clear it at your earliest. Thank you! 🙏';
   const ph=phone.toString().replace(/[^0-9]/g,'').slice(-10);
@@ -3493,9 +3513,9 @@ function remindNextInQueue(){
   const payLink=window.location.href.replace('admin.html','customer.html');
   const upi=_remindCfg.upi, shop=_remindCfg.shop;
   let msg='🔔 *'+shop+' — Payment Reminder*'+nl+nl+
-    'Hi *'+(d.name||'Customer')+'*,'+nl+
+    'Hi '+wab(d.name||'Customer')+','+nl+
     'You have a pending Pay-Later balance of *₹'+d.total+'* ('+d.count+' order'+(d.count!==1?'s':'')+').'+nl+nl+
-    (upi?('📲 Pay via UPI: *'+upi+'*'+nl+nl):'')+
+    (upi?('📲 Pay via UPI: '+wab(upi)+nl+nl):'')+
     '💳 Or pay online → Profile → Pay Dues Now:'+nl+payLink+nl+nl+
     'Kindly clear it at your earliest. Thank you! 🙏';
   const ph=d.phone.toString().replace(/[^0-9]/g,'').slice(-10);
