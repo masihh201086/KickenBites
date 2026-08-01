@@ -154,6 +154,27 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .notes-inp:focus{border-color:var(--orange);}
 
 /* PAY SCREEN */
+
+/* Session A: Pay Now / Pay Later tab strip */
+.pay-mode-strip{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:14px;overflow:hidden;border:2px solid #e65c00;margin:14px 14px 0;box-shadow:0 2px 10px rgba(230,92,0,.18)}
+.pay-mode-btn{padding:13px 6px;font-weight:800;font-size:.92rem;border:none;cursor:pointer;transition:background .15s,color .15s;line-height:1.2;text-align:center}
+.pay-mode-btn.now{background:#e65c00;color:#fff}
+.pay-mode-btn.later{background:#fff7f0;color:#e65c00}
+.pay-mode-btn.now.active{background:#c44d00}
+.pay-mode-btn.later.active{background:#fff0e0;color:#c44d00}
+/* pay-later info panel */
+#payLaterPanel{display:none;padding:0 14px 14px}
+.pl-info-box{background:#fffbeb;border:1.5px solid #f59e0b;border-radius:12px;padding:14px;margin-top:14px}
+.pl-info-title{font-weight:800;font-size:.93rem;margin-bottom:4px;color:#92400e}
+.pl-info-sub{font-size:.78rem;color:#78350f;line-height:1.55;margin-bottom:12px}
+.pl-due-row{display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:9px;padding:9px 11px;margin-bottom:9px;font-size:.82rem}
+.pl-confirm-btn{width:100%;padding:13px;background:#f59e0b;color:#fff;border:none;border-radius:11px;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 2px 8px rgba(245,158,11,.3)}
+.pl-note{font-size:.7rem;color:#92400e;margin-top:7px;line-height:1.5;text-align:center}
+/* pay-now panel */
+#payNowPanel{display:none;padding:0 14px 14px}
+/* "I have paid" big button */
+.i-paid-btn{width:100%;padding:14px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:.95rem;cursor:pointer;box-shadow:0 3px 12px rgba(22,163,74,.35);margin-top:4px}
+
 #payScreen{display:none;position:fixed;inset:0;z-index:200;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:linear-gradient(160deg,var(--dark),#0f3460);}
 .pay-bar{padding:11px 15px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;background:linear-gradient(160deg,var(--dark),#16213e);}
 .pay-logo{color:white;font-weight:800;font-size:.88rem;}
@@ -543,87 +564,109 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 <!-- PAYMENT SCREEN -->
 <div id="payScreen">
   <div class="pay-bar"><div class="pay-logo">🍗 Kicken Bites</div><button class="pay-x" onclick="closePayScreen()">✕</button></div>
+  <!-- Amount hero — always visible -->
   <div class="pay-hero">
-    <div class="pay-lbl">Amount to Pay</div>
+    <div class="pay-lbl">Order Total</div>
     <div class="pay-amt" id="payAmt">₹0</div>
-    <div class="pay-name" id="payTo">Pay to Kicken Bites</div>
+    <div class="pay-name" id="payTo">Kicken Bites</div>
     <div class="pay-date" id="payDate" style="margin-top:6px;font-size:.8rem;opacity:.9;font-weight:600"></div>
   </div>
-  <div class="pay-card">
-    <!-- OPTION 1: BIG QR + DOWNLOAD -->
-    <div class="pay-opt-title">📷 Option 1 — Scan / Save QR Code</div>
-    <div class="qr-wrap-big">
-      <div class="qr-box-big"><img id="qrImg" src="" alt="QR Code"></div>
-      <div class="qr-amt-big">Amount <b id="qrAmt"></b> is pre-filled</div>
-    </div>
-    <button class="qr-dl-btn" onclick="downloadQR()">⬇️ Download / Save QR to Gallery</button>
-    <div class="upi-apps-lbl">⚡ Quick open your UPI app:</div>
-    <div class="upi-apps-row">
-      <button class="upi-app-btn gpay" onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
-      <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
-      <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
-      <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
-    </div>
-    <div class="proc-box">
-      <b>How to pay with QR:</b><br>
-      1️⃣ Tap <b>Download QR</b> above (saves to your gallery)<br>
-      2️⃣ Tap your app icon above to open it<br>
-      3️⃣ Choose <b>Scan QR</b> → <b>Gallery</b> / <b>Upload from photos</b><br>
-      4️⃣ Pick the saved QR → amount ₹<span id="procAmt1"></span> fills in<br>
-      5️⃣ Complete the payment
-    </div>
 
-    <div class="or-div">OR</div>
-
-    <!-- OPTION 2: BIG COPY UPI -->
-    <div class="pay-opt-title">📋 Option 2 — Pay by UPI ID</div>
-    <div class="upi-box-big">
-      <div class="upi-txt-big" id="upiId">—</div>
-      <button class="copy-btn-big" id="copyBtn" onclick="copyUpi()">📋 Copy UPI ID</button>
-    </div>
-    <div class="upi-apps-lbl">⚡ Open your UPI app:</div>
-    <div class="upi-apps-row">
-      <button class="upi-app-btn gpay" onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
-      <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
-      <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
-      <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
-    </div>
-    <div class="proc-box">
-      <b>How to pay with UPI ID:</b><br>
-      1️⃣ Tap <b>Copy UPI ID</b> above<br>
-      2️⃣ Tap your app icon above to open it<br>
-      3️⃣ Choose <b>Pay by UPI ID</b> / <b>Send to UPI ID</b><br>
-      4️⃣ <b>Paste</b> the UPI ID<br>
-      5️⃣ Enter amount ₹<span id="hintAmt2"></span> and pay
-    </div>
-
-    <div class="warn-note">⚠️ After paying, tap <b>"I Have Paid"</b> below to confirm your order.</div>
-    <button class="confirm-btn" onclick="iHavePaid()"><span style="font-size:1.1rem">✅</span> I Have Paid — Confirm Order</button>
-    
-    <!-- PAY LATER DIVIDER -->
-    <div style="display:flex;align-items:center;gap:8px;margin:14px 0"><div style="flex:1;height:1px;background:#eee"></div><span style="font-size:.72rem;color:var(--muted);font-weight:600">OR</span><div style="flex:1;height:1px;background:#eee"></div></div>
-    
-    <!-- PAY LATER SECTION -->
-    <div id="payLaterSection" style="background:#fffbeb;border-radius:12px;padding:13px;border:1.5px solid #f59e0b;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-weight:700;font-size:.9rem">📋 Pay Later Option</div>
-        <div id="dueAmtLabel" style="font-size:.72rem;color:var(--muted)"></div>
-      </div>
-      <button onclick="payLater()" style="width:100%;padding:12px;background:#f59e0b;color:white;border:none;border-radius:10px;font-weight:700;font-size:.88rem;cursor:pointer">📋 Confirm Order — Pay Later in Cash</button>
-      <div style="font-size:.7rem;color:#92400e;margin-top:7px;line-height:1.5">⚠️ Order will be confirmed. Please pay cash at delivery. Due amount tracked in your account.</div>
-    </div>
-    
-    <!-- WALLET -->
-    <div id="walletSection" style="display:none;background:#f0fdf4;border-radius:12px;padding:12px;border:1.5px solid var(--green);margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-weight:700;font-size:.88rem">💳 Wallet Balance</div>
-        <div id="walletBal" style="font-size:1.1rem;font-weight:800;color:var(--green)">₹0</div>
-      </div>
-      <button onclick="useWallet()" style="width:100%;padding:11px;background:var(--green);color:white;border:none;border-radius:10px;font-weight:700;font-size:.86rem;cursor:pointer">✅ Pay from Wallet Balance</button>
-    </div>
-    
-    <span class="back-lnk" onclick="closePayScreen()">← Go back and edit order</span>
+  <!-- PAY NOW / PAY LATER tab strip -->
+  <div class="pay-mode-strip">
+    <button class="pay-mode-btn now active" id="tabPayNow" onclick="switchPayTab('now')">
+      💳 Pay Now
+    </button>
+    <button class="pay-mode-btn later" id="tabPayLater" onclick="switchPayTab('later')">
+      📋 Pay Later
+    </button>
   </div>
+
+  <!-- ── PAY NOW PANEL ── -->
+  <div id="payNowPanel">
+    <div class="pay-card" style="margin-top:12px">
+      <!-- OPTION 1: QR -->
+      <div class="pay-opt-title">📷 Option 1 — Scan / Save QR Code</div>
+      <div class="qr-wrap-big">
+        <div class="qr-box-big"><img id="qrImg" src="" alt="QR Code"></div>
+        <div class="qr-amt-big">Amount <b id="qrAmt"></b> is pre-filled</div>
+      </div>
+      <button class="qr-dl-btn" onclick="downloadQR()">⬇️ Download / Save QR to Gallery</button>
+      <div class="upi-apps-lbl">⚡ Quick open your UPI app:</div>
+      <div class="upi-apps-row">
+        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
+        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
+        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
+        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
+      </div>
+      <div class="proc-box">
+        <b>QR se pay karne ka tarika:</b><br>
+        1️⃣ <b>QR Download</b> karein (gallery me save ho jaayega)<br>
+        2️⃣ Upar apna UPI app kholein<br>
+        3️⃣ <b>Scan QR → Gallery</b> me se saved QR chunein<br>
+        4️⃣ Amount ₹<span id="procAmt1"></span> khud bhar jaayega<br>
+        5️⃣ Payment complete karein
+      </div>
+
+      <div class="or-div">YA</div>
+
+      <!-- OPTION 2: UPI ID -->
+      <div class="pay-opt-title">📋 Option 2 — UPI ID se pay karein</div>
+      <div class="upi-box-big">
+        <div class="upi-txt-big" id="upiId">—</div>
+        <button class="copy-btn-big" id="copyBtn" onclick="copyUpi()">📋 UPI ID Copy karein</button>
+      </div>
+      <div class="upi-apps-lbl">⚡ Apna UPI app kholein:</div>
+      <div class="upi-apps-row">
+        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
+        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
+        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
+        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
+      </div>
+      <div class="proc-box">
+        <b>UPI ID se pay karne ka tarika:</b><br>
+        1️⃣ Upar <b>UPI ID Copy</b> karein<br>
+        2️⃣ Apna UPI app kholein<br>
+        3️⃣ <b>UPI ID se bhejein</b> option chunein<br>
+        4️⃣ UPI ID <b>paste</b> karein<br>
+        5️⃣ Amount ₹<span id="hintAmt2"></span> dalein aur pay karein
+      </div>
+
+      <!-- Wallet (dues clearing) -->
+      <div id="walletSection" style="display:none;background:#f0fdf4;border-radius:12px;padding:12px;border:1.5px solid var(--green);margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-weight:700;font-size:.88rem">💳 Wallet Balance</div>
+          <div id="walletBal" style="font-size:1.1rem;font-weight:800;color:var(--green)">₹0</div>
+        </div>
+        <button onclick="useWallet()" style="width:100%;padding:11px;background:var(--green);color:white;border:none;border-radius:10px;font-weight:700;font-size:.86rem;cursor:pointer">✅ Wallet se pay karein</button>
+      </div>
+
+      <div class="warn-note">⚠️ Pay karne ke baad neeche <b>"Maine Pay Kar Diya"</b> zaroor dabaiye — tabhi aapka order confirm hoga.</div>
+      <button class="i-paid-btn" onclick="iHavePaid()">✅ Maine Pay Kar Diya — Order Confirm Karein</button>
+      <div style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:6px;line-height:1.4">Payment karne ke baad hi ye button dabaiye. Bina payment ke dabane par order cancel ho sakta hai.</div>
+    </div>
+  </div>
+
+  <!-- ── PAY LATER PANEL ── -->
+  <div id="payLaterPanel">
+    <div class="pl-info-box">
+      <div class="pl-info-title">📋 Pay Later kya hota hai?</div>
+      <div class="pl-info-sub">Aapka order abhi confirm ho jaayega. Paisa delivery ke waqt ya baad me cash me dena hoga. Aapke account me due amount track hota rahega.</div>
+      <div class="pl-due-row">
+        <span>Is order ka amount</span>
+        <span style="font-weight:800;color:#e65c00" id="plOrderAmt">₹0</span>
+      </div>
+      <div class="pl-due-row" id="plPrevDueRow" style="display:none">
+        <span>Pehle se baaki (dues)</span>
+        <span style="font-weight:800;color:#dc2626" id="plPrevDue">₹0</span>
+      </div>
+      <button class="pl-confirm-btn" onclick="payLater()">📋 Pay Later — Order Confirm Karein</button>
+      <div class="pl-note">⚠️ Ye order Cash on Delivery par confirm ho jaayega. Dues me add ho jaayega.</div>
+    </div>
+    <span class="back-lnk" style="display:block;text-align:center;margin-top:16px" onclick="closePayScreen()">← Wapas jaayein</span>
+  </div>
+
+  <span class="back-lnk" id="payBackLnk" style="display:block;text-align:center;padding:8px 0 16px" onclick="closePayScreen()">← Wapas jaayein</span>
 </div>
 
 <!-- SUCCESS SCREEN -->
@@ -1918,6 +1961,23 @@ function showPayScreen(total){
   const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(ud)}`;
   document.getElementById('qrImg').src=qrUrl;
   window._payQrUrl=qrUrl; window._payQrName='KickenBites-Pay-'+total+'.png';
+  // populate Pay Later panel amounts
+  {const el=document.getElementById('plOrderAmt'); if(el)el.textContent='₹'+total;}
+  // show previous dues if any
+  try{
+    const ph=localStorage.getItem('custPhone')||'';
+    if(ph){
+      getDoc(doc(db,'wallets',ph)).then(ws=>{
+        const due=ws.exists()?(ws.data().due||0):0;
+        const row=document.getElementById('plPrevDueRow');
+        const val=document.getElementById('plPrevDue');
+        if(row&&val&&due>0){ val.textContent='₹'+due; row.style.display='flex'; }
+        else if(row) row.style.display='none';
+      }).catch(()=>{});
+    }
+  }catch(e){}
+  // default to Pay Now tab; dues mode goes straight to Pay Now
+  switchPayTab('now');
   show('payScreen');window.scrollTo(0,0);
   setTimeout(loadWalletBalance,300);
 }
@@ -2048,7 +2108,21 @@ window.payLater=async function(){
   }catch(e){alert('Error: '+e.message);}
 };
 
-window.closePayScreen=function(){hide('payScreen');window._payMode='order';};
+window.switchPayTab=function(tab){
+  const isNow=(tab==='now');
+  document.getElementById('tabPayNow').classList.toggle('active', isNow);
+  document.getElementById('tabPayNow').classList.toggle('now', true);
+  document.getElementById('tabPayLater').classList.toggle('active', !isNow);
+  document.getElementById('tabPayLater').classList.toggle('later', true);
+  const np=document.getElementById('payNowPanel');
+  const lp=document.getElementById('payLaterPanel');
+  const bl=document.getElementById('payBackLnk');
+  if(np) np.style.display=isNow?'block':'none';
+  if(lp) lp.style.display=isNow?'none':'block';
+  if(bl) bl.style.display=isNow?'block':'none';
+  window._payTab=tab;
+};
+window.closePayScreen=function(){hide('payScreen');window._payMode='order';window._payTab='now';};
 window.iHavePaid=async function(){
   // DUES MODE: mark all pending pay-later orders as customer-claimed-paid (admin still confirms)
   if(window._payMode==='dues'){
