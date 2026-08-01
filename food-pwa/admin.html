@@ -309,7 +309,8 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
     <!-- PARTY BOOKINGS — hidden until there is at least one upcoming booking -->
     <div class="card" id="partyCard" style="display:none;padding:11px;border:2px solid #a855f7;background:#faf5ff;margin-bottom:9px">
-      <div class="ct" style="margin:0 0 7px 0;color:#6b21a8">🎉 Party Bookings <span id="partyCount" style="background:#7c3aed;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span></div>
+      <div class="ct" style="margin:0 0 7px 0;color:#6b21a8">🎉 Party Bookings <span id="partyCount" style="background:#7c3aed;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span>
+        <button id="partyToggle" onclick="togglePartyAll()" style="display:none;float:right;background:#ede9fe;color:#6b21a8;border:none;padding:3px 9px;border-radius:8px;font-size:.68rem;font-weight:700;cursor:pointer">Sabhi dikhayein</button></div>
       <div id="partyList"></div>
     </div>
     <div class="card" style="padding:11px">
@@ -2882,12 +2883,26 @@ window.dismissPinReq=async function(role,phone){
 // dab jaane par bhi record rehta hai. Yahan sirf aane wali tareekh ki
 // bookings dikhti hain; purani apne aap list se hat jaati hain.
 let partyUnsub=null;
-function renderPartyBookings(list){
+function renderPartyBookings(all){
+  _partyAll=all||[];
   const card=document.getElementById('partyCard'), box=document.getElementById('partyList'), cnt=document.getElementById('partyCount');
+  const tgl=document.getElementById('partyToggle');
   if(!card||!box) return;
-  if(!list.length){ card.style.display='none'; box.innerHTML=''; return; }
+  const today=getTodayDate();
+  const live=_partyAll.filter(function(b){ return b.status!=='dismissed' && String(b.partyDate||'')>=today; });
+  const list=partyShowAll?_partyAll.slice():live;
+  if(tgl){
+    tgl.style.display=_partyAll.length?'inline-block':'none';
+    tgl.textContent=partyShowAll?'Sirf aane wali':'Sabhi dikhayein ('+_partyAll.length+')';
+  }
+  if(!list.length){
+    if(!_partyAll.length){ card.style.display='none'; box.innerHTML=''; return; }
+    card.style.display='block'; box.innerHTML='<div style="font-size:.78rem;color:#888;padding:6px 2px">Koi aane wali booking nahi.</div>';
+    if(cnt) cnt.textContent='0';
+    return;
+  }
   card.style.display='block';
-  if(cnt) cnt.textContent=list.length;
+  if(cnt) cnt.textContent=live.length;
   list.sort(function(a,b){ return String(a.partyDate||'').localeCompare(String(b.partyDate||'')); });
   box.innerHTML=list.map(function(b){
     const items=(b.items||[]).map(function(i){ return esc(i.name)+' × '+i.qty; }).join(', ');
@@ -2895,20 +2910,23 @@ function renderPartyBookings(list){
     const ppl=(Number(b.adults)||0)+' adults, '+(Number(b.children)||0)+' children';
     const ft=b.foodType==='veg'?'🥬 Veg':b.foodType==='nonveg'?'🍗 Non-Veg':'🍗🥬 Both';
     const done=b.status==='confirmed';
+    const gone=b.status==='dismissed';
     return '<div style="background:#fff;border-radius:10px;padding:10px;margin-bottom:7px'+(done?';opacity:.62':'')+'">'
       +'<div style="display:flex;justify-content:space-between;gap:6px">'
         +'<div style="font-weight:700;font-size:.87rem">'+esc(b.name||'(naam nahi)')+'</div>'
         +'<div style="font-weight:800;font-size:.87rem;color:#6b21a8">₹'+(Number(b.total)||0)+'</div>'
       +'</div>'
-      +'<div style="font-size:.75rem;color:#888;margin-bottom:5px">📅 '+esc(d)+' • '+esc(ppl)+' • '+ft+(done?' • ✅ confirmed':'')+'</div>'
+      +'<div style="font-size:.75rem;color:#888;margin-bottom:5px">📅 '+esc(d)+' • '+esc(ppl)+' • '+ft+(done?' • ✅ confirmed':'')+(gone?' • ❌ hatai gayi':'')+'</div>'
       +(b.occasion?'<div style="font-size:.75rem;color:#666;margin-bottom:3px">🎊 '+esc(b.occasion)+'</div>':'')
       +'<div style="font-size:.75rem;color:#444;margin-bottom:3px">🍽️ '+items+'</div>'
       +'<div style="font-size:.75rem;color:#666;margin-bottom:8px">📍 '+esc(b.address||'')+'</div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
         +'<a href="https://wa.me/91'+esc(b.phone)+'" target="_blank" style="flex:1;text-align:center;background:#25d366;color:#fff;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;text-decoration:none">💬 WhatsApp</a>'
         +'<a href="tel:'+esc(b.phone)+'" style="flex:1;text-align:center;background:#3b82f6;color:#fff;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;text-decoration:none">📞 Call</a>'
-        +(done?'':'<button onclick="confirmParty(\''+esc(b.bookingId)+'\')" style="flex:1;background:#a855f7;color:#fff;border:none;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">✅ Confirm</button>')
-        +'<button onclick="dismissParty(\''+esc(b.bookingId)+'\')" style="background:#eee;border:none;padding:8px 11px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">Hatayein</button>'
+        +(done||gone?'':'<button onclick="confirmParty(\''+esc(b.bookingId)+'\')" style="flex:1;background:#a855f7;color:#fff;border:none;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">✅ Confirm</button>')
+        +(gone
+          ? '<button onclick="restoreParty(\''+esc(b.bookingId)+'\')" style="background:#ede9fe;color:#6b21a8;border:none;padding:8px 11px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">↩️ Wapas laayein</button>'
+          : '<button onclick="dismissParty(\''+esc(b.bookingId)+'\')" style="background:#eee;border:none;padding:8px 11px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">Hatayein</button>')
       +'</div></div>';
   }).join('');
 }
@@ -2916,11 +2934,11 @@ function listenPartyBookings(){
   try{
     if(partyUnsub) partyUnsub();
     partyUnsub=onSnapshot(collection(db,'partyBookings'), function(snap){
-      const today=getTodayDate(), list=[];
+      const list=[];
+      // Sab kuch le aate hain; chhupane ka faisla render me hota hai, taaki
+      // "Sabhi dikhayein" par purani/hatai hui bookings bhi mil sakein.
       snap.forEach(function(d){
         const v=d.data()||{};
-        if(v.status==='dismissed') return;
-        if(String(v.partyDate||'')<today) return;   // guzri hui booking apne aap hat jaati hai
         list.push({...v, bookingId:v.bookingId||d.id});
       });
       renderPartyBookings(list);
@@ -2928,12 +2946,45 @@ function listenPartyBookings(){
   }catch(e){}
 }
 window.confirmParty=async function(id){
-  try{ await setDoc(doc(db,'partyBookings',id),{status:'confirmed',confirmedAt:Date.now()},{merge:true}); showToast('✅ Party confirm ho gayi'); }
+  try{
+    const snap=await getDoc(doc(db,'partyBookings',id));
+    const b=snap.exists()?snap.data():{};
+    await setDoc(doc(db,'partyBookings',id),{status:'confirmed',confirmedAt:Date.now()},{merge:true});
+    showToast('✅ Party confirm ho gayi');
+    // Customer ko batana zaroori hai — sirf status badalne se use pata nahi chalta
+    // jab tak wo app na khole. Isliye WhatsApp par confirmation bhi bhej dete hain.
+    const ph=String(b.phone||'').replace(/[^0-9]/g,'');
+    if(ph.length===10){
+      const d=b.partyDate?new Date(b.partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}):'';
+      const items=(b.items||[]).map(function(i){ return '  • *'+i.name+'* × '+i.qty; }).join('\n');
+      const msg='🎉 *PARTY BOOKING CONFIRMED — KICKEN BITES*\n\n'
+        +'Namaste '+(b.name||'')+' ji,\n'
+        +'Aapki party booking confirm ho gayi hai. ✅\n\n'
+        +'📅 Date: '+d+'\n'
+        +'📍 Venue: '+(b.address||'')+'\n\n'
+        +'*Items:*\n'+items+'\n\n'
+        +'💰 Estimated Total: ₹'+(Number(b.total)||0)+'\n\n'
+        +'Kisi badlaav ke liye is number par message kijiye. Dhanyavaad! 🙏';
+      window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
+    }
+  }catch(e){ alert('Nahi hua: '+e.message); }
+};
+// "Sabhi" toggle: purani aur hatai hui bookings bhi dikhti hain, kyunki
+// warna hataane ke baad record kahin dhoondha hi nahi ja sakta tha.
+let partyShowAll=false, _partyAll=[];
+window.togglePartyAll=function(){
+  partyShowAll=!partyShowAll;
+  renderPartyBookings(_partyAll);
+};
+
+window.dismissParty=async function(id){
+  if(!confirm('Ye booking list se hata dein? (Record rahega — "Sabhi dikhayein" se wapas dikh jaayegi)')) return;
+  try{ await setDoc(doc(db,'partyBookings',id),{status:'dismissed',dismissedAt:Date.now()},{merge:true}); showToast('Booking hata di'); }
   catch(e){ alert('Nahi hua: '+e.message); }
 };
-window.dismissParty=async function(id){
-  if(!confirm('Ye booking list se hata dein?')) return;
-  try{ await setDoc(doc(db,'partyBookings',id),{status:'dismissed',dismissedAt:Date.now()},{merge:true}); showToast('Booking hata di'); }
+
+window.restoreParty=async function(id){
+  try{ await setDoc(doc(db,'partyBookings',id),{status:'pending'},{merge:true}); showToast('↩️ Booking wapas list me'); }
   catch(e){ alert('Nahi hua: '+e.message); }
 };
 

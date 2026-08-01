@@ -139,11 +139,23 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
       <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
     Send Party Order on WhatsApp
     </button>
+
+    <!-- booking save hone ke baad ka confirmation -->
+    <div id="bookedBox" style="display:none;margin-top:11px;background:#f0fdf4;border:2px solid #86efac;border-radius:13px;padding:13px">
+      <div id="bookedTxt" style="font-size:.82rem;color:#166534;line-height:1.6;margin-bottom:10px"></div>
+      <button class="wa-send" id="bookedWaBtn" style="margin-top:0">💬 Shop ko WhatsApp par bhejein</button>
+    </div>
+  </div>
+
+  <!-- MERI PARTY BOOKINGS -->
+  <div class="card" id="myBookCard" style="display:none">
+    <div style="font-weight:800;font-size:.95rem;color:#6b21a8;margin-bottom:9px">🎉 Meri Party Bookings</div>
+    <div id="myBookList"></div>
   </div>
 </div>
 
 <script type="module">
-import { db, getTodayDate, collection, doc, getDoc, setDoc } from './src/utils/firebase.js';
+import { db, getTodayDate, collection, doc, getDoc, setDoc, onSnapshot } from './src/utils/firebase.js';
 
 let masterItems=[], quantities={}, partyDate='', shopWA='9712951947';
 
@@ -170,7 +182,7 @@ async function init(){
     try{
       const p=JSON.parse(localStorage.getItem('kb_profile')||'{}');
       if(p.name)document.getElementById('pName').value=p.name;
-      if(p.phone)document.getElementById('pPhone').value=p.phone;
+      if(p.phone){ document.getElementById('pPhone').value=p.phone; try{ watchMyBookings(p.phone); }catch(e){} }
     }catch(e){}
     const savedPhone=localStorage.getItem('custPhone');
     if(savedPhone&&!document.getElementById('pPhone').value)document.getElementById('pPhone').value=savedPhone;
@@ -481,6 +493,7 @@ window.sendPartyWA=async function(){
   // nahi bachta tha, aur admin me kahin dikhti bhi nahi thi.
   // Doc id date_phone hai, isliye ek hi banda ek hi date ke liye ek entry banata hai
   // (form dobara bhejne par purani entry update ho jaati hai, duplicate nahi banti).
+  let savedOk=false;
   try{
     const bookingId = partyDate+'_'+phone;
     await setDoc(doc(db,'partyBookings',bookingId),{
@@ -490,9 +503,82 @@ window.sendPartyWA=async function(){
       foodType, occasion, items:selected, total,
       status:'pending', createdAt:new Date().toISOString(), at:Date.now()
     },{merge:true});
+    savedOk=true;
+    try{ watchMyBookings(phone); }catch(e){}
   }catch(e){ /* net na ho to bhi WhatsApp to chale */ }
 
-  location.href='https://wa.me/91'+shopWA+'?text='+encodeURIComponent(msg);
+  // Booking save ho gayi — ab WhatsApp ka link ek alag button par rakhte hain.
+  // Isse do faayde: navigation ek naye tap par hoti hai (browser use block nahi
+  // karta), aur customer ko saaf dikh jaata hai ki uski booking record ho chuki hai.
+  const waUrl='https://wa.me/91'+shopWA+'?text='+encodeURIComponent(msg);
+  showBookingSaved(waUrl, savedOk);
+};
+
+// Booking save hone ke baad ka confirmation box
+function showBookingSaved(waUrl, savedOk){
+  const box=document.getElementById('bookedBox');
+  const txt=document.getElementById('bookedTxt');
+  if(!box){ openWA(waUrl); return; }
+  txt.innerHTML = savedOk
+    ? '✅ <b>Aapki party booking record ho gayi hai.</b><br>Shop ko WhatsApp par bhej dijiye taaki wo turant dekh lein. Booking ka status neeche "Meri Party Bookings" me dikhta rahega.'
+    : '⚠️ <b>Internet nahi mila, booking save nahi hui.</b><br>WhatsApp par bhej dijiye — shop message se hi le lega.';
+  document.getElementById('bookedWaBtn').onclick=function(){ openWA(waUrl); };
+  box.style.display='block';
+  try{ box.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
+}
+
+// party.html customer.html ke andar iframe me chalta hai. location.href se
+// sirf iframe navigate hota tha (blank/toota hua page). Top window bhejo.
+function openWA(url){
+  try{
+    if(window.top && window.top!==window){ window.top.location.href=url; return; }
+  }catch(e){}
+  try{ window.open(url,'_blank'); }catch(e){ location.href=url; }
+}
+
+// ---- MERI PARTY BOOKINGS (customer ko apna record dikhe) ----
+// Pehle booking bhejne ke baad customer ko kahin kuch dikhta hi nahi tha, aur
+// admin ke confirm karne ka bhi pata nahi chalta tha. Ab yahan live status aata hai.
+let myBookUnsub=null;
+function bookStatusChip(st){
+  if(st==='confirmed') return '<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:2px 8px;font-size:.7rem;font-weight:800">✅ CONFIRMED</span>';
+  if(st==='dismissed') return '<span style="background:#fee2e2;color:#991b1b;border-radius:8px;padding:2px 8px;font-size:.7rem;font-weight:800">❌ CANCELLED</span>';
+  return '<span style="background:#fef3c7;color:#92400e;border-radius:8px;padding:2px 8px;font-size:.7rem;font-weight:800">⏳ PENDING</span>';
+}
+function renderMyBookings(list){
+  const card=document.getElementById('myBookCard'), box=document.getElementById('myBookList');
+  if(!card||!box) return;
+  if(!list.length){ card.style.display='none'; box.innerHTML=''; return; }
+  card.style.display='block';
+  list.sort(function(a,b){ return String(b.partyDate||'').localeCompare(String(a.partyDate||'')); });
+  box.innerHTML=list.map(function(b){
+    const d=b.partyDate?new Date(b.partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}):'';
+    const items=(b.items||[]).map(function(i){ return escP(i.name)+' × '+i.qty; }).join(', ');
+    const past=String(b.partyDate||'')<getTodayDate();
+    return '<div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:11px;padding:11px;margin-bottom:8px'+(past?';opacity:.6':'')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px">'
+        +'<div style="font-weight:800;font-size:.88rem;color:#6b21a8">📅 '+escP(d)+'</div>'
+        +bookStatusChip(b.status)
+      +'</div>'
+      +'<div style="font-size:.78rem;color:#555;margin-bottom:3px">🍽️ '+items+'</div>'
+      +'<div style="font-size:.82rem;font-weight:800;color:#6b21a8">Estimated: ₹'+(Number(b.total)||0)+'</div>'
+      +(b.status==='confirmed'?'<div style="font-size:.75rem;color:#166534;margin-top:5px">Shop ne aapki booking confirm kar di hai. 🎉</div>':'')
+      +(b.status==='dismissed'?'<div style="font-size:.75rem;color:#991b1b;margin-top:5px">Ye booking shop ne cancel kar di hai. Baat karne ke liye WhatsApp kijiye.</div>':'')
+      +'</div>';
+  }).join('');
+}
+function escP(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+window.watchMyBookings=function(phone){
+  const p=String(phone||'').replace(/[^0-9]/g,'');
+  if(p.length!==10) return;
+  try{
+    if(myBookUnsub) myBookUnsub();
+    myBookUnsub=onSnapshot(collection(db,'partyBookings'), function(snap){
+      const list=[];
+      snap.forEach(function(d){ const v=d.data()||{}; if(String(v.phone||'')===p) list.push(v); });
+      renderMyBookings(list);
+    }, function(){});
+  }catch(e){}
 };
 
 init();
