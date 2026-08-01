@@ -651,7 +651,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
   <div id="payLaterPanel">
     <div class="pl-info-box">
       <div class="pl-info-title">📋 Pay Later kya hota hai?</div>
-      <div class="pl-info-sub">Aapka order abhi confirm ho jaayega. Paisa delivery ke waqt ya baad me cash me dena hoga. Aapke account me due amount track hota rahega.</div>
+      <div class="pl-info-sub">Aapka order abhi confirm ho jaayega. Paisa baad me <b>cash ya online</b> — kisi bhi tarike se — de sakte hain. Due amount aapke account me track hoga.</div>
       <div class="pl-due-row">
         <span>Is order ka amount</span>
         <span style="font-weight:800;color:#e65c00" id="plOrderAmt">₹0</span>
@@ -661,7 +661,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
         <span style="font-weight:800;color:#dc2626" id="plPrevDue">₹0</span>
       </div>
       <button class="pl-confirm-btn" onclick="payLater()">📋 Pay Later — Order Confirm Karein</button>
-      <div class="pl-note">⚠️ Ye order Cash on Delivery par confirm ho jaayega. Dues me add ho jaayega.</div>
+      <div class="pl-note">⚠️ Ye order confirm ho jaayega. Baad me cash ya online — kisi bhi tarike se — pay kar sakte hain. Due amount aapke account me track hoga.</div>
     </div>
     <span class="back-lnk" style="display:block;text-align:center;margin-top:16px" onclick="closePayScreen()">← Wapas jaayein</span>
   </div>
@@ -1976,6 +1976,16 @@ function showPayScreen(total){
       }).catch(()=>{});
     }
   }catch(e){}
+  // dues mode: Pay Later tab hide karo (sirf QR+UPI+I Have Paid dikhna chahiye)
+  const dlBtn=document.getElementById('tabPayLater');
+  const strip=document.querySelector('.pay-mode-strip');
+  if(isDues){
+    if(dlBtn) dlBtn.style.display='none';
+    if(strip) strip.style.gridTemplateColumns='1fr';
+  } else {
+    if(dlBtn) dlBtn.style.display='';
+    if(strip) strip.style.gridTemplateColumns='1fr 1fr';
+  }
   // default to Pay Now tab; dues mode goes straight to Pay Now
   switchPayTab('now');
   show('payScreen');window.scrollTo(0,0);
