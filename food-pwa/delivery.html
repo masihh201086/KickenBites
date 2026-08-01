@@ -936,7 +936,7 @@ async function loadEarnings(){
     const bonusAmt=monthOrders.length>=30?200:monthOrders.length>=20?100:0;
     document.getElementById('bonus').textContent='₹'+bonusAmt;
     document.getElementById('totalSalary').textContent='₹'+(1800+earn(monthOrders)+bonusAmt);
-    console.log('Earnings loaded: '+orders.length+' delivered orders');
+// console.log('Earnings loaded: '+orders.length+' delivered orders');
   }catch(e){
     console.error('Earnings error',e);
     document.getElementById('todayEarn').textContent='Error';

@@ -296,7 +296,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div class="tab" onclick="sw('ratings')">⭐ Ratings</div>
     <div class="tab" onclick="sw('wish')">🌟 Wish</div>
     <div class="tab" onclick="sw('dues')">💳 Dues</div>
-    <div class="tab" onclick="sw('ai')">🤖 AI</div>
+    <div class="tab" onclick="sw('ai')">📊 Demand</div>
     <div class="tab" onclick="sw('setup')">⚙️ Setup</div>
   </div>
 
@@ -515,7 +515,7 @@ input:checked+.slider:before{transform:translateX(20px);}
 
   <div class="panel" id="tab-ai">
     <div class="ai-card">
-      <div class="ai-title">🤖 AI Demand Prediction</div>
+      <div class="ai-title">📊 Demand Prediction</div>
       <div class="ai-sub">Predicts how much to prepare based on history, day, weather patterns, and advance bookings.</div>
     </div>
     <div class="card">
@@ -1599,7 +1599,7 @@ async function clearStaleDeliveryStatus(){
     if(data.updatedAt){
       const ageMin = (Date.now() - new Date(data.updatedAt).getTime()) / 60000;
       if(ageMin > 10){
-        console.log('Clearing stale delivery status - age:', Math.round(ageMin), 'min');
+// console.log('Clearing stale delivery status - age:', Math.round(ageMin), 'min');
         await setDeliveryStatus({isDelivering:false,lat:null,lng:null,boyName:'',boyPhone:'',deliveryStarted:false,updatedAt:new Date().toISOString()});
       }
     }
@@ -2557,7 +2557,7 @@ async function loadDeliveryBoys(){
       .map(d=>({id:d.id,...d.data()}))
       .filter(b=>b.removed!==true) // Only show non-removed
       .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-    console.log('Delivery boys loaded:',deliveryBoys.length, deliveryBoys.map(b=>b.name));
+// console.log('Delivery boys loaded:',deliveryBoys.length, deliveryBoys.map(b=>b.name));
     renderDeliveryBoys();
   }, err=>{
     console.error('Boys listener error:',err);
@@ -3346,7 +3346,7 @@ async function autoAssignDefaultBoy(order){
       assignedAt: new Date().toISOString()
     },{merge:true});
     showToast('🛵 Auto-assigned to '+boy.name);
-    console.log('Auto-assigned order '+order.id+' to '+boy.name);
+// console.log('Auto-assigned order '+order.id+' to '+boy.name);
   }catch(e){console.error('Auto-assign error:',e);}
 }
 
@@ -3774,11 +3774,11 @@ window.generateCollage = async function(itemsOverride, showPopup){
   const n = active.length;
   const COLS = (n<=1) ? 1 : 2;
   const ROWS = Math.ceil(n/COLS);
-  const CELL_W = 380;   // big images
-  const CELL_H = 300;
-  const PAD = 10;
-  const HEADER_H = 90;
-  const FOOTER_H = 44;
+  const CELL_W = 480;   // bada collage (Session B)
+  const CELL_H = 390;
+  const PAD = 12;
+  const HEADER_H = 100;
+  const FOOTER_H = 48;
 
   canvas.width  = COLS*CELL_W + (COLS+1)*PAD;
   canvas.height = HEADER_H + ROWS*(CELL_H+PAD) + PAD + FOOTER_H;

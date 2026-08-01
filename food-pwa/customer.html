@@ -374,7 +374,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
     <div id="closedBox" class="closed-box" style="display:none">
       <img src="logo.webp" decoding="async" onerror="this.onerror=null;this.src='logo.png'" style="width:70px;height:70px;object-fit:contain;margin-bottom:8px" alt="Kicken Bites">
       <h2 id="closedShop">Kicken Bites</h2>
-      <p id="closedMsg" style="margin-top:8px">No menu today. Watch WhatsApp for updates!</p>
+      <p id="closedMsg" style="margin-top:8px">Aaj ka menu nahi aaya. WhatsApp par update dekhein!</p>
     </div>
     <div id="menuSec" style="display:none">
       <div class="sec">
@@ -586,9 +586,20 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
   <div id="payNowPanel">
     <div class="pay-card" style="margin-top:12px">
       <!-- OPTION 1: QR -->
+      <!-- B-3: UPI not configured warning -->
+      <div id="upiEmptyWarn" style="display:none;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:11px;margin-bottom:11px;font-size:.8rem;color:#991b1b;line-height:1.5">
+        ⚠️ <b>UPI ID set nahi hai.</b> Admin se Setup tab me UPI ID save karwayein — tab tak QR ya UPI se payment nahi ho paayegi. Abhi sirf <b>Pay Later</b> option use karein.
+      </div>
       <div class="pay-opt-title">📷 Option 1 — Scan / Save QR Code</div>
       <div class="qr-wrap-big">
-        <div class="qr-box-big"><img id="qrImg" src="" alt="QR Code"></div>
+        <div class="qr-box-big">
+          <img id="qrImg" src="" alt="QR Code"
+            onerror="this.onerror=null;this.src='';document.getElementById('qrFallback').style.display='block'">
+          <div id="qrFallback" style="display:none;background:#fff7ed;border-radius:10px;padding:12px;font-size:.78rem;color:#92400e;line-height:1.55;text-align:center">
+            ⚠️ QR load nahi hua (internet slow hai).<br>
+            <b>Option 2 — UPI ID</b> use karein ya thodi der baad try karein.
+          </div>
+        </div>
         <div class="qr-amt-big">Amount <b id="qrAmt"></b> is pre-filled</div>
       </div>
       <button class="qr-dl-btn" onclick="downloadQR()">⬇️ Download / Save QR to Gallery</button>
@@ -1360,7 +1371,7 @@ async function loadItemRatings() {
     const {getDocs:firestoreGetDocs} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap = await firestoreGetDocs(collection(db,'ratings'));
     const ratings = snap.docs.map(d=>({id:d.id,...d.data()}));
-    console.log('Total ratings in DB:',ratings.length);
+// console.log('Total ratings in DB:',ratings.length);
 
     // Clear existing
     Object.keys(itemRatings).forEach(k=>delete itemRatings[k]);
@@ -1388,7 +1399,7 @@ async function loadItemRatings() {
           .map(r=>r.text)
       };
     });
-    console.log('Ratings loaded for items:',Object.keys(itemRatings));
+// console.log('Ratings loaded for items:',Object.keys(itemRatings));
   } catch(e) {
     console.error('loadItemRatings error:',e);
   }
@@ -1465,7 +1476,7 @@ async function applyMenu(cfg){
     const dispToday=new Date(today+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
     document.getElementById('dateLbl').textContent='📅 Ordering for: '+dispToday;
     const ml=document.getElementById('menuList');
-    if(ml) ml.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>No menu for today.<br>Pick another day above 👆 or watch WhatsApp for updates!</p></div>';
+    if(ml) ml.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>Aaj ka menu nahi aaya.<br>Upar se doosra din chunein 👆 ya WhatsApp par update dekhein!</p></div>';
     quantities={};menuConfig={};updateBill();
     return;
   }
@@ -1697,7 +1708,7 @@ window.selectDate=async function(which,val){
   }
   if(adminClosed && data) data={...data,isOpen:false};
   if(!data||!data.isOpen||!(data.items||[]).length){
-    document.getElementById('menuList').innerHTML=`<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>No menu for ${disp}</p></div>`;
+    document.getElementById('menuList').innerHTML=`<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>Is din ka menu nahi aaya (${disp})</p></div>`;
     quantities={};menuConfig={};updateBill();
   }else{
     data=await mergeMasterPrices(data);
@@ -1722,7 +1733,7 @@ window.selectDate=async function(which,val){
     if(d.isOpen===false){
       const dispC=new Date(listenDs+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
       const mlC=document.getElementById('menuList');
-      if(mlC) mlC.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>No menu for '+dispC+'</p></div>';
+      if(mlC) mlC.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>Is din ka menu nahi aaya ('+dispC+'</p></div>';
       quantities={};menuConfig={};updateBill();
       return;
     }
@@ -1930,6 +1941,11 @@ window.payDuesNow=async function(){
 };
 function showPayScreen(total){
   const uid=menuConfig.upiId||'';const uname=menuConfig.upiName||'Kicken Bites';
+  // B-3: agar UPI ID set nahi hai to warning dikhao
+  try{
+    const upiWarn=document.getElementById('upiEmptyWarn');
+    if(upiWarn) upiWarn.style.display=uid?'none':'block';
+  }catch(e){}
   const isDues=(window._payMode==='dues');
   {const el=document.getElementById('payAmt');if(el)el.textContent='₹'+total;}
   {const el=document.getElementById('payTo');if(el)el.textContent='Pay to '+uname;}
