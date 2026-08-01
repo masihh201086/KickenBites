@@ -1118,6 +1118,8 @@ window.setMyOrdFilter=function(f){
 
 function renderMyOrders(all) {
   _allMyOrders=all||[];
+  // BUG-04: apne khud ke puraane unpaid order yahin nipat jaate hain
+  sweepMyStaleOrders(_allMyOrders);
   renderMyOrdDayChips();
   const el=document.getElementById('myOrdersList');
   const orders=myOrdFilter==='all'?_allMyOrders:_allMyOrders.filter(o=>o.date===myOrdFilter);
@@ -1178,9 +1180,83 @@ window.reorder = async function(orderId) {
   else showToast('None of those items are available today');
 };
 
+
+// ---- BUG-04: unpaid orders ka stock chhudana ----
+// Pehle pending_payment order hamesha ke liye stock rok leta tha: customer
+// payment page tak jaakar chhod de, to wo quantity kisi aur ko milti hi nahi thi.
+// Ab 10 minute baad wo order apne aap cancel hokar stock wapas kar deta hai.
+// Wahi atomic pattern (BUG-03 wala) use hota hai — order read + restock + status
+// flip ek hi transaction me, aur restocked flag se stock do baar wapas nahi hota.
+const AUTOCANCEL_MS = 10*60*1000;
+
+function orderPlacedMs(o){
+  const t = Date.parse(o.createdAt || '');
+  return isNaN(t) ? 0 : t;
+}
+function isStaleUnpaid(o, nowMs){
+  if(!o || o.status!=='pending_payment') return false;
+  if(o.paidCleared===true) return false;          // paisa aa chuka hai, haath mat lagao
+  const t = orderPlacedMs(o);
+  if(!t) return false;                            // createdAt hi nahi to chhod do
+  return (nowMs - t) >= AUTOCANCEL_MS;
+}
+
+// Ek order ko cancel karke uska stock wapas karta hai. Transaction ke andar
+// dobara status check hota hai, isliye do device ek saath chalayein to bhi
+// stock sirf ek baar wapas jaata hai.
+async function autoCancelOrder(orderId){
+  const orderRef = doc(db,'orders',orderId);
+  return runTransaction(db, async tx=>{
+    const os = await tx.get(orderRef);
+    if(!os.exists()) return false;
+    const od = os.data();
+    if(od.status!=='pending_payment') return false;      // beech me confirm/cancel ho gaya
+    if(od.paidCleared===true) return false;
+    if(!isStaleUnpaid({...od,status:'pending_payment'}, Date.now())) return false;
+    let dailyRef=null, upd=null;
+    if(od.restocked!==true && od.date && Array.isArray(od.items)){
+      dailyRef = doc(db,'dailyMenu',od.date);
+      const ms = await tx.get(dailyRef);
+      if(ms.exists()){
+        upd = (ms.data().items||[]).map(item=>{
+          const o = od.items.find(i=>i.id===item.id);
+          if(o) return {...item, availableQty:(Number(item.availableQty)||0)+(Number(o.qty)||0)};
+          return item;
+        });
+      }
+    }
+    if(dailyRef&&upd) tx.update(dailyRef,{items:upd});
+    tx.update(orderRef,{status:'cancelled', restocked:true, cancelledBy:'auto',
+      cancelReason:'payment_timeout', cancelledAt:new Date().toISOString(),
+      updatedAt:new Date().toISOString()});
+    return true;
+  });
+}
+
+// Jo order abhi khule hue hain unme se puraane unpaid nikaal kar cancel karta hai.
+let _sweeping=false;
+async function sweepStaleUnpaid(list){
+  if(_sweeping) return 0;
+  _sweeping=true;
+  let n=0;
+  try{
+    const now=Date.now();
+    const stale=(list||[]).filter(o=>isStaleUnpaid(o,now));
+    for(const o of stale){
+      try{ if(await autoCancelOrder(o.id)) n++; }catch(e){}
+    }
+  }finally{ _sweeping=false; }
+  return n;
+}
+
 // A1: Customer cancels their own order — allowed only BEFORE it goes out for delivery.
 // Restores the stock atomically (same guarded pattern the admin cancel uses) and marks
 // who cancelled it, so the admin dashboard can show/count it correctly.
+// Customer apne orders khole to unke apne puraane unpaid order nipat jaate hain.
+window.sweepMyStaleOrders = async function(list){
+  try{ await sweepStaleUnpaid(list||[]); }catch(e){}
+};
+
 window.cancelMyOrder = async function(orderId){
   if(!confirm('Cancel this order? This cannot be undone.')) return;
   try{

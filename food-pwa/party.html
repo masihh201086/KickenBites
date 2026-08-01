@@ -143,7 +143,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 </div>
 
 <script type="module">
-import { db, getTodayDate, collection, doc, getDoc } from './src/utils/firebase.js';
+import { db, getTodayDate, collection, doc, getDoc, setDoc } from './src/utils/firebase.js';
 
 let masterItems=[], quantities={}, partyDate='', shopWA='9712951947';
 
@@ -417,7 +417,7 @@ function updateBill(){
 }
 
 // ---- SEND WHATSAPP ----
-window.sendPartyWA=function(){
+window.sendPartyWA=async function(){
   const name=document.getElementById('pName').value.trim();
   const phone=document.getElementById('pPhone').value.trim();
   const addr=document.getElementById('pAddr').value.trim();
@@ -475,6 +475,22 @@ window.sendPartyWA=function(){
     '━━━━━━━━━━━━━━━━━━━'+nl+
     '💰 *Estimated Total: ₹'+total+'*'+nl+nl+
     'Please confirm availability and final price. Thank you! 🙏';
+
+  // BUG-06: booking ab Firestore me bhi save hoti hai. Pehle ye sirf ek WhatsApp
+  // message thi — message dab jaaye ya delete ho jaaye to booking ka koi record hi
+  // nahi bachta tha, aur admin me kahin dikhti bhi nahi thi.
+  // Doc id date_phone hai, isliye ek hi banda ek hi date ke liye ek entry banata hai
+  // (form dobara bhejne par purani entry update ho jaati hai, duplicate nahi banti).
+  try{
+    const bookingId = partyDate+'_'+phone;
+    await setDoc(doc(db,'partyBookings',bookingId),{
+      bookingId, name, phone, address:addr, partyDate,
+      adults:parseInt(adults)||0, children:parseInt(children)||0,
+      vegAdults:parseInt(vegAdults)||0, vegChildren:parseInt(vegChildren)||0,
+      foodType, occasion, items:selected, total,
+      status:'pending', createdAt:new Date().toISOString(), at:Date.now()
+    },{merge:true});
+  }catch(e){ /* net na ho to bhi WhatsApp to chale */ }
 
   location.href='https://wa.me/91'+shopWA+'?text='+encodeURIComponent(msg);
 };

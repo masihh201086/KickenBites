@@ -307,6 +307,11 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="ct" style="margin:0 0 7px 0;color:#9a3412">🔑 PIN Reset Requests <span id="pinReqCount" style="background:#dc2626;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span></div>
       <div id="pinReqList"></div>
     </div>
+    <!-- PARTY BOOKINGS — hidden until there is at least one upcoming booking -->
+    <div class="card" id="partyCard" style="display:none;padding:11px;border:2px solid #a855f7;background:#faf5ff;margin-bottom:9px">
+      <div class="ct" style="margin:0 0 7px 0;color:#6b21a8">🎉 Party Bookings <span id="partyCount" style="background:#7c3aed;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span></div>
+      <div id="partyList"></div>
+    </div>
     <div class="card" style="padding:11px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
         <div class="ct" style="margin:0">📋 Orders By Date</div>
@@ -982,6 +987,9 @@ async function initDash(){
   }, 5*60*1000);
   requestNotificationPermission();
   listenPinResetRequests();
+  listenPartyBookings();
+  // BUG-04: har minute check — page khula ho to bina refresh ke bhi stock chhoot jaaye
+  try{ setInterval(function(){ try{ sweepStaleUnpaid(allOrders); }catch(e){} }, 60000); }catch(e){}
   listenCustomerPresence();
   const today=getTodayDate();
   if(ordersUnsub)ordersUnsub();
@@ -1735,7 +1743,10 @@ function watchItemBookingBars(){
   }, err=>{});
 }
 
+// BUG-04: har order refresh par puraane unpaid nipta do. Admin page aksar
+// khula rehta hai, isliye yahi sabse bharosemand jagah hai.
 function renderOrders(){
+  try{ sweepStaleUnpaid(allOrders); }catch(e){}
   renderItemBookingBars();
   const list=document.getElementById('ordersList');
   let filtered=curFilter==='all'?[...allOrders]:allOrders.filter(o=>o.status===curFilter);
@@ -1783,6 +1794,75 @@ function renderOrders(){
       </div>
     </div>`;
   }).join('');
+}
+
+
+// ---- BUG-04: unpaid orders ka stock chhudana ----
+// Pehle pending_payment order hamesha ke liye stock rok leta tha: customer
+// payment page tak jaakar chhod de, to wo quantity kisi aur ko milti hi nahi thi.
+// Ab 10 minute baad wo order apne aap cancel hokar stock wapas kar deta hai.
+// Wahi atomic pattern (BUG-03 wala) use hota hai — order read + restock + status
+// flip ek hi transaction me, aur restocked flag se stock do baar wapas nahi hota.
+const AUTOCANCEL_MS = 10*60*1000;
+
+function orderPlacedMs(o){
+  const t = Date.parse(o.createdAt || '');
+  return isNaN(t) ? 0 : t;
+}
+function isStaleUnpaid(o, nowMs){
+  if(!o || o.status!=='pending_payment') return false;
+  if(o.paidCleared===true) return false;          // paisa aa chuka hai, haath mat lagao
+  const t = orderPlacedMs(o);
+  if(!t) return false;                            // createdAt hi nahi to chhod do
+  return (nowMs - t) >= AUTOCANCEL_MS;
+}
+
+// Ek order ko cancel karke uska stock wapas karta hai. Transaction ke andar
+// dobara status check hota hai, isliye do device ek saath chalayein to bhi
+// stock sirf ek baar wapas jaata hai.
+async function autoCancelOrder(orderId){
+  const orderRef = doc(db,'orders',orderId);
+  return runTransaction(db, async tx=>{
+    const os = await tx.get(orderRef);
+    if(!os.exists()) return false;
+    const od = os.data();
+    if(od.status!=='pending_payment') return false;      // beech me confirm/cancel ho gaya
+    if(od.paidCleared===true) return false;
+    if(!isStaleUnpaid({...od,status:'pending_payment'}, Date.now())) return false;
+    let dailyRef=null, upd=null;
+    if(od.restocked!==true && od.date && Array.isArray(od.items)){
+      dailyRef = doc(db,'dailyMenu',od.date);
+      const ms = await tx.get(dailyRef);
+      if(ms.exists()){
+        upd = (ms.data().items||[]).map(item=>{
+          const o = od.items.find(i=>i.id===item.id);
+          if(o) return {...item, availableQty:(Number(item.availableQty)||0)+(Number(o.qty)||0)};
+          return item;
+        });
+      }
+    }
+    if(dailyRef&&upd) tx.update(dailyRef,{items:upd});
+    tx.update(orderRef,{status:'cancelled', restocked:true, cancelledBy:'auto',
+      cancelReason:'payment_timeout', cancelledAt:new Date().toISOString(),
+      updatedAt:new Date().toISOString()});
+    return true;
+  });
+}
+
+// Jo order abhi khule hue hain unme se puraane unpaid nikaal kar cancel karta hai.
+let _sweeping=false;
+async function sweepStaleUnpaid(list){
+  if(_sweeping) return 0;
+  _sweeping=true;
+  let n=0;
+  try{
+    const now=Date.now();
+    const stale=(list||[]).filter(o=>isStaleUnpaid(o,now));
+    for(const o of stale){
+      try{ if(await autoCancelOrder(o.id)) n++; }catch(e){}
+    }
+  }finally{ _sweeping=false; }
+  return n;
 }
 
 window.chgStatus=async function(id,status){
@@ -2795,6 +2875,66 @@ window.resetFromRequest=async function(role,phone,name){
 window.dismissPinReq=async function(role,phone){
   if(!confirm('Ye request hata dein? (PIN reset nahi hoga)')) return;
   try{ await setDoc(doc(db,'pinResetRequests',(role==='boy'?'boy_':'cust_')+phone),{status:'done',doneAt:Date.now()},{merge:true}); showToast('Request hata di'); }catch(e){ alert('Nahi hata: '+e.message); }
+};
+
+// ---- BUG-06: PARTY BOOKINGS ----
+// Booking ab Firestore me aati hai (party.html se), isliye WhatsApp message
+// dab jaane par bhi record rehta hai. Yahan sirf aane wali tareekh ki
+// bookings dikhti hain; purani apne aap list se hat jaati hain.
+let partyUnsub=null;
+function renderPartyBookings(list){
+  const card=document.getElementById('partyCard'), box=document.getElementById('partyList'), cnt=document.getElementById('partyCount');
+  if(!card||!box) return;
+  if(!list.length){ card.style.display='none'; box.innerHTML=''; return; }
+  card.style.display='block';
+  if(cnt) cnt.textContent=list.length;
+  list.sort(function(a,b){ return String(a.partyDate||'').localeCompare(String(b.partyDate||'')); });
+  box.innerHTML=list.map(function(b){
+    const items=(b.items||[]).map(function(i){ return esc(i.name)+' × '+i.qty; }).join(', ');
+    const d=b.partyDate?new Date(b.partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}):'';
+    const ppl=(Number(b.adults)||0)+' adults, '+(Number(b.children)||0)+' children';
+    const ft=b.foodType==='veg'?'🥬 Veg':b.foodType==='nonveg'?'🍗 Non-Veg':'🍗🥬 Both';
+    const done=b.status==='confirmed';
+    return '<div style="background:#fff;border-radius:10px;padding:10px;margin-bottom:7px'+(done?';opacity:.62':'')+'">'
+      +'<div style="display:flex;justify-content:space-between;gap:6px">'
+        +'<div style="font-weight:700;font-size:.87rem">'+esc(b.name||'(naam nahi)')+'</div>'
+        +'<div style="font-weight:800;font-size:.87rem;color:#6b21a8">₹'+(Number(b.total)||0)+'</div>'
+      +'</div>'
+      +'<div style="font-size:.75rem;color:#888;margin-bottom:5px">📅 '+esc(d)+' • '+esc(ppl)+' • '+ft+(done?' • ✅ confirmed':'')+'</div>'
+      +(b.occasion?'<div style="font-size:.75rem;color:#666;margin-bottom:3px">🎊 '+esc(b.occasion)+'</div>':'')
+      +'<div style="font-size:.75rem;color:#444;margin-bottom:3px">🍽️ '+items+'</div>'
+      +'<div style="font-size:.75rem;color:#666;margin-bottom:8px">📍 '+esc(b.address||'')+'</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+        +'<a href="https://wa.me/91'+esc(b.phone)+'" target="_blank" style="flex:1;text-align:center;background:#25d366;color:#fff;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;text-decoration:none">💬 WhatsApp</a>'
+        +'<a href="tel:'+esc(b.phone)+'" style="flex:1;text-align:center;background:#3b82f6;color:#fff;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;text-decoration:none">📞 Call</a>'
+        +(done?'':'<button onclick="confirmParty(\''+esc(b.bookingId)+'\')" style="flex:1;background:#a855f7;color:#fff;border:none;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">✅ Confirm</button>')
+        +'<button onclick="dismissParty(\''+esc(b.bookingId)+'\')" style="background:#eee;border:none;padding:8px 11px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">Hatayein</button>'
+      +'</div></div>';
+  }).join('');
+}
+function listenPartyBookings(){
+  try{
+    if(partyUnsub) partyUnsub();
+    partyUnsub=onSnapshot(collection(db,'partyBookings'), function(snap){
+      const today=getTodayDate(), list=[];
+      snap.forEach(function(d){
+        const v=d.data()||{};
+        if(v.status==='dismissed') return;
+        if(String(v.partyDate||'')<today) return;   // guzri hui booking apne aap hat jaati hai
+        list.push({...v, bookingId:v.bookingId||d.id});
+      });
+      renderPartyBookings(list);
+    }, function(){});
+  }catch(e){}
+}
+window.confirmParty=async function(id){
+  try{ await setDoc(doc(db,'partyBookings',id),{status:'confirmed',confirmedAt:Date.now()},{merge:true}); showToast('✅ Party confirm ho gayi'); }
+  catch(e){ alert('Nahi hua: '+e.message); }
+};
+window.dismissParty=async function(id){
+  if(!confirm('Ye booking list se hata dein?')) return;
+  try{ await setDoc(doc(db,'partyBookings',id),{status:'dismissed',dismissedAt:Date.now()},{merge:true}); showToast('Booking hata di'); }
+  catch(e){ alert('Nahi hua: '+e.message); }
 };
 
 // ---- PIN RESET (admin ke through) ----

@@ -114,6 +114,17 @@ service cloud.firestore {
       allow delete: if true;  // votes can be withdrawn
     }
 
+    // ---- partyBookings ---- (BUG-06: party.html se aayi booking ka record)
+    // Doc id date_phone hai. Booking me koi secret nahi hota, aur delete band hai —
+    // admin sirf status:'dismissed' karke list se hata sakta hai, record rehta hai.
+    match /partyBookings/{id} {
+      allow read: if true;
+      allow write: if request.resource.data.phone is string
+                   && request.resource.data.partyDate is string
+                   && request.resource.data.status is string;
+      allow delete: if false;
+    }
+
     // ---- pinResetRequests ---- (customer/boy -> admin, in-app notification)
     // Sirf ek chhoti si request parchi. Isme koi PIN ya secret nahi jaata,
     // aur doc id role_phone hai isliye ek bande ki ek hi entry banti hai.
