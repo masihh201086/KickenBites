@@ -289,15 +289,19 @@ input:checked+.slider:before{transform:translateX(20px);}
     <span class="live-badge" id="liveCustBadge" style="background:#3b82f6;margin-left:6px">👥 0 online</span>
   </div>
   <div class="tabs">
-    <div class="tab active" onclick="sw('orders')">📋 Orders</div>
-    <div class="tab" onclick="sw('today')">📅 Menu</div>
-    <div class="tab" onclick="sw('master')">🗂️ Master</div>
-    <div class="tab" onclick="sw('print')">🖨️ Print</div>
-    <div class="tab" onclick="sw('ratings')">⭐ Ratings</div>
-    <div class="tab" onclick="sw('wish')">🌟 Wish</div>
-    <div class="tab" onclick="sw('dues')">💳 Dues</div>
-    <div class="tab" onclick="sw('ai')">📊 Demand</div>
-    <div class="tab" onclick="sw('setup')">⚙️ Setup</div>
+    <div class="tab active" data-tab="orders" onclick="sw('orders')">📋 Orders</div>
+    <div class="tab" data-tab="today" onclick="sw('today')">📅 Menu</div>
+    <div class="tab" data-tab="master" onclick="sw('master')">🗂️ Master</div>
+    <div class="tab" data-tab="ratings" onclick="sw('ratings')">⭐ Ratings</div>
+    <div class="tab" data-tab="wish" onclick="sw('wish')">🌟 Wish</div>
+    <div class="tab" data-tab="dues" onclick="sw('dues')">💳 Dues</div>
+    <div class="tab" data-tab="setup" onclick="sw('setup')">⚙️ Setup</div>
+    <div class="tab" id="moreTab" onclick="toggleMoreMenu(event)" style="position:relative">⋯ More
+      <div id="moreMenu" style="display:none;position:absolute;top:100%;right:0;background:#fff;border:1px solid #eee;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.18);z-index:300;min-width:150px;overflow:hidden">
+        <div class="tab" data-tab="print" onclick="sw('print')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🖨️ Print</div>
+        <div class="tab" data-tab="ai" onclick="sw('ai')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">📊 Demand</div>
+      </div>
+    </div>
   </div>
 
   <!-- ORDERS -->
@@ -2780,16 +2784,31 @@ window.hideRating = async function(ratingId) {
 
 window.sw=function(t){
   try{localStorage.setItem('kb_adm_tab',t);}catch(e){}
-  const all=['orders','today','master','print','ratings','wish','dues','ai','setup'];
-  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',all[i]===t));
+  // id-based (not index-based) so tabs can be added/removed/moved safely
+  document.querySelectorAll('.tab[data-tab]').forEach(el=>el.classList.toggle('active',el.getAttribute('data-tab')===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab-'+t).classList.add('active');
+  const panel=document.getElementById('tab-'+t); if(panel) panel.classList.add('active');
+  // close the More dropdown after any pick
+  const md=document.getElementById('moreMenu'); if(md) md.style.display='none';
+  const mt=document.getElementById('moreTab'); if(mt) mt.classList.toggle('active',(t==='print'||t==='ai'));
   if(t==='setup'){loadDeliveryBoys();}
   if(t==='dues'){loadDues();}
   if(t==='ratings')loadRatings();
   if(t==='wish')loadAdminWish();
   if(t==='orders'&&adminMap)setTimeout(()=>adminMap.invalidateSize(),100);
 };
+window.toggleMoreMenu=function(e){
+  if(e) e.stopPropagation();
+  const md=document.getElementById('moreMenu');
+  if(md) md.style.display=(md.style.display==='block'?'none':'block');
+};
+// tap outside closes the More dropdown
+document.addEventListener('click',function(e){
+  const md=document.getElementById('moreMenu'), mt=document.getElementById('moreTab');
+  if(md && md.style.display==='block' && mt && !mt.contains(e.target) && !md.contains(e.target)){
+    md.style.display='none';
+  }
+});
 // Restore last tab on load
 setTimeout(function(){
   try{
