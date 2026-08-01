@@ -309,8 +309,8 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
     <!-- PARTY BOOKINGS — hidden until there is at least one upcoming booking -->
     <div class="card" id="partyCard" style="display:none;padding:11px;border:2px solid #a855f7;background:#faf5ff;margin-bottom:9px">
-      <div class="ct" style="margin:0 0 7px 0;color:#6b21a8">🎉 Party Bookings <span id="partyCount" style="background:#7c3aed;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span>
-        <button id="partyToggle" onclick="togglePartyAll()" style="display:none;float:right;background:#ede9fe;color:#6b21a8;border:none;padding:3px 9px;border-radius:8px;font-size:.68rem;font-weight:700;cursor:pointer">Sabhi dikhayein</button></div>
+      <div class="ct" style="margin:0 0 7px 0;color:#6b21a8;cursor:pointer" onclick="togglePartyCard()"><span id="partyHdrArrow">▸</span> 🎉 Party Bookings <span id="partyCount" style="background:#7c3aed;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span>
+        <button id="partyToggle" onclick="event.stopPropagation();togglePartyAll()" style="display:none;float:right;background:#ede9fe;color:#6b21a8;border:none;padding:3px 9px;border-radius:8px;font-size:.68rem;font-weight:700;cursor:pointer">Sabhi dikhayein</button></div>
       <div id="partyList"></div>
     </div>
     <div class="card" style="padding:11px">
@@ -2903,6 +2903,9 @@ function renderPartyBookings(all){
   }
   card.style.display='block';
   if(cnt) cnt.textContent=live.length;
+  const hdr=document.getElementById('partyHdrArrow');
+  if(hdr) hdr.textContent=partyCollapsed?'▸':'▾';
+  if(partyCollapsed){ box.innerHTML=''; if(tgl) tgl.style.display='none'; return; }
   list.sort(function(a,b){ return String(a.partyDate||'').localeCompare(String(b.partyDate||'')); });
   box.innerHTML=list.map(function(b){
     const items=(b.items||[]).map(function(i){ return esc(i.name)+' × '+i.qty; }).join(', ');
@@ -2911,22 +2914,30 @@ function renderPartyBookings(all){
     const ft=b.foodType==='veg'?'🥬 Veg':b.foodType==='nonveg'?'🍗 Non-Veg':'🍗🥬 Both';
     const done=b.status==='confirmed';
     const gone=b.status==='dismissed';
-    return '<div style="background:#fff;border-radius:10px;padding:10px;margin-bottom:7px'+(done?';opacity:.62':'')+'">'
-      +'<div style="display:flex;justify-content:space-between;gap:6px">'
-        +'<div style="font-weight:700;font-size:.87rem">'+esc(b.name||'(naam nahi)')+'</div>'
+    // Har booking pehle ek line me — tap karne par hi poori detail khulti hai,
+    // warna 3-4 booking me hi poora page bhar jaata tha.
+    const bid=esc(b.bookingId), open=_partyOpen[b.bookingId]===true;
+    return '<div style="background:#fff;border-radius:10px;padding:10px;margin-bottom:7px'+(done?';opacity:.72':'')+'">'
+      +'<div onclick="togglePartyRow(\''+bid+'\')" style="cursor:pointer">'
+      +'<div style="display:flex;justify-content:space-between;gap:6px;align-items:center">'
+        +'<div style="font-weight:700;font-size:.87rem">'+(open?'▾ ':'▸ ')+esc(b.name||'(naam nahi)')+'</div>'
         +'<div style="font-weight:800;font-size:.87rem;color:#6b21a8">₹'+(Number(b.total)||0)+'</div>'
       +'</div>'
-      +'<div style="font-size:.75rem;color:#888;margin-bottom:5px">📅 '+esc(d)+' • '+esc(ppl)+' • '+ft+(done?' • ✅ confirmed':'')+(gone?' • ❌ hatai gayi':'')+'</div>'
-      +(b.occasion?'<div style="font-size:.75rem;color:#666;margin-bottom:3px">🎊 '+esc(b.occasion)+'</div>':'')
-      +'<div style="font-size:.75rem;color:#444;margin-bottom:3px">🍽️ '+items+'</div>'
-      +'<div style="font-size:.75rem;color:#666;margin-bottom:8px">📍 '+esc(b.address||'')+'</div>'
+      +'<div style="font-size:.75rem;color:#888">📅 '+esc(d)+' • '+esc(ppl)+' • '+ft+(done?' • ✅ confirmed':'')+(gone?' • ❌ cancelled':'')+'</div>'
+      +'</div>'
+      +(open?(
+         '<div style="margin-top:7px">'
+         +(b.occasion?'<div style="font-size:.75rem;color:#666;margin-bottom:3px">🎊 '+esc(b.occasion)+'</div>':'')
+         +'<div style="font-size:.75rem;color:#444;margin-bottom:3px">🍽️ '+items+'</div>'
+         +'<div style="font-size:.75rem;color:#666;margin-bottom:8px">📍 '+esc(b.address||'')+'</div>'
+         +'</div>') : '<div style="margin-bottom:8px"></div>')
       +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
         +'<a href="https://wa.me/91'+esc(b.phone)+'" target="_blank" style="flex:1;text-align:center;background:#25d366;color:#fff;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;text-decoration:none">💬 WhatsApp</a>'
         +'<a href="tel:'+esc(b.phone)+'" style="flex:1;text-align:center;background:#3b82f6;color:#fff;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;text-decoration:none">📞 Call</a>'
         +(done||gone?'':'<button onclick="confirmParty(\''+esc(b.bookingId)+'\')" style="flex:1;background:#a855f7;color:#fff;border:none;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">✅ Confirm</button>')
         +(gone
           ? '<button onclick="restoreParty(\''+esc(b.bookingId)+'\')" style="background:#ede9fe;color:#6b21a8;border:none;padding:8px 11px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">↩️ Wapas laayein</button>'
-          : '<button onclick="dismissParty(\''+esc(b.bookingId)+'\')" style="background:#eee;border:none;padding:8px 11px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">Hatayein</button>')
+          : '<button onclick="dismissParty(\''+esc(b.bookingId)+'\')" style="background:#fee2e2;color:#991b1b;border:none;padding:8px 11px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">❌ Cancel</button>')
       +'</div></div>';
   }).join('');
 }
@@ -2971,16 +2982,37 @@ window.confirmParty=async function(id){
 };
 // "Sabhi" toggle: purani aur hatai hui bookings bhi dikhti hain, kyunki
 // warna hataane ke baad record kahin dhoondha hi nahi ja sakta tha.
-let partyShowAll=false, _partyAll=[];
+// var (let nahi) — ye variables renderPartyBookings ke neeche declare hain,
+// aur var hoist ho jaata hai, isliye listener jaldi fire ho to bhi TDZ error nahi aata.
+var partyShowAll=false, _partyAll=[], _partyOpen={}, partyCollapsed=true;
+window.togglePartyRow=function(id){
+  _partyOpen[id]=!(_partyOpen[id]===true);
+  renderPartyBookings(_partyAll);
+};
+window.togglePartyCard=function(){
+  partyCollapsed=!partyCollapsed;
+  renderPartyBookings(_partyAll);
+};
 window.togglePartyAll=function(){
   partyShowAll=!partyShowAll;
   renderPartyBookings(_partyAll);
 };
 
 window.dismissParty=async function(id){
-  if(!confirm('Ye booking list se hata dein? (Record rahega — "Sabhi dikhayein" se wapas dikh jaayegi)')) return;
-  try{ await setDoc(doc(db,'partyBookings',id),{status:'dismissed',dismissedAt:Date.now()},{merge:true}); showToast('Booking hata di'); }
-  catch(e){ alert('Nahi hua: '+e.message); }
+  try{
+    const snap=await getDoc(doc(db,'partyBookings',id));
+    const b=snap.exists()?snap.data():{};
+    const was=b.status==='confirmed'?'CONFIRMED ho chuki':'pending';
+    if(!confirm('Ye booking CANCEL karein?\n\n'+(b.name||'')+' — '+(b.partyDate||'')+'\n(Ye booking '+was+' hai)\n\nCustomer ko uske page par "cancelled" dikhega aur WhatsApp par bhi bata diya jaayega.')) return;
+    await setDoc(doc(db,'partyBookings',id),{status:'dismissed',dismissedAt:Date.now()},{merge:true});
+    showToast('Booking cancel kar di');
+    const ph=String(b.phone||'').replace(/[^0-9]/g,'');
+    if(ph.length===10){
+      const d=b.partyDate?new Date(b.partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}):'';
+      const msg='Namaste '+(b.name||'')+' ji,\n\nAapki '+d+' wali party booking hum le nahi paa rahe hain. Iske liye maafi chahte hain. 🙏\n\nDusri tareekh ya kisi aur baat ke liye is number par message kijiye.\n\n— Kicken Bites';
+      window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
+    }
+  }catch(e){ alert('Nahi hua: '+e.message); }
 };
 
 window.restoreParty=async function(id){

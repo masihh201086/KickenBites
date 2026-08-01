@@ -149,7 +149,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 
   <!-- MERI PARTY BOOKINGS -->
   <div class="card" id="myBookCard" style="display:none">
-    <div style="font-weight:800;font-size:.95rem;color:#6b21a8;margin-bottom:9px">🎉 Meri Party Bookings</div>
+    <div onclick="toggleMyBookCard()" style="cursor:pointer;font-weight:800;font-size:.95rem;color:#6b21a8;margin-bottom:9px"><span id="myBookArrow">▾</span> 🎉 Meri Party Bookings <span id="myBookCount" style="background:#7c3aed;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem"></span></div>
     <div id="myBookList"></div>
   </div>
 </div>
@@ -539,31 +539,49 @@ function openWA(url){
 // ---- MERI PARTY BOOKINGS (customer ko apna record dikhe) ----
 // Pehle booking bhejne ke baad customer ko kahin kuch dikhta hi nahi tha, aur
 // admin ke confirm karne ka bhi pata nahi chalta tha. Ab yahan live status aata hai.
-let myBookUnsub=null;
+var myBookUnsub=null, _myBookOpen={}, _myBookAll=[];
+var myBookCollapsed=false;
+window.toggleMyBookCard=function(){
+  myBookCollapsed=!myBookCollapsed;
+  renderMyBookings(_myBookAll);
+};
+window.toggleMyBook=function(id){
+  _myBookOpen[id]=!(_myBookOpen[id]===true);
+  renderMyBookings(_myBookAll);
+};
 function bookStatusChip(st){
   if(st==='confirmed') return '<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:2px 8px;font-size:.7rem;font-weight:800">✅ CONFIRMED</span>';
   if(st==='dismissed') return '<span style="background:#fee2e2;color:#991b1b;border-radius:8px;padding:2px 8px;font-size:.7rem;font-weight:800">❌ CANCELLED</span>';
   return '<span style="background:#fef3c7;color:#92400e;border-radius:8px;padding:2px 8px;font-size:.7rem;font-weight:800">⏳ PENDING</span>';
 }
 function renderMyBookings(list){
+  _myBookAll=list||[];
   const card=document.getElementById('myBookCard'), box=document.getElementById('myBookList');
   if(!card||!box) return;
   if(!list.length){ card.style.display='none'; box.innerHTML=''; return; }
   card.style.display='block';
+  const cnt=document.getElementById('myBookCount'); if(cnt) cnt.textContent=list.length;
+  const arw=document.getElementById('myBookArrow'); if(arw) arw.textContent=myBookCollapsed?'▸':'▾';
+  if(myBookCollapsed){ box.innerHTML=''; return; }
   list.sort(function(a,b){ return String(b.partyDate||'').localeCompare(String(a.partyDate||'')); });
   box.innerHTML=list.map(function(b){
     const d=b.partyDate?new Date(b.partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}):'';
     const items=(b.items||[]).map(function(i){ return escP(i.name)+' × '+i.qty; }).join(', ');
     const past=String(b.partyDate||'')<getTodayDate();
+    // Ek line me booking; detail tap par khulti hai taaki page na bhare.
+    const bid=escP(b.bookingId||(b.partyDate+'_'+b.phone)), open=_myBookOpen[bid]===true;
     return '<div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:11px;padding:11px;margin-bottom:8px'+(past?';opacity:.6':'')+'">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:4px">'
-        +'<div style="font-weight:800;font-size:.88rem;color:#6b21a8">📅 '+escP(d)+'</div>'
+      +'<div onclick="toggleMyBook(\''+bid+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px">'
+        +'<div style="font-weight:800;font-size:.88rem;color:#6b21a8">'+(open?'▾':'▸')+' 📅 '+escP(d)+'</div>'
         +bookStatusChip(b.status)
       +'</div>'
-      +'<div style="font-size:.78rem;color:#555;margin-bottom:3px">🍽️ '+items+'</div>'
-      +'<div style="font-size:.82rem;font-weight:800;color:#6b21a8">Estimated: ₹'+(Number(b.total)||0)+'</div>'
-      +(b.status==='confirmed'?'<div style="font-size:.75rem;color:#166534;margin-top:5px">Shop ne aapki booking confirm kar di hai. 🎉</div>':'')
-      +(b.status==='dismissed'?'<div style="font-size:.75rem;color:#991b1b;margin-top:5px">Ye booking shop ne cancel kar di hai. Baat karne ke liye WhatsApp kijiye.</div>':'')
+      +(open?(
+        '<div style="margin-top:6px">'
+        +'<div style="font-size:.78rem;color:#555;margin-bottom:3px">🍽️ '+items+'</div>'
+        +'<div style="font-size:.82rem;font-weight:800;color:#6b21a8">Estimated: ₹'+(Number(b.total)||0)+'</div>'
+        +(b.status==='confirmed'?'<div style="font-size:.75rem;color:#166534;margin-top:5px">Shop ne aapki booking confirm kar di hai. 🎉</div>':'')
+        +(b.status==='dismissed'?'<div style="font-size:.75rem;color:#991b1b;margin-top:5px">Ye booking shop ne cancel kar di hai. Baat karne ke liye WhatsApp kijiye.</div>':'')
+        +'</div>'):'')
       +'</div>';
   }).join('');
 }
