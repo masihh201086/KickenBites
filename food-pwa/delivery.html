@@ -513,6 +513,13 @@ window.sendPinResetRequestWA = async function(){
     'Mera PIN bhool gaya hoon, please reset kar dijiye.'+nl+nl+
     'Mobile: *'+(loginPhone||'')+'*'+nl+nl+
     'Aap admin app me Delivery Boys me is number par PIN Reset dabakar naya PIN yahin bhej dijiye. Dhanyavaad!';
+  try{
+    let nm='';
+    try{ const bs=await getDoc(doc(db,'deliveryBoys',loginPhone)); if(bs.exists()) nm=bs.data().name||''; }catch(e){}
+    await setDoc(doc(db,'pinResetRequests','boy_'+loginPhone),{
+      phone:loginPhone, role:'boy', name:nm, status:'pending', at:Date.now()
+    },{merge:true});
+  }catch(e){}
   window.open('https://wa.me/'+adminPhone+'?text='+encodeURIComponent(msg),'_blank');
   const m=document.getElementById('resetSentMsg'); if(m) m.style.display='block';
 };

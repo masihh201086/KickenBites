@@ -302,6 +302,11 @@ input:checked+.slider:before{transform:translateX(20px);}
 
   <!-- ORDERS -->
   <div class="panel active" id="tab-orders">
+    <!-- PIN RESET REQUESTS — hidden until there is at least one pending -->
+    <div class="card" id="pinReqCard" style="display:none;padding:11px;border:2px solid #fb923c;background:#fff7ed;margin-bottom:9px">
+      <div class="ct" style="margin:0 0 7px 0;color:#9a3412">🔑 PIN Reset Requests <span id="pinReqCount" style="background:#dc2626;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span></div>
+      <div id="pinReqList"></div>
+    </div>
     <div class="card" style="padding:11px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
         <div class="ct" style="margin:0">📋 Orders By Date</div>
@@ -976,6 +981,7 @@ async function initDash(){
     if(deliveryBoys.length) renderDeliveryBoys();
   }, 5*60*1000);
   requestNotificationPermission();
+  listenPinResetRequests();
   listenCustomerPresence();
   const today=getTodayDate();
   if(ordersUnsub)ordersUnsub();
@@ -2736,6 +2742,59 @@ window.filterCustList=function(q){
     (c.location||'').toLowerCase().includes(q)
   );
   renderCustList(filtered);
+};
+
+// ---- PIN RESET REQUESTS (in-app notification) ----
+// Customer/delivery boy jab "reset karwaiye" dabate hain, ek doc banta hai.
+// Yahan live listener use ho raha hai, isliye admin page khula ho to turant dikh jaata hai.
+let pinReqUnsub=null, _pinReqSeen=0;
+function fmtAgo(ts){
+  const m=Math.floor((Date.now()-Number(ts||0))/60000);
+  if(m<1) return 'abhi';
+  if(m<60) return m+' min pehle';
+  const h=Math.floor(m/60);
+  if(h<24) return h+' ghante pehle';
+  return Math.floor(h/24)+' din pehle';
+}
+function renderPinReqs(list){
+  const card=document.getElementById('pinReqCard'), box=document.getElementById('pinReqList'), cnt=document.getElementById('pinReqCount');
+  if(!card||!box) return;
+  if(!list.length){ card.style.display='none'; box.innerHTML=''; return; }
+  card.style.display='block';
+  if(cnt) cnt.textContent=list.length;
+  list.sort(function(a,b){ return Number(b.at||0)-Number(a.at||0); });
+  box.innerHTML=list.map(function(r){
+    const who=r.role==='boy'?'🛵 Delivery':'👤 Customer';
+    return '<div style="background:#fff;border-radius:10px;padding:10px;margin-bottom:7px">'
+      +'<div style="font-weight:700;font-size:.85rem">'+esc(r.name||'(naam nahi)')+'</div>'
+      +'<div style="font-size:.75rem;color:#888;margin-bottom:8px">'+who+' • '+esc(r.phone)+' • '+fmtAgo(r.at)+'</div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<button onclick="resetFromRequest(\''+esc(r.role)+'\',\''+esc(r.phone)+'\',\''+esc(String(r.name||'').replace(/\'/g,''))+'\')" style="flex:1;background:#fb923c;color:#fff;border:none;padding:9px;border-radius:9px;font-weight:800;font-size:.79rem;cursor:pointer">🔑 Reset karein</button>'
+      +'<button onclick="dismissPinReq(\''+esc(r.role)+'\',\''+esc(r.phone)+'\')" style="background:#eee;border:none;padding:9px 12px;border-radius:9px;font-weight:700;font-size:.79rem;cursor:pointer">Hatayein</button>'
+      +'</div></div>';
+  }).join('');
+}
+function listenPinResetRequests(){
+  try{
+    if(pinReqUnsub) pinReqUnsub();
+    pinReqUnsub=onSnapshot(collection(db,'pinResetRequests'), function(snap){
+      const list=[];
+      snap.forEach(function(d){ const v=d.data()||{}; if(v.status!=='done') list.push(v); });
+      // nayi request aane par ek halki si awaaz/toast (sirf tab jab ginti badhe)
+      if(list.length>_pinReqSeen && _pinReqSeen!==0){ try{ showToast('🔑 Nayi PIN reset request'); }catch(e){} }
+      _pinReqSeen=list.length;
+      renderPinReqs(list);
+    }, function(){});
+  }catch(e){}
+}
+window.resetFromRequest=async function(role,phone,name){
+  await doPinReset(role==='boy'?'boy':'cust', phone, name);
+  // reset ho gaya to request nipta di jaaye
+  try{ await setDoc(doc(db,'pinResetRequests',(role==='boy'?'boy_':'cust_')+phone),{status:'done',doneAt:Date.now()},{merge:true}); }catch(e){}
+};
+window.dismissPinReq=async function(role,phone){
+  if(!confirm('Ye request hata dein? (PIN reset nahi hoga)')) return;
+  try{ await setDoc(doc(db,'pinResetRequests',(role==='boy'?'boy_':'cust_')+phone),{status:'done',doneAt:Date.now()},{merge:true}); showToast('Request hata di'); }catch(e){ alert('Nahi hata: '+e.message); }
 };
 
 // ---- PIN RESET (admin ke through) ----
