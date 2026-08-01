@@ -3774,11 +3774,11 @@ window.generateCollage = async function(itemsOverride, showPopup){
   const n = active.length;
   const COLS = (n<=1) ? 1 : 2;
   const ROWS = Math.ceil(n/COLS);
-  const CELL_W = 480;   // bada collage (Session B)
-  const CELL_H = 390;
+  const CELL_W = 480;   // bada collage
+  const CELL_H = 430;   // taller cell so the food photo dominates
   const PAD = 12;
-  const HEADER_H = 100;
-  const FOOTER_H = 48;
+  const HEADER_H = 74;  // chhota header (tha 100)
+  const FOOTER_H = 34;  // chhota footer (tha 48)
 
   canvas.width  = COLS*CELL_W + (COLS+1)*PAD;
   canvas.height = HEADER_H + ROWS*(CELL_H+PAD) + PAD + FOOTER_H;
@@ -3794,18 +3794,18 @@ window.generateCollage = async function(itemsOverride, showPopup){
   ctx.fillStyle = '#e65c00';
   ctx.fillRect(0,0,canvas.width,HEADER_H);
   ctx.fillStyle = 'white';
-  ctx.font = 'bold 34px sans-serif';
+  ctx.font = 'bold 30px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('KICKEN BITES', canvas.width/2, 44);
+  ctx.fillText('KICKEN BITES', canvas.width/2, 36);
   var todayD=getTodayDate();
   var tomorrowD=new Date(new Date().getTime()+86400000).toISOString().split('T')[0];
   var dateStr;
   if(selMenuDate===todayD) dateStr="Today Menu";
   else if(selMenuDate===tomorrowD) dateStr="Tomorrow Menu";
   else dateStr=selMenuDate?new Date(selMenuDate+"T00:00:00").toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long"})+" Menu":"Today Menu";
-  ctx.font = '18px sans-serif';
+  ctx.font = '16px sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.88)';
-  ctx.fillText(dateStr, canvas.width/2, 72);
+  ctx.fillText(dateStr, canvas.width/2, 60);
 
   // Load images with timeout
   // Load images via CORS proxy so canvas stays clean (downloadable)
@@ -3849,7 +3849,7 @@ window.generateCollage = async function(itemsOverride, showPopup){
     // row looks full instead of leaving a blank cell beside it.
     var isLoneLast = (COLS===2) && (idx===n-1) && (n%2===1);
     if(isLoneLast){ x = Math.round((canvas.width - CELL_W)/2); }
-    var IMG_H = Math.round(CELL_H*0.7);
+    var IMG_H = Math.round(CELL_H*0.82);   // photo ab cell ka 82% (tha 70%)
     var INFO_H = CELL_H - IMG_H;
 
     // Card white bg
@@ -3885,8 +3885,8 @@ window.generateCollage = async function(itemsOverride, showPopup){
       var soldOut = _rem<=0;
       var badgeColor = soldOut ? '#ef4444' : (_rem<=5 ? '#f59e0b' : '#22c55e');
       // Badge enlarged ~2.5x with BLACK text for readability (same colours).
-      var _bTxt = soldOut ? 'SOLD OUT' : (_rem+' left');
-      var _bFont = 30;                       // was 13 → ~2.3x
+      var _bTxt = soldOut ? 'SOLD OUT' : 'Available now';
+      var _bFont = 26;                       // thoda chhota kyunki text lamba hai
       ctx.font = 'bold '+_bFont+'px sans-serif';
       var _bPadX = 20, _bH = 52;             // was 26 → 2x tall
       var _bW = Math.max(120, ctx.measureText(_bTxt).width + _bPadX*2);
@@ -3913,14 +3913,14 @@ window.generateCollage = async function(itemsOverride, showPopup){
 
     // Item name
     ctx.fillStyle = '#111';
-    ctx.font = 'bold 20px sans-serif';
+    ctx.font = 'bold 22px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(item.name||'Item', x+CELL_W/2, y+IMG_H+28);
+    ctx.fillText(item.name||'Item', x+CELL_W/2, y+IMG_H+30);
 
     // Price
     ctx.fillStyle = '#e65c00';
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText('Rs '+item.price, x+CELL_W/2, y+IMG_H+56);
+    ctx.font = 'bold 26px sans-serif';
+    ctx.fillText('Rs '+item.price, x+CELL_W/2, y+IMG_H+58);
   });
 
   // FOOTER
