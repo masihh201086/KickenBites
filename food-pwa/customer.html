@@ -1291,6 +1291,19 @@ function renderMyOrders(all) {
     // which sets customerPaid:true but never took money online, so nothing to refund.
     const wasPaid = (o.customerPaid===true || o.paymentConfirmed===true || o.paid===true) && o.payLater!==true;
     const showRefund = o.status==='cancelled' && wasPaid && o.refundDone!==true;
+    // SESSION 11 refund tracking. refundedAt is required for the green "done" strip:
+    // old orders carry a stale refundDone:true written by admin's ackCancel (that bug is
+    // fixed now), and we must never TELL a customer money arrived when it may not have.
+    const refundedOk  = o.refundDone===true && !!o.refundedAt;
+    const refundPend  = o.refundRequested===true && !refundedOk;
+    const refAmt      = Number(o.refundAmount||o.total||0);
+    const refWhen     = o.refundedAt?new Date(o.refundedAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    const reqWhen     = o.refundRequestedAt?new Date(o.refundRequestedAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    const refundStrip = refundedOk
+      ? `<div style="background:#dcfce7;color:#166534;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">✅ Refund ₹${refAmt} ho gaya${refWhen?' · '+refWhen:''}${o.refundUpi?`<br><span style="font-weight:600">UPI: ${esc(o.refundUpi)}</span>`:''}<br><span style="font-weight:600">Bank me aane me 1-2 din lag sakte hain.</span></div>`
+      : (refundPend
+        ? `<div style="background:#fef3c7;color:#92400e;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">💸 Refund request bhej di gayi · ₹${refAmt}${reqWhen?'<br><span style="font-weight:600">'+reqWhen+'</span>':''}<br><span style="font-weight:600">⏳ Shop confirm karega — dobara maangne ki zaroorat nahi.</span></div>`
+        : '');
     return `<div class="oh ${o.status}">
       <div class="oh-top">
         <div><div class="oh-id">Order #${o.id.slice(-6).toUpperCase()}</div><div class="oh-date">${formatDate(o.date)} at ${time}</div></div>
@@ -1299,12 +1312,14 @@ function renderMyOrders(all) {
       <div class="oh-items">${items}</div>
       <div class="oh-total">₹${o.total} | ${o.orderType==='delivery'?'🛵':'🏠'} ${o.orderType}</div>
       ${o.status==='cancelled'&&o.cancelledBy==='admin'?`<div style="background:var(--rp);color:var(--red);font-size:.76rem;font-weight:600;padding:7px 9px;border-radius:8px;margin-top:7px">⚠️ This order was cancelled by the shop${o.cancelReason?': '+esc(o.cancelReason):'.'}</div>`:''}
+      ${refundStrip}
       <div>
         <button class="reorder-btn" onclick="reorder('${o.id}')">🔁 Reorder</button>
         ${isActive?`<button class="track-order-btn" onclick="openTrackingFor('${o.id}','${o.phone||''}',${o.total||0},'${encodeURIComponent(o.address||'')}','${encodeURIComponent(items)}')">📍 Track</button>`:''}
         ${canRate?`<button class="rate-order-btn" onclick="openRating('${o.id}')">⭐ Rate</button>`:''}
         ${canCancel?`<button class="cancel-order-btn" onclick="cancelMyOrder('${o.id}')">✖ Cancel</button>`:''}
-        ${showRefund?`<button class="refund-btn" onclick="requestRefund('${o.id}',${o.total||0})">💬 Refund via WhatsApp</button>`:''}
+        ${showRefund&&!refundPend?`<button class="refund-btn" onclick="requestRefund('${o.id}')">💸 Request Refund</button>`:''}
+        ${showRefund&&refundPend?`<button class="refund-btn" style="background:#6b7280" onclick="requestRefund('${o.id}')">🔁 Request dobara bhejein</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1447,14 +1462,90 @@ window.cancelMyOrder = async function(orderId){
   }
 };
 
-// A1 refund: opens WhatsApp to the shop asking for a refund on a paid+cancelled order.
-window.requestRefund = async function(orderId,total){
+// A1 refund (SESSION 11 rewrite): full order details + amount + same-UPI request,
+// and the request is now RECORDED on the order so both sides can see its state.
+//
+// ⚠️ ROOT CAUSE of the half-empty WhatsApp message: the old code pasted "#ABC123"
+// straight into the wa.me query string. In a URL "#" starts the FRAGMENT, so the
+// browser dropped everything after it and WhatsApp only ever received
+// "Hello Kicken Bites 👋\nI cancelled my order *". The amount, name and the rest
+// never left the phone. Fix: build the message with real newlines and run
+// encodeURIComponent() over the WHOLE string exactly once (# -> %23).
+window.requestRefund = async function(orderId){
+  try{
+    const snap=await getDoc(doc(db,'orders',orderId));
+    if(!snap.exists()){showToast('Order not found');return;}
+    const o=snap.data();
+    if(o.refundDone===true&&o.refundedAt){showToast('Is order ka refund already ho chuka hai');return;}
+    const short=orderId.slice(-6).toUpperCase();
+    const items=(o.items||[]).map(i=>`${esc(i.name)} ×${i.qty}`).join(', ');
+    const t=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+    const amt=Number(o.refundAmount||o.total||0);
+    const savedUpi=o.refundUpi||localStorage.getItem('kb_refund_upi')||'';
+    document.getElementById('refundModal')?.remove();
+    const m=document.createElement('div');
+    m.id='refundModal';
+    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:center;justify-content:center;padding:18px;';
+    m.innerHTML=`<div style="background:white;border-radius:20px;padding:18px;width:100%;max-width:400px;max-height:86vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-weight:800;font-size:1rem">💸 Refund Request</div>
+        <button onclick="document.getElementById('refundModal').remove()" style="background:none;border:none;font-size:1.3rem;cursor:pointer">✕</button>
+      </div>
+      <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:11px;font-size:.8rem;line-height:1.6">
+        <div style="font-weight:800">Order #${short}</div>
+        <div style="color:#57534e">${formatDate(o.date)}${t?' at '+t:''} · ${o.orderType==='delivery'?'🛵 Delivery':'🏠 Takeaway'}</div>
+        <div style="margin-top:5px">${items||'—'}</div>
+        ${o.deliveryCharge?`<div style="color:#57534e">Delivery charge: ₹${o.deliveryCharge}</div>`:''}
+        <div style="margin-top:6px;font-weight:800;font-size:.95rem;color:#c2410c">Refund amount: ₹${amt}</div>
+      </div>
+      <div style="margin-top:12px;font-size:.78rem;font-weight:700">Refund kis UPI par chahiye?</div>
+      <input id="refUpiIn" value="${esc(savedUpi)}" placeholder="e.g. 98xxxxxxxx@ybl (optional)" style="width:100%;margin-top:6px;padding:10px;border:1.5px solid #eee;border-radius:10px;font-size:.85rem;font-family:inherit;outline:none">
+      <div style="margin-top:7px;font-size:.72rem;color:#57534e;line-height:1.5">Khaali chhod dein to shop usi UPI/number par refund bhejega jisse aapne payment kiya tha.</div>
+      <button onclick="sendRefundRequest('${orderId}')" style="width:100%;margin-top:14px;padding:12px;background:#25d366;color:white;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:.9rem">💬 WhatsApp par request bhejein</button>
+    </div>`;
+    document.body.appendChild(m);
+  }catch(e){ showToast('Could not open refund request'); console.error(e); }
+};
+
+window.sendRefundRequest = async function(orderId){
+  const upi=(document.getElementById('refUpiIn')?.value||'').trim();
   let adminPhone='';
   try{const c=await getMasterCfg(); adminPhone=(c&&c.adminPhone)||'';}catch(e){}
   if(!adminPhone) adminPhone='919795482664';
+  let o={};
+  try{ const snap=await getDoc(doc(db,'orders',orderId)); if(snap.exists()) o=snap.data(); }catch(e){}
   const short=orderId.slice(-6).toUpperCase();
-  const name=(currentProfile&&currentProfile.name)||'';
-  const msg=`Hello Kicken Bites 👋%0AI cancelled my order *#${short}* (₹${total}).%0AName: ${encodeURIComponent(name)}%0APlease process my refund. Thank you!`;
+  const items=(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
+  const t=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+  const amt=Number(o.refundAmount||o.total||0);
+  const name=(o.name)||(currentProfile&&currentProfile.name)||'';
+  const phone=(o.phone)||localStorage.getItem('custPhone')||'';
+  if(upi) localStorage.setItem('kb_refund_upi',upi);
+  // record the request first so the state survives even if WhatsApp never opens
+  try{
+    await updateOrderStatus(orderId,'cancelled',{
+      refundRequested:true,
+      refundRequestedAt:new Date().toISOString(),
+      refundUpi:upi,
+      refundAmount:amt
+    });
+  }catch(e){ console.error(e); }
+  const lines=[
+    '*Refund Request — Kicken Bites* 🙏','',
+    'Order: *#'+short+'*',
+    'Date: '+formatDate(o.date)+(t?' at '+t:''),
+    'Items: '+(items||'-'),
+    'Type: '+(o.orderType==='delivery'?'Delivery':'Takeaway'),
+    'Amount paid: *₹'+amt+'*','',
+    'Refund to: *same UPI jisse payment kiya tha*',
+    (upi?'UPI ID: *'+upi+'*':'UPI ID: (jo transaction me dikh raha hai)'),
+    'Name: '+name,
+    'Mobile: '+phone,'',
+    'Order cancel ho gaya tha — please refund kar dein. Thank you! 🙏'
+  ];
+  const msg=encodeURIComponent(lines.join('\n'));
+  document.getElementById('refundModal')?.remove();
+  showToast('✅ Refund request save ho gayi');
   window.open(`https://wa.me/${adminPhone.replace(/[^0-9]/g,'')}?text=${msg}`,'_blank');
 };
 

@@ -1787,8 +1787,11 @@ function renderOrders(){
   // float to the very top. Acknowledged cancellations sink to the bottom as before.
   const statusPriority={pending_payment:1,confirmed:2,preparing:3,ready:4,out_for_delivery:5,delivered:6,cancelled:7};
   filtered.sort((a,b)=>{
-    const aAlert=(a.status==='cancelled'&&a.ackCancel!==true)?0:(statusPriority[a.status]??9);
-    const bAlert=(b.status==='cancelled'&&b.ackCancel!==true)?0:(statusPriority[b.status]??9);
+    // SESSION 11: a cancelled order whose refund is requested but not yet paid back
+    // is exactly as urgent as an un-acknowledged cancellation — both float to the top.
+    const _needsAtt=o=>o.status==='cancelled'&&(o.ackCancel!==true||(o.refundRequested===true&&o.refundDone!==true));
+    const aAlert=_needsAtt(a)?0:(statusPriority[a.status]??9);
+    const bAlert=_needsAtt(b)?0:(statusPriority[b.status]??9);
     if(aAlert!==bAlert) return aAlert-bAlert;
     return (b.createdAt||'').localeCompare(a.createdAt||''); // newest first within same group
   });
@@ -1800,7 +1803,19 @@ function renderOrders(){
     const d=ocDate?ocDate.toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
     const items=(o.items||[]).map(i=>`${esc(i.name)} ×${i.qty}`).join(', ');
     const boy=o.assignedBoy?`🛵 Assigned: ${esc(o.assignedBoy)}`:'';
-    return `<div class="oc ${o.status}${o.status==='cancelled'&&o.ackCancel!==true?' cancel-alert':''}" id="oc_${o.id}">
+    // SESSION 11 refund state. paidOnline = money actually came in (pay-later/cash never did).
+    const paidOnline=(o.customerPaid===true||o.paymentConfirmed===true||o.paid===true)&&o.payLater!==true;
+    const refDone=o.refundDone===true&&!!o.refundedAt;
+    const refReq=o.refundRequested===true&&!refDone;
+    const refAmt=Number(o.refundAmount||o.total||0);
+    const refReqWhen=o.refundRequestedAt?new Date(o.refundRequestedAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    const refDoneWhen=o.refundedAt?new Date(o.refundedAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    const refundBox = refDone
+      ? `<div style="background:#dcfce7;color:#166534;border-radius:9px;padding:8px 10px;margin-top:7px;font-size:.76rem;font-weight:700;line-height:1.5">✅ REFUNDED ₹${refAmt}${refDoneWhen?' · '+refDoneWhen:''}${o.refundUpi?`<br><span style="font-weight:600">UPI: ${esc(o.refundUpi)}</span>`:''}</div>`
+      : (refReq
+        ? `<div style="background:#fef3c7;color:#92400e;border:1.5px solid #fbbf24;border-radius:9px;padding:8px 10px;margin-top:7px;font-size:.76rem;font-weight:800;line-height:1.5">💸 REFUND REQUESTED — ₹${refAmt}${refReqWhen?'<br><span style="font-weight:600">'+refReqWhen+'</span>':''}<br><span style="font-weight:600">UPI: ${o.refundUpi?esc(o.refundUpi):'wahi UPI jisse payment aaya tha'}</span>${o.refundUpi?` <button onclick="copyRefundUpi('${String(o.refundUpi).replace(/[^A-Za-z0-9.@_\-]/g,'')}')" style="background:#92400e;color:#fff;border:none;border-radius:6px;padding:3px 7px;font-size:.68rem;font-weight:700;cursor:pointer">📋 Copy</button>`:''}</div>`
+        : '');
+    return `<div class="oc ${o.status}${o.status==='cancelled'&&(o.ackCancel!==true||refReq)?' cancel-alert':''}" id="oc_${o.id}">
       <div class="oc-top">
         <div><div class="oc-name">${esc(o.name)}<span class="tag ${o.orderType==='delivery'?'td':'tt'}">${o.orderType==='delivery'?'🛵':'🏠'}</span></div><div class="oc-ph">📞 ${esc(o.phone)}</div></div>
         <div style="text-align:right"><span class="sp sp-${o.status}">${sl[o.status]||o.status}</span><div class="oc-time">${d} ${t}</div></div>
@@ -1810,6 +1825,7 @@ function renderOrders(){
       ${o.notes?`<div class="oc-notes">📝 ${esc(o.notes)}</div>`:''}
       ${boy?`<div class="oc-assign">${boy}</div>`:''}
       <div class="oc-tot">₹${o.total}${o.deliveryCharge?` (incl. ₹${o.deliveryCharge} del.)`:''}</div>
+      ${refundBox}
       <div class="sr">
         ${o.status==='pending_payment'?`<button class="sb2 sb-conf" onclick="chgStatus('${o.id}','confirmed')">✅ Confirm Pay</button>`:''}
         ${o.status==='confirmed'?`<button class="sb2 sb-prep" onclick="chgStatus('${o.id}','preparing')">👨‍🍳 Preparing</button>`:''}
@@ -1821,6 +1837,8 @@ function renderOrders(){
         ${['pending_payment','confirmed','preparing','ready'].includes(o.status)?`<button class="sb2 sb-cancel" onclick="chgStatus('${o.id}','cancelled')">✗ Cancel</button>`:''}
         ${o.status==='cancelled'?`<button class="sb2" onclick="waCancelNotify('${o.id}')" style="background:#25d366;color:white">📱 Notify Cancel</button>`:''}
         ${o.status==='cancelled'&&o.ackCancel!==true?`<button class="sb2" onclick="ackCancel('${o.id}')" style="background:var(--dark);color:white">✓ Acknowledge</button>`:''}
+        ${o.status==='cancelled'&&(paidOnline||refReq)&&!refDone?`<button class="sb2" onclick="markRefunded('${o.id}')" style="background:#16a34a;color:white">💸 Mark Refunded</button>`:''}
+        ${refDone?`<button class="sb2" onclick="waRefundDone('${o.id}')" style="background:#25d366;color:white">📱 Refund Info</button>`:''}
         <button class="sb2" onclick="waOrderSummary('${o.id}')" style="background:#25d366;color:white">📱 WA</button>
         ${o.status!=='cancelled'?`<button class="sb2" onclick="forwardOrderConfirmation('${o.id}')" style="background:#128c7e;color:white">📨 Forward Confirmation</button>`:''}
         ${_liveOrder(o)&&o.orderType==='delivery'?`<button class="sb2" onclick="assignBoy('${o.id}')" style="background:#8b5cf6;color:white">🛵 ${o.assignedBoyName||'Assign'}</button>`:''}
@@ -1957,7 +1975,16 @@ window.waCancelNotify=async function(orderId){
     const short=orderId.slice(-6).toUpperCase();
     const items=(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
     const day=formatDisplayDate(o.date||getTodayDate());
-    const msg=`Hello ${o.name||''} 👋%0A%0AWe're sorry — your Kicken Bites order *#${short}* for *${day}* has been cancelled.%0A%0AItems: ${encodeURIComponent(items)}%0ATotal: ₹${o.total}%0A%0A${o.paymentConfirmed||o.status==='confirmed'?'Your payment will be refunded shortly. ':''}Sorry for the inconvenience. 🙏`;
+    // ⚠️ "#" starts a URL fragment — unencoded it silently cut this message off at
+    // "*". Build with real newlines and encodeURIComponent() the WHOLE string once.
+    const msg=encodeURIComponent([
+      `Hello ${o.name||''} 👋`,'',
+      `We're sorry — your Kicken Bites order *#${short}* for *${day}* has been cancelled.`,'',
+      `Items: ${items}`,
+      `Total: ₹${o.total}`,'',
+      (o.paymentConfirmed||o.status==='confirmed')?'Aapka payment refund kar diya jayega — usi UPI par jisse payment kiya tha.':'',
+      'Sorry for the inconvenience. 🙏'
+    ].filter((l,i,a)=>!(l===''&&a[i-1]==='')).join('\n'));
     const ph=(o.phone||'').replace(/[^0-9]/g,'');
     const wph=ph.length===10?'91'+ph:ph;
     window.open(`https://wa.me/${wph}?text=${msg}`,'_blank');
@@ -1967,9 +1994,64 @@ window.waCancelNotify=async function(orderId){
 // A5: admin acknowledges a cancelled order (clears the red highlight, stops it nagging).
 window.ackCancel=async function(orderId){
   try{
-    await updateOrderStatus(orderId,'cancelled',{ackCancel:true, refundDone:true});
+    // SESSION 11: this used to also write refundDone:true, which silently hid the
+    // customer's refund button the moment the admin acknowledged a cancellation —
+    // acknowledging is NOT refunding. Refund is now only ever set by markRefunded().
+    await updateOrderStatus(orderId,'cancelled',{ackCancel:true});
     showToast('✓ Acknowledged');
     if(ordViewDate&&ordViewDate!==getTodayDate()) setOrdersDate(ordViewDate);
+  }catch(e){alert('Error: '+e.message);}
+};
+
+// ---- SESSION 11: refund settlement ----
+// Customer requests a refund from their My Orders page (writes refundRequested +
+// refundUpi + refundAmount on the order). Admin settles it here, ONCE, and the
+// customer's own card immediately flips to a green "refund done" strip so they
+// stop asking on WhatsApp.
+window.markRefunded=async function(orderId){
+  try{
+    const snap=await getDoc(doc(db,'orders',orderId));
+    if(!snap.exists()){alert('Order not found');return;}
+    const o=snap.data();
+    if(o.refundDone===true&&o.refundedAt){showToast('Already marked refunded');return;}
+    const amt=Number(o.refundAmount||o.total||0);
+    if(!confirm(`₹${amt} ka refund ${o.refundUpi?('\n\nUPI: '+o.refundUpi+'\n\n'):'(usi UPI par jisse payment aaya tha) '}bhej diya hai?`)) return;
+    await updateOrderStatus(orderId,'cancelled',{
+      refundDone:true,
+      refundedAt:new Date().toISOString(),
+      refundedBy:'admin',
+      refundAmount:amt,
+      ackCancel:true
+    });
+    showToast('✅ Refund mark ho gaya — customer ko app me dikhega');
+    if(ordViewDate&&ordViewDate!==getTodayDate()) setOrdersDate(ordViewDate);
+  }catch(e){alert('Error: '+e.message);}
+};
+
+window.copyRefundUpi=function(upi){
+  try{ navigator.clipboard.writeText(upi); showToast('📋 UPI copy ho gaya'); }
+  catch(e){ prompt('UPI ID:',upi); }
+};
+
+// Fresh tap (not chained behind an await) so the WhatsApp intent is never blocked.
+window.waRefundDone=async function(orderId){
+  try{
+    const snap=await getDoc(doc(db,'orders',orderId));
+    if(!snap.exists()){alert('Order not found');return;}
+    const o=snap.data();
+    const short=orderId.slice(-6).toUpperCase();
+    const items=(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
+    const amt=Number(o.refundAmount||o.total||0);
+    const msg=encodeURIComponent([
+      `Hello ${o.name||''} 👋`,'',
+      `Aapke cancelled order *#${short}* (${formatDisplayDate(o.date||getTodayDate())}) ka refund *₹${amt}* bhej diya gaya hai.`,
+      `Items: ${items}`,
+      o.refundUpi?`UPI: *${o.refundUpi}*`:'Refund usi UPI par bheja gaya hai jisse payment kiya tha.','',
+      'Bank me aane me 1-2 working days lag sakte hain. Thank you! 🙏'
+    ].filter((l,i,a)=>!(l===''&&a[i-1]==='')).join('\n'));
+    const ph=(o.phone||'').replace(/[^0-9]/g,'');
+    const wph=ph.length===10?'91'+ph:ph;
+    window.open(`https://wa.me/${wph}?text=${msg}`,'_blank');
   }catch(e){alert('Error: '+e.message);}
 };
 
