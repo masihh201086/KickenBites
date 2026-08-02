@@ -568,6 +568,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Tap a customer to see their orders, send a WhatsApp reminder, or mark paid.</p>
       <!-- Customer ko archive dikhta tha par admin ko nahi — cleared payment ka
            koi record hi nahi bachta tha -->
+      <div id="duesMonthBanner" style="display:none;background:#fff7ed;border:2px solid #f59e0b;border-radius:12px;padding:12px;margin-bottom:11px"></div>
       <div style="display:flex;gap:6px;margin-bottom:10px">
         <div class="adues-tab active" id="aDuesTabPending" onclick="swAdminDues('pending')">⏳ Pending</div>
         <div class="adues-tab" id="aDuesTabArchive" onclick="swAdminDues('archive')">📦 Archived<span id="aDuesArchCount" style="margin-left:4px;opacity:.75"></span></div>
@@ -596,6 +597,9 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="sg2"><label>Shop Name</label><input class="si" id="sName" placeholder="Kicken Bites"></div>
       <div class="sg2"><label>UPI ID</label><input class="si" id="sUpi" placeholder="e.g. q797038315@ybl"></div>
       <div class="sg2"><label>UPI Display Name</label><input class="si" id="sUpiName" placeholder="e.g. Kicken Bites Pvt Ltd"></div>
+      <!-- Session 13: Pay Later ke do control. Dono customer.html padhta hai. -->
+      <div class="sg2"><label>Pay Later — max dues per customer (₹)</label><input class="si" id="sDuesLimit" type="number" min="0" placeholder="2000"></div>
+      <div class="sg2"><label>Pay Later — kitne paid order ke baad khule</label><input class="si" id="sPayLaterMin" type="number" min="0" placeholder="2"></div>
       <div class="sg2"><label>ImgBB API Key (for image uploads)</label><input class="si" id="sImgbb" placeholder="Get free key from imgbb.com/api"></div>
       <div class="sg2">
         <label>Admin WhatsApp Number (for order notifications)</label>
@@ -1016,6 +1020,9 @@ async function initDash(){
     if(deliveryBoys.length) renderDeliveryBoys();
   }, 5*60*1000);
   requestNotificationPermission();
+  // Session 13: mahine ke pehle 5 din, Dues tab khole bina bhi laal dot dikhe —
+  // isliye ek baar background me dues load kar lete hain (list hidden hai, sasta hai).
+  try{ if(new Date().getDate()<=5 && !duesMonthDone()) setTimeout(()=>{ try{loadDues();}catch(e){} }, 2500); }catch(e){}
   listenPinResetRequests();
   listenPartyBookings();
   // BUG-04: har minute check — page khula ho to bina refresh ke bhi stock chhoot jaaye
@@ -2861,6 +2868,8 @@ function loadSetupFields(){
   document.getElementById('sName').value=cfg.shopName||'';
   document.getElementById('sUpi').value=cfg.upiId||'';
   document.getElementById('sUpiName').value=cfg.upiName||'';
+  {const e1=document.getElementById('sDuesLimit'); if(e1)e1.value=(cfg.duesLimit!=null?cfg.duesLimit:2000);}
+  {const e2=document.getElementById('sPayLaterMin'); if(e2)e2.value=(cfg.payLaterMinOrders!=null?cfg.payLaterMinOrders:2);}
   document.getElementById('sImgbb').value=cfg.imgbbKey||localStorage.getItem('imgbbKey')||'';
   document.getElementById('sAdminPhone').value=cfg.adminPhone||'9712951947';
   if(cfg.adminPhone) window.ADMIN_PHONE_DYNAMIC='91'+cfg.adminPhone;
@@ -2889,7 +2898,13 @@ window.saveSetup=async function(){
   const adminPhone=document.getElementById('sAdminPhone').value.trim();
   if(adminPhone) window.ADMIN_PHONE_DYNAMIC='91'+adminPhone;
   const defaultBoyPhone=document.getElementById('sDefaultBoy')?.value||'';
-  cfg={...cfg,shopName:document.getElementById('sName').value,upiId:document.getElementById('sUpi').value,upiName:document.getElementById('sUpiName').value,imgbbKey:imgbbKey||cfg.imgbbKey||'',adminPhone:adminPhone||cfg.adminPhone||'',defaultBoyPhone:defaultBoyPhone};
+  // Blank chhod dein to default (2000 / 2) lag jaata hai — kabhi 0 nahi, warna
+  // Pay Later har customer ke liye chup-chaap band ho jayega.
+  const dlRaw=(document.getElementById('sDuesLimit')?.value||'').trim();
+  const pmRaw=(document.getElementById('sPayLaterMin')?.value||'').trim();
+  const duesLimit=dlRaw===''?2000:Math.max(0,Number(dlRaw)||0);
+  const payLaterMinOrders=pmRaw===''?2:Math.max(0,Number(pmRaw)||0);
+  cfg={...cfg,shopName:document.getElementById('sName').value,upiId:document.getElementById('sUpi').value,upiName:document.getElementById('sUpiName').value,imgbbKey:imgbbKey||cfg.imgbbKey||'',adminPhone:adminPhone||cfg.adminPhone||'',defaultBoyPhone:defaultBoyPhone,duesLimit,payLaterMinOrders};
   try{await saveConfig(cfg);showToast('✅ Settings saved!');}catch(e){alert('Error: '+e.message);}
 };
 
@@ -3660,6 +3675,7 @@ window.loadDues=async function(){
     window._duesCleared=clearedAll;
     renderAdminDuesArchive(clearedAll);
     const gt=document.getElementById('duesGrandTotal'); if(gt)gt.textContent='₹'+dues.reduce((s,d)=>s+d.total,0);
+    renderDuesMonthBanner(dues);
     if(!dues.length){list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">No pending dues 🎉</p>';const gt2=document.getElementById('duesGrandTotal');if(gt2)gt2.textContent='₹0';return;}  // archive upar hi render ho chuka hai
     // Fill any missing names from customers collection
     await Promise.all(dues.filter(d=>!d.name).map(async d=>{
@@ -3686,6 +3702,44 @@ window.loadDues=async function(){
       </div>`;
     }).join('');
   }catch(e){console.error(e);list.innerHTML='<p style="font-size:.78rem;color:var(--muted)">Error loading dues: '+e.message+'</p>';}
+};
+
+// ---- Session 13: har mahine ki 1 tarikh = settle day ----
+// Browser me koi scheduler nahi hai, isliye "auto-send" jhooth hota. Iske badle
+// admin ke Dues tab par 1-5 tarikh tak ek banner + tab par laal dot rehta hai jab
+// tak us mahine ki reminder bhej na di jaaye. Ho gaya ya nahi, ye localStorage me
+// per-month save hota hai (kb_duesRemind_YYYY-MM).
+function duesMonthKey(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+window.duesMonthDone=function(){ try{ return localStorage.getItem('kb_duesRemind_'+duesMonthKey())==='1'; }catch(e){ return false; } };
+window.markDuesMonthDone=function(){
+  try{ localStorage.setItem('kb_duesRemind_'+duesMonthKey(),'1'); }catch(e){}
+  renderDuesMonthBanner(window._duesCache||[]);
+};
+window.renderDuesMonthBanner=function(dues){
+  const box=document.getElementById('duesMonthBanner');
+  const tab=document.querySelector('.tab[data-tab="dues"]');
+  const list=(dues||[]).filter(d=>d.total>0);
+  const dom=new Date().getDate();
+  const due=(dom<=5 && list.length>0 && !duesMonthDone());
+  if(box){
+    box.style.display=due?'block':'none';
+    if(due){
+      const tot=list.reduce((s,d)=>s+d.total,0);
+      const mo=new Date().toLocaleDateString('en-IN',{month:'long'});
+      box.innerHTML=`<div style="font-weight:800;font-size:.88rem;color:#92400e">📅 ${mo} ki dues reminder abhi tak nahi bheji</div>`+
+        `<div style="font-size:.78rem;color:#78350f;margin-top:4px;line-height:1.5"><b>${list.length}</b> customer · kul <b>₹${tot}</b> baaki. Mahine ki pehli tarikh settle day hai.</div>`+
+        `<div style="display:flex;gap:8px;margin-top:10px">`+
+          `<button onclick="remindAllDues()" style="flex:1;padding:10px;background:#25d366;color:#fff;border:none;border-radius:9px;font-size:.8rem;font-weight:800;cursor:pointer">💬 Sabko Reminder Bhejein</button>`+
+          `<button onclick="markDuesMonthDone()" style="padding:10px 12px;background:#fff;color:#92400e;border:1.5px solid #f59e0b;border-radius:9px;font-size:.8rem;font-weight:700;cursor:pointer">Ho gaya</button>`+
+        `</div>`;
+    }
+  }
+  if(tab){
+    let dot=tab.querySelector('.dues-dot');
+    if(due){
+      if(!dot){ dot=document.createElement('span'); dot.className='dues-dot'; dot.style.cssText='display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-left:4px;vertical-align:middle'; tab.appendChild(dot); }
+    } else if(dot){ dot.remove(); }
+  }
 };
 
 // ---- Cleared dues ka record: customer + payment batch ke hisaab se ek line ----
@@ -3778,6 +3832,7 @@ window.remindAllDues=async function(){
   try{const cs=await getDoc(doc(db,'config','menu'));if(cs.exists())cfg=cs.data();}catch(e){}
   _remindCfg={upi:cfg.upiId||'', shop:cfg.shopName||'Kicken Bites'};
   _remindQueue=dues.slice();
+  markDuesMonthDone();   // reminder bhej di — is mahine ka banner ab nahi dikhega
   remindNextInQueue();
 };
 function remindNextInQueue(){

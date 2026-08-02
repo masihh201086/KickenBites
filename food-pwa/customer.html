@@ -155,7 +155,13 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 
 /* PAY SCREEN */
 
-/* Session A: Pay Now / Pay Later tab strip */
+/* Session 13: the Pay Now / Pay Later strip is GONE. Two tab rows stacked on top
+   of each other (mode tabs, then method tabs) read as tabs-inside-tabs and looked
+   broken. Now there is ONE control row — the payment method — and Pay Later sits
+   at the bottom as a de-emphasised alternative, which is how real checkouts do it.
+   .pay-mode-* rules stay only so any cached older markup does not explode. */
+.pay-mode-strip{display:none !important}
+/* Session A (legacy): Pay Now / Pay Later tab strip */
 .pay-mode-strip{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:14px;overflow:hidden;border:2px solid #e65c00;margin:14px 14px 0;box-shadow:0 2px 10px rgba(230,92,0,.18)}
 .pay-mode-btn{padding:13px 6px;font-weight:800;font-size:.92rem;border:none;cursor:pointer;transition:background .15s,color .15s;line-height:1.2;text-align:center}
 .pay-mode-btn.now{background:#e65c00;color:#fff}
@@ -175,9 +181,17 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* Session 12: QR / UPI-ID sub-tabs inside Pay Now.
    Dono options ek saath dikhne se page bahut lamba ho jaata tha — ab ek time
    par sirf chuna hua method render hota hai, aur wahi order par save hota hai. */
-.pay-sub-strip{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}
-.pay-sub-btn{padding:11px 6px;border-radius:11px;border:2px solid #f3d5bd;background:#fff;color:#9a6b45;font-weight:800;font-size:.86rem;cursor:pointer;line-height:1.2;transition:all .15s}
+.pay-meth-lbl{font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#b58963;margin:14px 2px 7px}
+.pay-sub-strip{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pay-sub-btn{padding:13px 6px;border-radius:13px;border:2px solid #f3d5bd;background:#fff;color:#9a6b45;font-weight:800;font-size:.9rem;cursor:pointer;line-height:1.2;transition:all .15s}
 .pay-sub-btn.active{background:#e65c00;border-color:#e65c00;color:#fff;box-shadow:0 2px 8px rgba(230,92,0,.28)}
+/* Pay Later, ab ek alternative — tab nahi */
+.pl-alt-wrap{margin-top:16px}
+.pl-alt-or{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.45);font-size:.72rem;font-weight:700;letter-spacing:.1em;margin-bottom:11px}
+.pl-alt-or:before,.pl-alt-or:after{content:'';flex:1;height:1px;background:rgba(255,255,255,.18)}
+.pl-alt-btn{width:100%;padding:13px;border-radius:13px;border:1.5px dashed rgba(255,255,255,.35);background:rgba(255,255,255,.06);color:#fff;font-weight:700;font-size:.88rem;cursor:pointer;line-height:1.35;font-family:inherit}
+.pl-alt-btn.locked{border-style:solid;border-color:rgba(255,255,255,.14);color:rgba(255,255,255,.45);cursor:not-allowed}
+.pl-lock-note{margin-top:9px;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.4);color:#fde68a;border-radius:11px;padding:10px 12px;font-size:.76rem;line-height:1.55}
 /* "I have paid" big button */
 .i-paid-btn{width:100%;padding:14px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:.95rem;cursor:pointer;box-shadow:0 3px 12px rgba(22,163,74,.35);margin-top:4px}
 
@@ -548,7 +562,8 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
           <div class="dues-tab active" id="duesTabPending" onclick="swDuesTab('pending')">⏳ Pending</div>
           <div class="dues-tab" id="duesTabArchive" onclick="swDuesTab('archive')">📦 Archived<span id="duesArchCount" style="margin-left:4px;opacity:.75"></span></div>
         </div>
-        <div id="custDuesList"></div>
+        <div id="duesMonthNudge" style="display:none;background:#fef3c7;border:1.5px solid #fbbf24;color:#92400e;border-radius:11px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;line-height:1.55"></div>
+      <div id="custDuesList"></div>
         <div id="custDuesArchive" style="display:none"></div>
         <div id="duesPayBox">
           <button onclick="payDuesNow()" style="width:100%;margin-top:10px;background:#25d366;color:white;border:none;padding:12px;border-radius:11px;font-weight:800;font-size:.9rem;cursor:pointer">💳 Pay Dues Now</button>
@@ -590,18 +605,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
     <div class="pay-date" id="payDate" style="margin-top:6px;font-size:.8rem;opacity:.9;font-weight:600"></div>
   </div>
 
-  <!-- PAY NOW / PAY LATER tab strip -->
-  <div class="pay-mode-strip">
-    <button class="pay-mode-btn now active" id="tabPayNow" onclick="switchPayTab('now')">
-      💳 Pay Now
-    </button>
-    <button class="pay-mode-btn later" id="tabPayLater" onclick="switchPayTab('later')">
-      📋 Pay Later
-    </button>
-  </div>
-
   <!-- ── PAY NOW PANEL ── -->
   <div id="payNowPanel">
+    <div class="pay-meth-lbl">Kaise pay karenge?</div>
     <div class="pay-sub-strip">
       <button class="pay-sub-btn active" id="tabMethQR"  onclick="switchPayMethod('qr')">📷 QR Code</button>
       <button class="pay-sub-btn"        id="tabMethUPI" onclick="switchPayMethod('upi')">📋 UPI ID</button>
@@ -681,6 +687,13 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
       <div class="warn-note" id="payWarnNote">⚠️ Pay karne ke baad neeche <b>"Maine Pay Kar Diya"</b> zaroor dabaiye — tabhi aapka order confirm hoga.</div>
       <button class="i-paid-btn" id="iPaidBtn" onclick="iHavePaid()">✅ Maine Pay Kar Diya — Order Confirm Karein</button>
       <div style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:6px;line-height:1.4">Payment karne ke baad hi ye button dabaiye. Bina payment ke dabane par order cancel ho sakta hai.</div>
+    </div>
+
+    <!-- Session 13: Pay Later ab ek alternative hai, doosra tab nahi -->
+    <div class="pl-alt-wrap" id="plAltWrap">
+      <div class="pl-alt-or">YA</div>
+      <button class="pl-alt-btn" id="plAltBtn" onclick="togglePayLater()">📋 Abhi nahi — baad me pay karein</button>
+      <div class="pl-lock-note" id="plLockNote" style="display:none"></div>
     </div>
   </div>
 
@@ -1177,6 +1190,20 @@ function renderMyDues(orders){
     : '💳 Pending Dues';
   window._myDuesTotal=total;
   window._myDuesOrders=dues.map(o=>o.id);
+  // Session 13: mahine ki 1 tarikh settle-day hai. 1-5 tarikh tak ek narm reminder
+  // dikhta hai taaki customer ko admin ke WhatsApp ka intezaar na karna pade.
+  try{
+    const nb=document.getElementById('duesMonthNudge');
+    if(nb){
+      const d=new Date(), dom=d.getDate();
+      const show=(total>0 && dom<=5);
+      nb.style.display=show?'block':'none';
+      if(show){
+        const mo=d.toLocaleDateString('en-IN',{month:'long'});
+        nb.innerHTML=`📅 <b>${mo} ki 1 tarikh — settle day.</b> Aapke <b>₹${total}</b> baaki hain. Neeche <b>Pay Dues Now</b> se clear kar dijiye — dhanyavaad! 🙏`;
+      }
+    }
+  }catch(e){}
 }
 
 // ---- Item 8: archived dues — ek payment batch ek line, tap par detail ----
@@ -2276,15 +2303,13 @@ function showPayScreen(total){
       }).catch(()=>{});
     }
   }catch(e){}
-  // dues mode: Pay Later tab hide karo (sirf QR+UPI+I Have Paid dikhna chahiye)
-  const dlBtn=document.getElementById('tabPayLater');
-  const strip=document.querySelector('.pay-mode-strip');
-  if(isDues){
-    if(dlBtn) dlBtn.style.display='none';
-    if(strip) strip.style.gridTemplateColumns='1fr';
-  } else {
-    if(dlBtn) dlBtn.style.display='';
-    if(strip) strip.style.gridTemplateColumns='1fr 1fr';
+  // dues mode: Pay Later ka option bilkul nahi (wahan to dues hi clear ho rahe hain)
+  const altWrap=document.getElementById('plAltWrap');
+  if(altWrap) altWrap.style.display=isDues?'none':'block';
+  {const b=document.getElementById('plAltBtn'); if(b) b.textContent='📋 Abhi nahi — baad me pay karein';}
+  if(!isDues){
+    applyPayLaterGate({allowed:true});   // gate aane tak button neutral rehta hai
+    checkPayLaterEligibility(total).then(applyPayLaterGate).catch(()=>{});
   }
   // default to Pay Now tab; dues mode goes straight to Pay Now
   switchPayTab('now');
@@ -2432,20 +2457,81 @@ window.switchPayMethod=function(m){
   document.getElementById('tabMethUPI')?.classList.toggle('active',!isQR);
 };
 
+// Session 13: Pay Now hamesha dikhta hai; Pay Later neeche se khulta hai.
+// (Purana naam rakha gaya hai kyunki dues-mode aur openPayScreen ise call karte hain.)
 window.switchPayTab=function(tab){
-  const isNow=(tab==='now');
-  document.getElementById('tabPayNow').classList.toggle('active', isNow);
-  document.getElementById('tabPayNow').classList.toggle('now', true);
-  document.getElementById('tabPayLater').classList.toggle('active', !isNow);
-  document.getElementById('tabPayLater').classList.toggle('later', true);
+  const isNow=(tab!=='later');
   const np=document.getElementById('payNowPanel');
   const lp=document.getElementById('payLaterPanel');
   const bl=document.getElementById('payBackLnk');
-  if(np) np.style.display=isNow?'block':'none';
+  if(np) np.style.display='block';          // pay-now content kabhi chhupta nahi
   if(lp) lp.style.display=isNow?'none':'block';
-  if(bl) bl.style.display=isNow?'block':'none';
-  window._payTab=tab;
+  if(bl) bl.style.display='block';
+  window._payTab=isNow?'now':'later';
 };
+
+window.togglePayLater=function(){
+  const el=window._plEligible;
+  if(el && el.allowed===false){ showToast(el.short||'Pay Later abhi available nahi hai'); return; }
+  const open=(window._payTab!=='later');
+  switchPayTab(open?'later':'now');
+  const b=document.getElementById('plAltBtn');
+  if(b) b.textContent=open?'✕ Pay Later band karein':'📋 Abhi nahi — baad me pay karein';
+  if(open) setTimeout(()=>{document.getElementById('payLaterPanel')?.scrollIntoView({behavior:'smooth',block:'start'});},60);
+};
+
+// ── Session 13: Pay Later kis ko milega ──
+// Do rule, dono config se badalne yogya (admin Setup tab):
+//   1. Naya customer: pehle N (default 2) orders ka payment poora hona chahiye
+//   2. Total unpaid dues + is order ka amount <= limit (default ₹2000)
+// Ye sirf UI gate hai — asli guarantee nahi — par 99% cases yahin ruk jaate hain,
+// aur dono numbers ek jagah se aate hain taaki baad me badalna aasan ho.
+window._plEligible={allowed:true};
+async function checkPayLaterEligibility(orderTotal){
+  const limit=Number((menuConfig&&menuConfig.duesLimit)||2000);
+  const minOrders=Number((menuConfig&&menuConfig.payLaterMinOrders)||2);
+  let orders=_allMyOrders||[];
+  if(!orders.length){
+    const ph=localStorage.getItem('custPhone')||'';
+    if(ph){
+      try{
+        const {getDocs}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        const snap=await getDocs(query(collection(db,'orders'),where('phone','==',ph)));
+        orders=snap.docs.map(d=>d.data());
+      }catch(e){}
+    }
+  }
+  const live=orders.filter(o=>o.status!=='cancelled');
+  const dues=live.filter(o=>o.payLater===true&&o.paidCleared!==true)
+                 .reduce((sum,o)=>sum+(Number(o.total)||0),0);
+  // "Paid order" = jiska paisa sach me settle ho chuka hai: ya to admin ne online
+  // payment verify kiya, ya pay-later ka due clear hua. Sirf claim karna kaafi nahi.
+  const paidCount=live.filter(o=>o.paymentConfirmed===true||o.paidCleared===true).length;
+  const after=dues+Number(orderTotal||0);
+  if(paidCount<minOrders) return {allowed:false, reason:'newbie', dues, paidCount, limit, minOrders,
+    short:`Pehle ${minOrders} order ka payment poora karein`,
+    msg:`🔒 <b>Pay Later abhi band hai.</b><br>Naye customer ke liye pehle <b>${minOrders} order</b> ka payment poora hona zaroori hai — abhi ${paidCount} hua hai. Uske baad ye option apne aap khul jayega.`};
+  if(after>limit) return {allowed:false, reason:'limit', dues, paidCount, limit, minOrders,
+    short:`Dues limit ₹${limit} cross ho rahi hai`,
+    msg:`🔒 <b>Pay Later abhi band hai.</b><br>Aapke <b>₹${dues}</b> dues pehle se baaki hain. Is order ke baad ₹${after} ho jayenge, aur limit <b>₹${limit}</b> hai.<br>Profile → <b>Pay Dues Now</b> se clear karein, phir option wapas khul jayega.`};
+  return {allowed:true, dues, paidCount, limit, minOrders};
+}
+
+function applyPayLaterGate(el){
+  window._plEligible=el||{allowed:true};
+  const btn=document.getElementById('plAltBtn');
+  const note=document.getElementById('plLockNote');
+  const ok=(!el||el.allowed!==false);
+  if(btn){
+    btn.classList.toggle('locked',!ok);
+    btn.textContent=ok?'📋 Abhi nahi — baad me pay karein':'🔒 Pay Later abhi available nahi';
+  }
+  if(note){
+    note.style.display=ok?'none':'block';
+    note.innerHTML=ok?'':(el.msg||'');
+  }
+  if(!ok) switchPayTab('now');
+}
 window.closePayScreen=function(){hide('payScreen');window._payMode='order';window._payTab='now';};
 window.iHavePaid=async function(){
   // DUES MODE: mark all pending pay-later orders as customer-claimed-paid (admin still confirms)
