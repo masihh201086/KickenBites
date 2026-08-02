@@ -1790,8 +1790,12 @@ function renderOrders(){
     // SESSION 11: a cancelled order whose refund is requested but not yet paid back
     // is exactly as urgent as an un-acknowledged cancellation — both float to the top.
     const _needsAtt=o=>o.status==='cancelled'&&(o.ackCancel!==true||(o.refundRequested===true&&o.refundDone!==true));
-    const aAlert=_needsAtt(a)?0:(statusPriority[a.status]??9);
-    const bAlert=_needsAtt(b)?0:(statusPriority[b.status]??9);
+    // SESSION 12: a payment the customer claims but nobody has verified yet is the
+    // next most urgent thing after an un-handled cancellation.
+    const _payPend=o=>o.customerPaid===true&&o.paymentConfirmed!==true&&o.payLater!==true
+                      &&['confirmed','preparing','ready','out_for_delivery'].includes(o.status||'');
+    const aAlert=_needsAtt(a)?0:(_payPend(a)?1.5:(statusPriority[a.status]??9));
+    const bAlert=_needsAtt(b)?0:(_payPend(b)?1.5:(statusPriority[b.status]??9));
     if(aAlert!==bAlert) return aAlert-bAlert;
     return (b.createdAt||'').localeCompare(a.createdAt||''); // newest first within same group
   });
@@ -1803,6 +1807,17 @@ function renderOrders(){
     const d=ocDate?ocDate.toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
     const items=(o.items||[]).map(i=>`${esc(i.name)} ×${i.qty}`).join(', ');
     const boy=o.assignedBoy?`🛵 Assigned: ${esc(o.assignedBoy)}`:'';
+    // SESSION 12 payment verification. Customer ke "maine pay kar diya" par order
+    // confirm to ho jaata hai, par paisa aaya ya nahi ye sirf admin hi keh sakta hai.
+    const claimPaid=o.payLater!==true&&o.customerPaid===true&&o.status!=='cancelled';
+    const payVerified=o.paymentConfirmed===true;
+    const payMeth=o.payMethod==='upi'?'UPI ID':(o.payMethod==='qr'?'QR':'');
+    const claimWhen=o.customerPaidAt?new Date(o.customerPaidAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    const payBox = (claimPaid&&!payVerified)
+      ? `<div style="background:#fef3c7;color:#92400e;border:1.5px solid #fbbf24;border-radius:9px;padding:8px 10px;margin-top:7px;font-size:.76rem;font-weight:800;line-height:1.5">💰 CUSTOMER SAYS PAID — ₹${o.total}${payMeth?' · via '+payMeth:''}${claimWhen?'<br><span style="font-weight:600">'+claimWhen+'</span>':''}<br><span style="font-weight:600">Bank/UPI me check karke Confirm ya Decline karein.</span></div>`
+      : (payVerified&&o.status!=='cancelled'
+        ? `<div style="background:#dcfce7;color:#166534;border-radius:9px;padding:7px 10px;margin-top:7px;font-size:.75rem;font-weight:700">✅ Payment verified — ₹${o.total}${payMeth?' · '+payMeth:''}</div>`
+        : '');
     // SESSION 11 refund state. paidOnline = money actually came in (pay-later/cash never did).
     const paidOnline=(o.customerPaid===true||o.paymentConfirmed===true||o.paid===true)&&o.payLater!==true;
     const refDone=o.refundDone===true&&!!o.refundedAt;
@@ -1825,9 +1840,11 @@ function renderOrders(){
       ${o.notes?`<div class="oc-notes">📝 ${esc(o.notes)}</div>`:''}
       ${boy?`<div class="oc-assign">${boy}</div>`:''}
       <div class="oc-tot">₹${o.total}${o.deliveryCharge?` (incl. ₹${o.deliveryCharge} del.)`:''}</div>
-      ${refundBox}
+      ${payBox}${refundBox}
       <div class="sr">
-        ${o.status==='pending_payment'?`<button class="sb2 sb-conf" onclick="chgStatus('${o.id}','confirmed')">✅ Confirm Pay</button>`:''}
+        ${o.status==='pending_payment'?`<button class="sb2 sb-conf" onclick="verifyPayment('${o.id}')">✅ Confirm Pay</button>`:''}
+        ${claimPaid&&!payVerified?`<button class="sb2" onclick="verifyPayment('${o.id}')" style="background:#16a34a;color:white">✅ Confirm Payment</button>`:''}
+        ${claimPaid&&!payVerified?`<button class="sb2" onclick="declinePayment('${o.id}')" style="background:#dc2626;color:white">✖ Decline — Cancel Order</button>`:''}
         ${o.status==='confirmed'?`<button class="sb2 sb-prep" onclick="chgStatus('${o.id}','preparing')">👨‍🍳 Preparing</button>`:''}
         ${o.status==='preparing'?`<button class="sb2 sb-ready" onclick="chgStatus('${o.id}','ready')">📦 Ready</button>`:''}
         ${o.status==='ready'&&o.orderType==='delivery'?`<button class="sb2 sb-out" onclick="startDelivery('${o.id}')">🛵 Start Delivery</button>`:''}
@@ -2000,6 +2017,49 @@ window.ackCancel=async function(orderId){
     await updateOrderStatus(orderId,'cancelled',{ackCancel:true});
     showToast('✓ Acknowledged');
     if(ordViewDate&&ordViewDate!==getTodayDate()) setOrdersDate(ordViewDate);
+  }catch(e){alert('Error: '+e.message);}
+};
+
+// ---- SESSION 12: payment verification ----
+// Customer sirf CLAIM karta hai ki usne pay kiya. Paisa bank/UPI me aaya ya nahi,
+// wo sirf admin dekh sakta hai — isliye paymentConfirmed yahin se set hota hai.
+window.verifyPayment=async function(orderId){
+  try{
+    const snap=await getDoc(doc(db,'orders',orderId));
+    if(!snap.exists()){alert('Order not found');return;}
+    const o=snap.data();
+    if(o.paymentConfirmed===true){showToast('Payment already verified');return;}
+    await updateOrderStatus(orderId,'confirmed',{
+      paymentConfirmed:true,
+      paymentVerifiedAt:new Date().toISOString(),
+      paymentVerifiedBy:'admin',
+      customerPaid:true,
+      paymentDeclined:false
+    });
+    showToast('✅ Payment verified — customer ko green dikhega');
+    autoAssignIfSingleBoy(orderId);
+    if(ordViewDate&&ordViewDate!==getTodayDate()) setOrdersDate(ordViewDate);
+  }catch(e){alert('Error: '+e.message);}
+};
+
+// Paisa nahi aaya → order cancel + stock wapas. chgStatus ka cancel wahi tested
+// transaction hai jo restock karta hai, isliye usi ko reuse kiya gaya hai —
+// booked/left counters apne aap sahi ho jaate hain.
+window.declinePayment=async function(orderId){
+  try{
+    const snap=await getDoc(doc(db,'orders',orderId));
+    if(!snap.exists()){alert('Order not found');return;}
+    const o=snap.data();
+    if(!confirm(`Payment nahi mila?\n\n₹${o.total} — ${o.name||''}\n\nOrder CANCEL ho jayega aur stock wapas add ho jayega.`)) return;
+    await updateOrderStatus(orderId,o.status||'confirmed',{
+      paymentConfirmed:false,
+      paymentDeclined:true,
+      paymentDeclinedAt:new Date().toISOString(),
+      customerPaid:false,
+      cancelReason:'Payment not received'
+    });
+    await chgStatus(orderId,'cancelled');   // restock + status flip, one transaction
+    showToast('✖ Payment declined — order cancel, stock wapas');
   }catch(e){alert('Error: '+e.message);}
 };
 

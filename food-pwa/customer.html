@@ -91,7 +91,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .sold-tag{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.72);color:#fff;font-weight:900;font-size:1.15rem;padding:9px 22px;border-radius:50px;letter-spacing:.06em;box-shadow:0 2px 8px rgba(0,0,0,.3);}
 .trending-tag{position:absolute;top:8px;left:8px;background:#ef4444;color:white;font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:20px;}
 .mc-body{padding:11px 12px;}
-.mc-name{font-weight:700;font-size:1rem;margin-bottom:3px;letter-spacing:-.01em;}
+.mc-name{font-weight:800;font-size:1.26rem;line-height:1.22;margin-bottom:5px;letter-spacing:-.015em;}
 .mc-desc{font-size:.76rem;color:var(--muted);margin-bottom:6px;line-height:1.45;}
 .mc-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
 .mc-price{font-weight:800;color:var(--orange);font-size:1.15rem;letter-spacing:-.02em;}
@@ -172,6 +172,12 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .pl-note{font-size:.7rem;color:#92400e;margin-top:7px;line-height:1.5;text-align:center}
 /* pay-now panel */
 #payNowPanel{display:none;padding:0 14px 14px}
+/* Session 12: QR / UPI-ID sub-tabs inside Pay Now.
+   Dono options ek saath dikhne se page bahut lamba ho jaata tha — ab ek time
+   par sirf chuna hua method render hota hai, aur wahi order par save hota hai. */
+.pay-sub-strip{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}
+.pay-sub-btn{padding:11px 6px;border-radius:11px;border:2px solid #f3d5bd;background:#fff;color:#9a6b45;font-weight:800;font-size:.86rem;cursor:pointer;line-height:1.2;transition:all .15s}
+.pay-sub-btn.active{background:#e65c00;border-color:#e65c00;color:#fff;box-shadow:0 2px 8px rgba(230,92,0,.28)}
 /* "I have paid" big button */
 .i-paid-btn{width:100%;padding:14px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:.95rem;cursor:pointer;box-shadow:0 3px 12px rgba(22,163,74,.35);margin-top:4px}
 
@@ -596,20 +602,26 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 
   <!-- ── PAY NOW PANEL ── -->
   <div id="payNowPanel">
-    <div class="pay-card" style="margin-top:12px">
+    <div class="pay-sub-strip">
+      <button class="pay-sub-btn active" id="tabMethQR"  onclick="switchPayMethod('qr')">📷 QR Code</button>
+      <button class="pay-sub-btn"        id="tabMethUPI" onclick="switchPayMethod('upi')">📋 UPI ID</button>
+    </div>
+    <div class="pay-card" style="margin-top:10px">
       <!-- OPTION 1: QR -->
       <!-- B-3: UPI not configured warning -->
       <div id="upiEmptyWarn" style="display:none;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:11px;margin-bottom:11px;font-size:.8rem;color:#991b1b;line-height:1.5">
         ⚠️ <b>UPI ID set nahi hai.</b> Admin se Setup tab me UPI ID save karwayein — tab tak QR ya UPI se payment nahi ho paayegi. Abhi sirf <b>Pay Later</b> option use karein.
       </div>
-      <div class="pay-opt-title">📷 Option 1 — Scan / Save QR Code</div>
+      <!-- ── METHOD 1: QR ── -->
+      <div id="payMethQR">
+      <div class="pay-opt-title">📷 QR Code se pay karein</div>
       <div class="qr-wrap-big">
         <div class="qr-box-big">
           <img id="qrImg" src="" alt="QR Code"
             onerror="this.onerror=null;this.src='';document.getElementById('qrFallback').style.display='block'">
           <div id="qrFallback" style="display:none;background:#fff7ed;border-radius:10px;padding:12px;font-size:.78rem;color:#92400e;line-height:1.55;text-align:center">
             ⚠️ QR load nahi hua (internet slow hai).<br>
-            <b>Option 2 — UPI ID</b> use karein ya thodi der baad try karein.
+            Upar <b>📋 UPI ID</b> tab par jaayein ya thodi der baad try karein.
           </div>
         </div>
         <div class="qr-amt-big">Amount <b id="qrAmt"></b> is pre-filled</div>
@@ -631,10 +643,11 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
         5️⃣ Payment complete karein
       </div>
 
-      <div class="or-div">YA</div>
+      </div>
 
-      <!-- OPTION 2: UPI ID -->
-      <div class="pay-opt-title">📋 Option 2 — UPI ID se pay karein</div>
+      <!-- ── METHOD 2: UPI ID ── -->
+      <div id="payMethUPI" style="display:none">
+      <div class="pay-opt-title">📋 UPI ID se pay karein</div>
       <div class="upi-box-big">
         <div class="upi-txt-big" id="upiId">—</div>
         <button class="copy-btn-big" id="copyBtn" onclick="copyUpi()">📋 UPI ID Copy karein</button>
@@ -653,6 +666,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
         3️⃣ <b>UPI ID se bhejein</b> option chunein<br>
         4️⃣ UPI ID <b>paste</b> karein<br>
         5️⃣ Amount ₹<span id="hintAmt2"></span> dalein aur pay karein
+      </div>
       </div>
 
       <!-- Wallet (dues clearing) -->
@@ -1294,6 +1308,19 @@ function renderMyOrders(all) {
     // SESSION 11 refund tracking. refundedAt is required for the green "done" strip:
     // old orders carry a stale refundDone:true written by admin's ackCancel (that bug is
     // fixed now), and we must never TELL a customer money arrived when it may not have.
+    // Session 12 payment verification strip (online payments only; pay-later has
+    // its own dues flow and must never show a "payment pending" banner).
+    const claimedPaid = o.payLater!==true && o.customerPaid===true && o.status!=='cancelled';
+    const payVerified = o.paymentConfirmed===true;
+    const payMethodLbl= o.payMethod==='upi'?'UPI ID':(o.payMethod==='qr'?'QR':'');
+    const payStrip = claimedPaid
+      ? (payVerified
+        ? `<div style="background:#dcfce7;color:#166534;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">✅ Payment verified — ₹${o.total}${payMethodLbl?' · '+payMethodLbl:''}</div>`
+        : `<div style="background:#fef3c7;color:#92400e;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">💰 Payment done — ₹${o.total}${payMethodLbl?' · '+payMethodLbl:''}<br><span style="font-weight:600">⏳ Shop verify kar raha hai. Order confirm hai.</span></div>`)
+      : '';
+    const declStrip = o.paymentDeclined===true
+      ? `<div style="background:#fef2f2;color:#991b1b;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">⚠️ Payment verify nahi ho paaya — order cancel kar diya gaya. Agar paisa kat gaya hai to shop se sampark karein.</div>`
+      : '';
     const refundedOk  = o.refundDone===true && !!o.refundedAt;
     const refundPend  = o.refundRequested===true && !refundedOk;
     const refAmt      = Number(o.refundAmount||o.total||0);
@@ -1312,7 +1339,7 @@ function renderMyOrders(all) {
       <div class="oh-items">${items}</div>
       <div class="oh-total">₹${o.total} | ${o.orderType==='delivery'?'🛵':'🏠'} ${o.orderType}</div>
       ${o.status==='cancelled'&&o.cancelledBy==='admin'?`<div style="background:var(--rp);color:var(--red);font-size:.76rem;font-weight:600;padding:7px 9px;border-radius:8px;margin-top:7px">⚠️ This order was cancelled by the shop${o.cancelReason?': '+esc(o.cancelReason):'.'}</div>`:''}
-      ${refundStrip}
+      ${payStrip}${declStrip}${refundStrip}
       <div>
         <button class="reorder-btn" onclick="reorder('${o.id}')">🔁 Reorder</button>
         ${isActive?`<button class="track-order-btn" onclick="openTrackingFor('${o.id}','${o.phone||''}',${o.total||0},'${encodeURIComponent(o.address||'')}','${encodeURIComponent(items)}')">📍 Track</button>`:''}
@@ -2261,6 +2288,7 @@ function showPayScreen(total){
   }
   // default to Pay Now tab; dues mode goes straight to Pay Now
   switchPayTab('now');
+  switchPayMethod('qr');   // Session 12: har baar QR tab se shuru
   show('payScreen');window.scrollTo(0,0);
   setTimeout(loadWalletBalance,300);
 }
@@ -2391,6 +2419,19 @@ window.payLater=async function(){
   }catch(e){alert('Error: '+e.message);}
 };
 
+// Session 12: Pay Now ke andar QR / UPI ID chunna. Jo chuna hai wahi order par
+// payMethod ke roop me save hota hai, taaki admin ko pata rahe paisa kaise aaya.
+window._payMethod='qr';
+window.switchPayMethod=function(m){
+  const isQR=(m!=='upi');
+  window._payMethod=isQR?'qr':'upi';
+  const q=document.getElementById('payMethQR'), u=document.getElementById('payMethUPI');
+  if(q) q.style.display=isQR?'block':'none';
+  if(u) u.style.display=isQR?'none':'block';
+  document.getElementById('tabMethQR')?.classList.toggle('active',isQR);
+  document.getElementById('tabMethUPI')?.classList.toggle('active',!isQR);
+};
+
 window.switchPayTab=function(tab){
   const isNow=(tab==='now');
   document.getElementById('tabPayNow').classList.toggle('active', isNow);
@@ -2430,9 +2471,15 @@ window.iHavePaid=async function(){
   // ORDER MODE (normal)
   if(!currentOrderId)return;
   try{
+    // Session 12: customer ka "maine pay kar diya" ab sirf a CLAIM hai.
+    // Order confirm ho jaata hai (customer ko wait nahi karna padta) par payment
+    // tab tak PENDING dikhta hai jab tak admin verify na kare — isliye
+    // paymentConfirmed yahan false rehta hai, sirf admin use true karta hai.
     await setDoc(doc(db,'orders',currentOrderId),{
       status:'confirmed',
       customerPaid:true,
+      paymentConfirmed:false,
+      payMethod:(window._payMethod==='upi'?'upi':'qr'),
       customerPaidAt:new Date().toISOString(),
       confirmedAt:new Date().toISOString()
     },{merge:true});
