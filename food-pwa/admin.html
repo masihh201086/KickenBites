@@ -3484,13 +3484,17 @@ window.loadDues=async function(){
       const o=d.data();
       if(o.paidCleared===true||o.status==='cancelled')return;
       const ph=o.phone;if(!ph)return;
-      if(!byPhone[ph])byPhone[ph]={phone:ph,total:0,count:0,name:o.name||'',latest:''};
+      if(!byPhone[ph])byPhone[ph]={phone:ph,total:0,count:0,name:o.name||'',latest:'',claimed:0,claimedAmt:0};
       byPhone[ph].total+=Number(o.total)||0;
       byPhone[ph].count++;
+      // Item 8: customer ne "maine payment kar di" daba diya hai — admin ko ye
+      // sabse upar aur alag dikhna chahiye, warna confirm karna bhool jayega
+      if(o.customerClaimedPaid===true){ byPhone[ph].claimed++; byPhone[ph].claimedAmt+=Number(o.total)||0; }
       if((o.date||'')>byPhone[ph].latest)byPhone[ph].latest=o.date||'';
       if(o.name)byPhone[ph].name=o.name;
     });
-    const dues=Object.values(byPhone).filter(d=>d.total>0).sort((a,b)=>b.total-a.total);
+    const dues=Object.values(byPhone).filter(d=>d.total>0)
+      .sort((a,b)=>(b.claimed>0?1:0)-(a.claimed>0?1:0) || b.total-a.total);
     window._duesCache=dues;
     const gt=document.getElementById('duesGrandTotal'); if(gt)gt.textContent='₹'+dues.reduce((s,d)=>s+d.total,0);
     if(!dues.length){list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">No pending dues 🎉</p>';const gt2=document.getElementById('duesGrandTotal');if(gt2)gt2.textContent='₹0';return;}
@@ -3500,16 +3504,20 @@ window.loadDues=async function(){
     }));
     list.innerHTML=dues.map(d=>{
       const nm=d.name||'Unknown';
-      return `<div onclick="viewDues('${d.phone}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;border-bottom:1px solid #eee;cursor:pointer;border-radius:9px">
+      const claimBadge = d.claimed>0
+        ? `<div style="font-size:.68rem;font-weight:800;color:#92400e;background:#fef3c7;border-radius:7px;padding:2px 7px;margin-top:3px;display:inline-block">💰 Customer ne ₹${d.claimedAmt} pay karne ka claim kiya — check karke confirm karein</div>`
+        : '';
+      return `<div onclick="viewDues('${d.phone}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;border-bottom:1px solid #eee;cursor:pointer;border-radius:9px;${d.claimed>0?'background:#fffbeb':''}">
         <div style="flex:1;min-width:0">
           <div style="font-weight:800;font-size:.86rem">${esc(nm)}</div>
           <div style="font-size:.72rem;color:var(--muted)">📞 ${esc(d.phone)} · ${d.count} order${d.count!==1?'s':''}${d.latest?' · latest '+new Date(d.latest+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div>
+          ${claimBadge}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
           <span style="font-weight:800;color:var(--r);font-size:.92rem">₹${d.total}</span>
           <div style="display:flex;gap:6px">
             <button onclick="event.stopPropagation();remindOneDue('${d.phone}','${(nm||'').replace(/'/g,'')}',${d.total})" style="padding:5px 10px;background:#25d366;color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">💬 Remind</button>
-            <button onclick="event.stopPropagation();clearDue('${d.phone}')" style="padding:5px 10px;background:var(--g);color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">Paid ✓</button>
+            <button onclick="event.stopPropagation();clearDue('${d.phone}')" style="padding:5px 10px;background:var(--g);color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">${d.claimed>0?'Confirm ✓':'Paid ✓'}</button>
           </div>
         </div>
       </div>`;
@@ -3669,7 +3677,10 @@ window.clearDue=async function(phone){
     // Mark every outstanding pay-later order as settled so it leaves the unpaid list
     const snap=await getDocs(query(collection(db,'orders'),where('phone','==',phone)));
     const pending=snap.docs.filter(d=>{const o=d.data();return o.payLater===true&&o.paidCleared!==true&&o.status!=='cancelled';});
-    await Promise.all(pending.map(d=>setDoc(doc(db,'orders',d.id),{paidCleared:true,paidClearedAt:new Date().toISOString()},{merge:true})));
+    // Item 8: ek hi timestamp sab par, taaki customer ke archive me ye sab
+    // ek hi batch (ek line) ban kar dikhein
+    const clearStamp=new Date().toISOString();
+    await Promise.all(pending.map(d=>setDoc(doc(db,'orders',d.id),{paidCleared:true,paidClearedAt:clearStamp},{merge:true})));
     showToast('✅ Cleared '+pending.length+' order'+(pending.length!==1?'s':'')+' for '+phone);
     loadDues();
   }catch(e){console.error(e);alert('Error: '+e.message);}

@@ -1,6 +1,6 @@
 // Kicken Bites Service Worker v8 — NETWORK-FIRST, self-updating
 // Bump this number on every deploy to force every device onto the newest files.
-const SW_VERSION = 'kb-v8';
+const SW_VERSION = 'kb-v9';
 const CACHE = SW_VERSION;
 
 // Install: take over immediately, don't wait for old tabs to close.
@@ -34,6 +34,30 @@ self.addEventListener('fetch', e => {
       url.includes('gstatic.com')) {
     return; // default browser handling
   }
+  // IMAGES: cache-first. Every GET used to go through the network-first branch
+  // below with cache:'no-store', so the food photos were re-downloaded in full on
+  // every single page load — that is the delay before the pictures appear. Image
+  // URLs (imgbb + our own logo) are immutable: the same URL always returns the
+  // same bytes, so serving them from cache is safe and instant. A new photo gets
+  // a brand-new URL and is fetched normally the first time.
+  const isImage = e.request.destination === 'image' ||
+                  /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(url) ||
+                  url.includes('i.ibb.co') || url.includes('ibb.co');
+  if (isImage) {
+    e.respondWith((async () => {
+      const cached = await caches.match(e.request);
+      if (cached) return cached;
+      try {
+        const fresh = await fetch(e.request);
+        try { const cache = await caches.open(CACHE); cache.put(e.request, fresh.clone()); } catch (_) {}
+        return fresh;
+      } catch (_) {
+        return new Response('', { status: 503, statusText: 'Offline' });
+      }
+    })());
+    return;
+  }
+
   e.respondWith((async () => {
     try {
       const fresh = await fetch(e.request, { cache: 'no-store' });

@@ -365,7 +365,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
     <div class="ti active" id="tb-order" onclick="switchTab('order')">🛒 Order</div>
     <div class="ti" id="tb-party" onclick="switchTab('party')">🎉 Party</div>
     <div class="ti" id="tb-wish" onclick="switchTab('wish')">⭐ Wish</div>
-    <div class="ti" id="tb-myorders" onclick="switchTab('myorders')">🧾 Orders</div>
+    <div class="ti" id="tb-myorders" onclick="switchTab('myorders')">🧾 My Orders</div>
     <div class="ti" id="tb-profile" onclick="switchTab('profile')">👤 Profile</div>
   </div>
 
@@ -528,14 +528,26 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
         </div>
       </div>
       <!-- DUES / PAY-LATER CARD (#3) -->
+      <style>
+      .dues-tab{flex:1;text-align:center;padding:7px 6px;border-radius:9px;border:1.5px solid #f0c0c0;background:white;font-weight:800;font-size:.75rem;color:#b91c1c;cursor:pointer}
+      .dues-tab.active{background:#b91c1c;border-color:#b91c1c;color:white}
+      </style>
       <div id="custDuesCard" style="display:none;background:#fff4f4;border:1.5px solid #f0a0a0;border-radius:var(--r);padding:14px;margin-bottom:11px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
-          <div style="font-weight:800;font-size:.95rem;color:#b91c1c">💳 Pending Dues</div>
+          <div style="font-weight:800;font-size:.95rem;color:#b91c1c" id="custDuesHead">💳 Pending Dues</div>
           <div style="font-weight:900;font-size:1.15rem;color:#b91c1c" id="custDuesTotal">₹0</div>
         </div>
+        <!-- Item 8: pending aur cleared (archived) alag alag -->
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <div class="dues-tab active" id="duesTabPending" onclick="swDuesTab('pending')">⏳ Pending</div>
+          <div class="dues-tab" id="duesTabArchive" onclick="swDuesTab('archive')">📦 Archived<span id="duesArchCount" style="margin-left:4px;opacity:.75"></span></div>
+        </div>
         <div id="custDuesList"></div>
-        <button onclick="payDuesNow()" style="width:100%;margin-top:10px;background:#25d366;color:white;border:none;padding:12px;border-radius:11px;font-weight:800;font-size:.9rem;cursor:pointer">💳 Pay Dues Now</button>
-        <div style="font-size:.72rem;color:#8a5a5a;margin-top:8px;line-height:1.5">🙏 Pay online above, or clear on your next order / contact the shop.</div>
+        <div id="custDuesArchive" style="display:none"></div>
+        <div id="duesPayBox">
+          <button onclick="payDuesNow()" style="width:100%;margin-top:10px;background:#25d366;color:white;border:none;padding:12px;border-radius:11px;font-weight:800;font-size:.9rem;cursor:pointer">💳 Pay Dues Now</button>
+          <div style="font-size:.72rem;color:#8a5a5a;margin-top:8px;line-height:1.5">🙏 Pay online above, or clear on your next order / contact the shop.</div>
+        </div>
       </div>
       <div class="prof-card">
         <div class="pct">Personal Details</div>
@@ -1112,26 +1124,109 @@ function renderMyDues(orders){
   if(!card||!list)return;
   // An order is a due only when payLater && not cleared && not cancelled
   const dues=(orders||[]).filter(o=>o.payLater===true && o.paidCleared!==true && o.status!=='cancelled');
-  if(!dues.length){ card.style.display='none'; list.innerHTML=''; return; }
-  let total=0;
-  list.innerHTML=dues.map(o=>{
-    const amt=Number(o.total)||0; total+=amt;
-    const items=(o.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', ');
-    let dLbl='';
-    if(o.date){ try{ dLbl=new Date(o.date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}); }catch(e){} }
-    return '<div style="background:white;border-radius:9px;padding:9px 11px;margin-bottom:7px;border:1px solid #f0d0d0">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center">'+
-        '<div style="font-weight:700;font-size:.8rem;color:#333">'+(dLbl?'📅 '+dLbl:'Order')+'</div>'+
-        '<div style="font-weight:800;color:#b91c1c">₹'+amt+'</div>'+
-      '</div>'+
-      (items?'<div style="font-size:.72rem;color:#777;margin-top:2px">'+items+'</div>':'')+
-      '<div style="font-size:.64rem;color:#c88;margin-top:2px">Pay Later · '+(o.status||'')+'</div>'+
-    '</div>';
-  }).join('');
+  // Item 8: jo dues admin ne clear kar diye wo gayab nahi hote — archive me chale jaate hain
+  const cleared=(orders||[]).filter(o=>o.payLater===true && o.paidCleared===true && o.status!=='cancelled');
+  window._myDuesCleared=cleared;
+  renderDuesArchive(cleared);
+  if(!dues.length && !cleared.length){ card.style.display='none'; list.innerHTML=''; return; }
+  card.style.display='block';
+  let total=0, claimedTotal=0;
+  if(!dues.length){
+    list.innerHTML='<div style="text-align:center;padding:16px;color:#999;font-size:.8rem">Koi pending due nahi 🎉</div>';
+    const pb=document.getElementById('duesPayBox'); if(pb)pb.style.display='none';
+  }else{
+    const pb=document.getElementById('duesPayBox'); if(pb)pb.style.display='';
+    list.innerHTML=dues.map(o=>{
+      const amt=Number(o.total)||0; total+=amt;
+      const claimed=(o.customerClaimedPaid===true);
+      if(claimed) claimedTotal+=amt;
+      const items=(o.items||[]).map(i=>esc(i.name)+' ×'+(i.qty||1)).join(', ');
+      let dLbl='';
+      if(o.date){ try{ dLbl=new Date(o.date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}); }catch(e){} }
+      return '<div style="background:white;border-radius:9px;padding:9px 11px;margin-bottom:7px;border:1px solid '+(claimed?'#fde68a':'#f0d0d0')+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center">'+
+          '<div style="font-weight:700;font-size:.8rem;color:#333">'+(dLbl?'📅 '+dLbl:'Order')+'</div>'+
+          '<div style="font-weight:800;color:#b91c1c">₹'+amt+'</div>'+
+        '</div>'+
+        (items?'<div style="font-size:.72rem;color:#777;margin-top:2px">'+items+'</div>':'')+
+        (claimed
+          ? '<div style="font-size:.68rem;color:#92400e;background:#fef3c7;border-radius:7px;padding:4px 7px;margin-top:5px;font-weight:700">✅ Payment done · ⏳ shop ke confirm ka intezaar</div>'
+          : '<div style="font-size:.64rem;color:#c88;margin-top:2px">Pay Later · '+esc(o.status||'')+'</div>')+
+      '</div>';
+    }).join('');
+  }
   if(totEl)totEl.textContent='₹'+total;
+  // Sab kuch claim ho chuka ho to card ka header bhi wahi bataye
+  const hd=document.getElementById('custDuesHead');
+  if(hd) hd.innerHTML = (total>0 && claimedTotal>=total)
+    ? '⏳ Payment Confirmation Pending'
+    : '💳 Pending Dues';
   window._myDuesTotal=total;
   window._myDuesOrders=dues.map(o=>o.id);
-  card.style.display='block';
+}
+
+// ---- Item 8: archived dues — ek payment batch ek line, tap par detail ----
+window._duesTab='pending';
+window._duesOpen={};
+window.swDuesTab=function(which){
+  window._duesTab=(which==='archive')?'archive':'pending';
+  const isArch=(window._duesTab==='archive');
+  const l=document.getElementById('custDuesList'), a=document.getElementById('custDuesArchive');
+  const tp=document.getElementById('duesTabPending'), ta=document.getElementById('duesTabArchive');
+  const pb=document.getElementById('duesPayBox');
+  if(l)l.style.display=isArch?'none':'block';
+  if(a)a.style.display=isArch?'block':'none';
+  if(pb)pb.style.display=(isArch||!(window._myDuesOrders||[]).length)?'none':'';
+  if(tp)tp.classList.toggle('active',!isArch);
+  if(ta)ta.classList.toggle('active',isArch);
+};
+window.toggleDuesBatch=function(k){
+  window._duesOpen[k]=!(window._duesOpen[k]===true);
+  renderDuesArchive(window._myDuesCleared||[]);
+};
+function renderDuesArchive(cleared){
+  const box=document.getElementById('custDuesArchive');
+  const cnt=document.getElementById('duesArchCount');
+  if(!box)return;
+  // Ek hi baar me clear hue orders ko ek batch maante hain (paidClearedAt ke minute par)
+  const batches={};
+  (cleared||[]).forEach(o=>{
+    let key='old';
+    const ts=o.paidClearedAt||o.customerClaimedPaidAt||'';
+    if(ts) key=String(ts).slice(0,16);   // YYYY-MM-DDTHH:MM
+    if(!batches[key]) batches[key]={key,ts,orders:[],total:0};
+    batches[key].orders.push(o);
+    batches[key].total+=Number(o.total)||0;
+  });
+  const list=Object.values(batches).sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
+  if(cnt) cnt.textContent=list.length?'('+list.length+')':'';
+  if(!list.length){
+    box.innerHTML='<div style="text-align:center;padding:18px;color:#999;font-size:.8rem">Abhi koi cleared payment nahi</div>';
+    return;
+  }
+  box.innerHTML=list.map(b=>{
+    const open=window._duesOpen[b.key]===true;
+    let dLbl='—';
+    if(b.ts){ try{ dLbl=new Date(b.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }catch(e){} }
+    const detail=b.orders.map(o=>{
+      let od='';
+      if(o.date){ try{ od=new Date(o.date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}); }catch(e){} }
+      const items=(o.items||[]).map(i=>esc(i.name)+' ×'+(i.qty||1)).join(', ');
+      return '<div style="border-top:1px dashed #d8e8d8;padding:6px 0">'+
+        '<div style="display:flex;justify-content:space-between"><span style="font-size:.74rem;color:#555;font-weight:700">'+(od?'📅 '+od:'Order')+'</span>'+
+        '<span style="font-size:.76rem;font-weight:800;color:#166534">₹'+(Number(o.total)||0)+'</span></div>'+
+        (items?'<div style="font-size:.68rem;color:#888;margin-top:1px">'+items+'</div>':'')+
+      '</div>';
+    }).join('');
+    return '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:9px 11px;margin-bottom:7px">'+
+      '<div onclick="toggleDuesBatch(\''+esc(b.key)+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px">'+
+        '<div style="font-weight:700;font-size:.79rem;color:#166534;min-width:0">'+(open?'▾':'▸')+' ✅ '+esc(dLbl)+
+          ' <span style="color:#77a877;font-weight:600">· '+b.orders.length+' order'+(b.orders.length!==1?'s':'')+'</span></div>'+
+        '<div style="font-weight:800;color:#166534;flex-shrink:0">₹'+b.total+'</div>'+
+      '</div>'+
+      (open?'<div style="margin-top:5px">'+detail+'</div>':'')+
+    '</div>';
+  }).join('');
 }
 
 let myOrderDateSet=new Set();
@@ -1489,11 +1584,28 @@ async function applyMenu(cfg){
   // Load ratings FIRST, then render menu with reviews
   await loadItemRatings();
   renderMenu(cfg.items||[]);
+  // Sold counts only matter when Popular is tapped — fetch in the background so
+  // it never holds up the menu.
+  loadSoldCounts();
 }
 
+// A broken/blocked image used to leave a hole in the card. Put the item's emoji
+// there instead, keeping the SOLD OUT tag if it had one.
+window.imgFallback=function(img){
+  img.onerror=null;
+  const wrap=img.parentElement; if(!wrap) return;
+  const emoji=img.getAttribute('data-emoji')||'🍛';
+  const sold=img.getAttribute('data-sold')==='1';
+  const d=document.createElement('div'); d.className='mc-emoji'; d.textContent=emoji;
+  wrap.innerHTML=''; wrap.appendChild(d);
+  if(sold){ const t=document.createElement('div'); t.className='sold-tag'; t.textContent='SOLD OUT'; wrap.appendChild(t); }
+};
+
+let _cardIdx=0;   // position of the card being built, for eager/lazy image hints
 function renderMenu(items){
   const list=document.getElementById('menuList');
   list.innerHTML='';
+  _cardIdx=0;
   items.forEach(item=>{
     if(quantities[item.id]===undefined)quantities[item.id]=0;
     list.appendChild(buildCard(item));
@@ -1517,7 +1629,18 @@ function buildCard(item){
     ?`<span class="rating-badge">⭐ ${avgRating.toFixed(1)} <span style="font-size:.65rem;color:#888">(${rCount})</span></span>`
     :`<span style="color:#ccc;font-size:.7rem">☆ Be first to review</span>`;
   let imgHtml='';
-  if(item.imageUrl){imgHtml=`<div class="mc-img-wrap${soldOut?' soldout-overlay':''}"><img src="${item.imageUrl}" alt="${item.name}" loading="lazy" onerror="this.parentElement.style.display='none'">${soldOut?'<div class="sold-tag">SOLD OUT</div>':''}</div>`;}
+  if(item.imageUrl){
+    // The first few cards are on screen immediately, so loading="lazy" actively
+    // DELAYED them — the browser waited to decide they were visible. Load those
+    // eagerly at high priority and lazy-load only what is below the fold.
+    const eager=_cardIdx<3;
+    const hint=eager?'loading="eager" fetchpriority="high"':'loading="lazy" fetchpriority="low"';
+    // REG-IMG-FALLBACK: a broken image used to hide the whole wrapper, leaving a
+    // hole in the card. Swap in the item emoji instead.
+    const fb=esc(item.emoji||'🍛');
+    imgHtml=`<div class="mc-img-wrap${soldOut?' soldout-overlay':''}"><img src="${esc(item.imageUrl)}" alt="${esc(item.name)}" decoding="async" ${hint} data-emoji="${fb}" data-sold="${soldOut?1:0}" onerror="imgFallback(this)">${soldOut?'<div class="sold-tag">SOLD OUT</div>':''}</div>`;
+    _cardIdx++;
+  }
   else{imgHtml=`<div class="mc-emoji">${item.emoji||'🍛'}${soldOut?'<div class="sold-tag">SOLD OUT</div>':''}</div>`;}
   const qtyBadge=soldOut?'':limited?`<span class="qbadge ${low?'qlow':'qok'}">${low?'⚠️ Only '+aq+' left':'✅ '+aq+' left'}</span>`:'';
   // ---- Stock fill bar (#14): shows how much of the day's batch is booked ----
@@ -1577,6 +1700,36 @@ function buildCard(item){
 }
 
 let currentSort = 'default';
+// How many of each item actually went out over the last 7 days, keyed by item id.
+// Read from the dailyMenu docs the customer can already see — no access to the
+// orders collection needed, and no extra counter to keep in sync.
+let _soldCount={}, _soldLoaded=false;
+async function loadSoldCounts(){
+  if(_soldLoaded) return; _soldLoaded=true;
+  try{
+    const base=new Date(getTodayDate()+'T00:00:00');
+    const dates=[];
+    for(let i=0;i<7;i++){
+      const d=new Date(base.getTime()-i*86400000);
+      dates.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+    }
+    const snaps=await Promise.all(dates.map(ds=>getDoc(doc(db,'dailyMenu',ds)).catch(()=>null)));
+    const tally={};
+    snaps.forEach(s=>{
+      if(!s||!s.exists()) return;
+      (s.data().items||[]).forEach(it=>{
+        if(!it||it.id==null) return;
+        const start=Number(it.startQty);
+        const left=Number(it.availableQty);
+        if(!isFinite(start)||!isFinite(left)) return;
+        const sold=start-left;
+        if(sold>0) tally[it.id]=(tally[it.id]||0)+sold;
+      });
+    });
+    _soldCount=tally;
+  }catch(e){ console.error('loadSoldCounts',e); }
+}
+
 window.sortMenu = function(sort) {
   currentSort = sort;
   document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
@@ -1586,7 +1739,14 @@ window.sortMenu = function(sort) {
   if (sort === 'rated') {
     items.sort((a,b) => (itemRatings[b.id]?.avg||0) - (itemRatings[a.id]?.avg||0));
   } else if (sort === 'popular') {
-    items.sort((a,b) => (itemRatings[b.id]?.count||0) - (itemRatings[a.id]?.count||0));
+    // "Popular" used to mean "has the most REVIEWS", which is not what anyone
+    // reads it as — an item nobody reviewed could outrank the best seller.
+    // It now means genuinely most-ordered: for each of the last 7 days the
+    // day's stock doc tells us how many were taken (startQty - availableQty),
+    // and we add those up. Falls back to review count until that data loads.
+    const anySold=Object.keys(_soldCount).length>0;
+    if(anySold) items.sort((a,b) => (_soldCount[b.id]||0) - (_soldCount[a.id]||0));
+    else items.sort((a,b) => (itemRatings[b.id]?.count||0) - (itemRatings[a.id]?.count||0));
   }
   renderMenu(items);
 };
@@ -2160,11 +2320,19 @@ window.iHavePaid=async function(){
   if(window._payMode==='dues'){
     const ids=window._myDuesOrders||[];
     if(!ids.length){hide('payScreen');window._payMode='order';showToast('No dues found');return;}
+    const claimAmt=window._myDuesTotal||0;
     try{
-      await Promise.all(ids.map(id=>setDoc(doc(db,'orders',id),{customerClaimedPaid:true,customerClaimedPaidAt:new Date().toISOString()},{merge:true})));
+      // Item 8: ek hi baar ke saare dues ko ek batch maante hain, taaki baad me
+      // archive me ek line ke roop me dikh sakein
+      const stamp=new Date().toISOString();
+      await Promise.all(ids.map(id=>setDoc(doc(db,'orders',id),{
+        customerClaimedPaid:true, customerClaimedPaidAt:stamp, duesBatch:stamp.slice(0,16)
+      },{merge:true})));
       hide('payScreen');
       window._payMode='order';
-      showToast('✅ Thanks! Payment noted — the shop will confirm shortly.');
+      showToast('✅ Payment noted — shop ke confirm hone tak "pending" dikhega.');
+      // Admin ko WhatsApp — warna use pata hi nahi chalega ki paisa aa gaya
+      sendDuesPaidWA(claimAmt, ids.length);
     }catch(e){alert('Error. Please try again or contact the shop.');}
     return;
   }
@@ -2180,6 +2348,27 @@ window.iHavePaid=async function(){
     hide('payScreen');
     showSuccess();
   }catch(e){alert('Error confirming. Try again or contact shop.');}
+};
+
+// Item 8: dues claim karne ke baad admin ko WhatsApp. Bina iske admin ko
+// confirm karne ka pata hi nahi chalta tha.
+window.sendDuesPaidWA=function(amount, count){
+  try{
+    var admin=(menuConfig&&menuConfig.adminPhone)?String(menuConfig.adminPhone):'9712951947';
+    admin=admin.replace(/[^0-9]/g,'').slice(-10);
+    if(admin.length!==10) return;
+    var nm=(currentProfile&&currentProfile.name)||localStorage.getItem('custName')||'';
+    var ph=(currentProfile&&currentProfile.phone)||localStorage.getItem('custPhone')||'';
+    var nl='\n';
+    var msg='*💳 DUES PAYMENT KIYA GAYA*'+nl+nl+
+      '👤 *'+nm+'*'+nl+
+      '📞 '+ph+nl+
+      '💰 Amount: *₹'+(Number(amount)||0)+'*'+nl+
+      '🧾 Orders: '+(count||0)+nl+nl+
+      'Maine payment kar di hai. Kripya check karke *Paid ✓* kar dijiye.';
+    var url='https://wa.me/91'+admin+'?text='+encodeURIComponent(msg);
+    setTimeout(function(){ window.open(url,'_blank'); }, 250);
+  }catch(e){}
 };
 
 window.sendCustomerConfirmWA=function(){

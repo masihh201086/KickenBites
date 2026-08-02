@@ -135,6 +135,22 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---- ratings ---- (item reviews shown on customer cards)
+    // ⚠️ This collection was MISSING from the ruleset, so it fell through to the
+    // default-deny at the bottom. Every read AND write of a rating was being
+    // rejected — which is why every item showed "Be first to review" and why new
+    // reviews silently vanished. Old ratings written before the rules went live
+    // are still in the database and reappear once this is published.
+    // hidden:true is how the admin hides an abusive review; delete stays off.
+    match /ratings/{id} {
+      allow read: if true;
+      allow write: if request.resource.data.itemId is string
+                   && request.resource.data.rating is number
+                   && request.resource.data.rating >= 1
+                   && request.resource.data.rating <= 5;
+      allow delete: if false;
+    }
+
     // ---- everything else: DENY ----
     match /{document=**} {
       allow read, write: if false;
