@@ -554,6 +554,10 @@ input:checked+.slider:before{transform:translateX(20px);}
   </div>
 
   <!-- SETUP -->
+  <style>
+  .adues-tab{flex:1;text-align:center;padding:7px 6px;border-radius:9px;border:1.5px solid #f0c0c0;background:white;font-weight:800;font-size:.75rem;color:var(--r);cursor:pointer}
+  .adues-tab.active{background:var(--r);border-color:var(--r);color:white}
+  </style>
   <!-- DUES TAB (#3B) -->
   <div class="panel" id="tab-dues">
     <div class="card">
@@ -562,7 +566,14 @@ input:checked+.slider:before{transform:translateX(20px);}
         <div style="font-weight:900;color:var(--r);font-size:1.1rem" id="duesGrandTotal">₹0</div>
       </div>
       <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Tap a customer to see their orders, send a WhatsApp reminder, or mark paid.</p>
+      <!-- Customer ko archive dikhta tha par admin ko nahi — cleared payment ka
+           koi record hi nahi bachta tha -->
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <div class="adues-tab active" id="aDuesTabPending" onclick="swAdminDues('pending')">⏳ Pending</div>
+        <div class="adues-tab" id="aDuesTabArchive" onclick="swAdminDues('archive')">📦 Archived<span id="aDuesArchCount" style="margin-left:4px;opacity:.75"></span></div>
+      </div>
       <div id="duesList"><p style="font-size:.78rem;color:var(--muted);text-align:center">Loading…</p></div>
+      <div id="duesArchiveList" style="display:none"></div>
       <div style="display:flex;gap:8px;margin-top:10px">
         <button onclick="loadDues()" style="flex:1;padding:10px;background:var(--dark);color:white;border:none;border-radius:var(--radius);font-size:.8rem;font-weight:700;cursor:pointer">🔄 Refresh</button>
         <button onclick="remindAllDues()" style="flex:1;padding:10px;background:#25d366;color:white;border:none;border-radius:var(--radius);font-size:.8rem;font-weight:700;cursor:pointer">💬 Remind All</button>
@@ -1770,6 +1781,9 @@ function renderOrders(){
   const list=document.getElementById('ordersList');
   let filtered=curFilter==='all'?[...allOrders]:allOrders.filter(o=>o.status===curFilter);
   // Un-acknowledged cancellations need the admin's attention (refund pending), so they
+  // Cancelled/delivered order par delivery boy assign karne ka koi matlab nahi —
+  // pehle dono Assign button har status par dikh rahe the.
+  const _liveOrder=o=>!['cancelled','delivered'].includes(o.status||'');
   // float to the very top. Acknowledged cancellations sink to the bottom as before.
   const statusPriority={pending_payment:1,confirmed:2,preparing:3,ready:4,out_for_delivery:5,delivered:6,cancelled:7};
   filtered.sort((a,b)=>{
@@ -1803,13 +1817,13 @@ function renderOrders(){
         ${o.status==='ready'&&o.orderType==='delivery'?`<button class="sb2 sb-out" onclick="startDelivery('${o.id}')">🛵 Start Delivery</button>`:''}
         ${o.status==='ready'&&o.orderType==='takeaway'?`<button class="sb2 sb-del" onclick="chgStatus('${o.id}','delivered')">✅ Collected</button>`:''}
         ${o.status==='out_for_delivery'?`<button class="sb2 sb-del" onclick="chgStatus('${o.id}','delivered')">✅ Delivered</button>`:''}
-        ${o.orderType==='delivery'&&!o.assignedBoy&&deliveryBoys.length>0?`<button class="sb2 sb-assign" onclick="assignBoy('${o.id}')">👤 Assign Boy</button>`:''}
+        ${_liveOrder(o)&&o.orderType==='delivery'&&!o.assignedBoy&&deliveryBoys.length>0?`<button class="sb2 sb-assign" onclick="assignBoy('${o.id}')">👤 Assign Boy</button>`:''}
         ${['pending_payment','confirmed','preparing','ready'].includes(o.status)?`<button class="sb2 sb-cancel" onclick="chgStatus('${o.id}','cancelled')">✗ Cancel</button>`:''}
         ${o.status==='cancelled'?`<button class="sb2" onclick="waCancelNotify('${o.id}')" style="background:#25d366;color:white">📱 Notify Cancel</button>`:''}
         ${o.status==='cancelled'&&o.ackCancel!==true?`<button class="sb2" onclick="ackCancel('${o.id}')" style="background:var(--dark);color:white">✓ Acknowledge</button>`:''}
         <button class="sb2" onclick="waOrderSummary('${o.id}')" style="background:#25d366;color:white">📱 WA</button>
-        <button class="sb2" onclick="forwardOrderConfirmation('${o.id}')" style="background:#128c7e;color:white">📨 Forward Confirmation</button>
-        ${o.orderType==='delivery'?`<button class="sb2" onclick="assignBoy('${o.id}')" style="background:#8b5cf6;color:white">🛵 ${o.assignedBoyName||'Assign'}</button>`:''}
+        ${o.status!=='cancelled'?`<button class="sb2" onclick="forwardOrderConfirmation('${o.id}')" style="background:#128c7e;color:white">📨 Forward Confirmation</button>`:''}
+        ${_liveOrder(o)&&o.orderType==='delivery'?`<button class="sb2" onclick="assignBoy('${o.id}')" style="background:#8b5cf6;color:white">🛵 ${o.assignedBoyName||'Assign'}</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -2013,6 +2027,9 @@ function renderMenuDayChips(){
 window.setMenuDate=function(){renderMenuDayChips();loadMenuDate(getTodayDate());};
 
 window.loadMenuDate=async function(ds){
+  // Collage aur WhatsApp message pichhli date ke reh jaate the — date badalne par
+  // wo purana content nayi date ka lagta tha jab tak dobara generate na karo.
+  clearMenuOutputs();
   selMenuDate=ds;
   const today=getTodayDate();
   const isToday=ds===today,isFuture=ds>today;
@@ -3480,9 +3497,11 @@ window.loadDues=async function(){
     // not the wallet counter which can drift.
     const snap=await getDocs(query(collection(db,'orders'),where('payLater','==',true)));
     const byPhone={};
+    const clearedAll=[];
     snap.docs.forEach(d=>{
       const o=d.data();
-      if(o.paidCleared===true||o.status==='cancelled')return;
+      if(o.status==='cancelled')return;
+      if(o.paidCleared===true){ clearedAll.push({id:d.id,...o}); return; }
       const ph=o.phone;if(!ph)return;
       if(!byPhone[ph])byPhone[ph]={phone:ph,total:0,count:0,name:o.name||'',latest:'',claimed:0,claimedAmt:0};
       byPhone[ph].total+=Number(o.total)||0;
@@ -3496,8 +3515,10 @@ window.loadDues=async function(){
     const dues=Object.values(byPhone).filter(d=>d.total>0)
       .sort((a,b)=>(b.claimed>0?1:0)-(a.claimed>0?1:0) || b.total-a.total);
     window._duesCache=dues;
+    window._duesCleared=clearedAll;
+    renderAdminDuesArchive(clearedAll);
     const gt=document.getElementById('duesGrandTotal'); if(gt)gt.textContent='₹'+dues.reduce((s,d)=>s+d.total,0);
-    if(!dues.length){list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">No pending dues 🎉</p>';const gt2=document.getElementById('duesGrandTotal');if(gt2)gt2.textContent='₹0';return;}
+    if(!dues.length){list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">No pending dues 🎉</p>';const gt2=document.getElementById('duesGrandTotal');if(gt2)gt2.textContent='₹0';return;}  // archive upar hi render ho chuka hai
     // Fill any missing names from customers collection
     await Promise.all(dues.filter(d=>!d.name).map(async d=>{
       try{const cs=await getDoc(doc(db,'customers',d.phone));if(cs.exists())d.name=cs.data().name||'';}catch(e){}
@@ -3523,6 +3544,67 @@ window.loadDues=async function(){
       </div>`;
     }).join('');
   }catch(e){console.error(e);list.innerHTML='<p style="font-size:.78rem;color:var(--muted)">Error loading dues: '+e.message+'</p>';}
+};
+
+// ---- Cleared dues ka record: customer + payment batch ke hisaab se ek line ----
+window._aDuesOpen={};
+window.swAdminDues=function(which){
+  const isArch=(which==='archive');
+  const l=document.getElementById('duesList'), a=document.getElementById('duesArchiveList');
+  const tp=document.getElementById('aDuesTabPending'), ta=document.getElementById('aDuesTabArchive');
+  if(l)l.style.display=isArch?'none':'block';
+  if(a)a.style.display=isArch?'block':'none';
+  if(tp)tp.classList.toggle('active',!isArch);
+  if(ta)ta.classList.toggle('active',isArch);
+};
+window.toggleAdminDuesBatch=function(k){
+  window._aDuesOpen[k]=!(window._aDuesOpen[k]===true);
+  renderAdminDuesArchive(window._duesCleared||[]);
+};
+window.renderAdminDuesArchive=function(cleared){
+  const box=document.getElementById('duesArchiveList');
+  const cnt=document.getElementById('aDuesArchCount');
+  if(!box)return;
+  const batches={};
+  (cleared||[]).forEach(o=>{
+    const ts=o.paidClearedAt||o.customerClaimedPaidAt||'';
+    const key=(o.phone||'?')+'|'+(ts?String(ts).slice(0,16):'old');
+    if(!batches[key])batches[key]={key,ts,phone:o.phone||'',name:o.name||'',orders:[],total:0};
+    batches[key].orders.push(o);
+    batches[key].total+=Number(o.total)||0;
+    if(o.name)batches[key].name=o.name;
+  });
+  const list=Object.values(batches).sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
+  if(cnt)cnt.textContent=list.length?'('+list.length+')':'';
+  if(!list.length){
+    box.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:14px">Abhi koi cleared payment nahi</p>';
+    return;
+  }
+  box.innerHTML=list.map(b=>{
+    const open=window._aDuesOpen[b.key]===true;
+    let dLbl='—';
+    if(b.ts){ try{ dLbl=new Date(b.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }catch(e){} }
+    const detail=b.orders.map(o=>{
+      let od='';
+      if(o.date){ try{ od=new Date(o.date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}); }catch(e){} }
+      const its=(o.items||[]).map(i=>esc(i.name)+' ×'+(i.qty||1)).join(', ');
+      return '<div style="border-top:1px dashed #cde8cd;padding:5px 0">'+
+        '<div style="display:flex;justify-content:space-between"><span style="font-size:.73rem;color:#555;font-weight:700">'+(od?'📅 '+od:'Order')+'</span>'+
+        '<span style="font-size:.75rem;font-weight:800;color:#166534">₹'+(Number(o.total)||0)+'</span></div>'+
+        (its?'<div style="font-size:.67rem;color:#888">'+its+'</div>':'')+
+      '</div>';
+    }).join('');
+    return '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:9px 11px;margin-bottom:7px">'+
+      '<div onclick="toggleAdminDuesBatch(\''+esc(b.key)+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px">'+
+        '<div style="min-width:0">'+
+          '<div style="font-weight:800;font-size:.82rem;color:#166534">'+(open?'▾':'▸')+' '+esc(b.name||b.phone||'Unknown')+'</div>'+
+          '<div style="font-size:.69rem;color:#77a877">📞 '+esc(b.phone)+' · ✅ '+esc(dLbl)+' · '+b.orders.length+' order'+(b.orders.length!==1?'s':'')+'</div>'+
+        '</div>'+
+        '<div style="font-weight:800;color:#166534;flex-shrink:0">₹'+b.total+'</div>'+
+      '</div>'+
+      (open?'<div style="margin-top:5px">'+detail+'</div>':'')+
+    '</div>';
+  }).join('');
 };
 
 // Send a WhatsApp reminder to every customer with dues, one at a time (#3B)
@@ -3753,6 +3835,19 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 // Build the Menu-tab collage for the SELECTED menu date with ACCURATE remaining quantities
 // (reads that date's dailyMenu doc so we never subtract a different day's bookings).
+// Date badalte hi purana collage + message hata do
+window.clearMenuOutputs=function(){
+  const cs=document.getElementById('collageSection');
+  if(cs) cs.style.display='none';
+  const cv=document.getElementById('menuCollage');
+  if(cv){ try{ cv.getContext('2d').clearRect(0,0,cv.width,cv.height); cv.width=1; cv.height=1; }catch(e){} }
+  const wb=document.getElementById('waMsgBox');
+  if(wb) wb.style.display='none';
+  const wc=document.getElementById('waMsgContent');
+  if(wc) wc.innerHTML='';
+  window._collageDataUrl=null;
+};
+
 window.generateMenuCollage = async function(){
   try{
     const ds = selMenuDate || getTodayDate();
@@ -3938,7 +4033,9 @@ window.generateCollage = async function(itemsOverride, showPopup){
       var soldOut = _rem<=0;
       var badgeColor = soldOut ? '#ef4444' : (_rem<=5 ? '#f59e0b' : '#22c55e');
       // Badge enlarged ~2.5x with BLACK text for readability (same colours).
-      var _bTxt = soldOut ? 'SOLD OUT' : 'Available now';
+      // Quantity wapas — sirf "Available now" se customer ko pata hi nahi chalta
+      // tha kitni plate bachi hain, aur jaldi order karne ki wajah bhi nahi banti.
+      var _bTxt = soldOut ? 'SOLD OUT' : (_rem + (_rem===1 ? ' plate left' : ' plates left'));
       var _bFont = 26;                       // thoda chhota kyunki text lamba hai
       ctx.font = 'bold '+_bFont+'px sans-serif';
       var _bPadX = 20, _bH = 52;             // was 26 → 2x tall

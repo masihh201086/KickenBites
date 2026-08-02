@@ -1,6 +1,6 @@
 // Kicken Bites Service Worker v8 — NETWORK-FIRST, self-updating
 // Bump this number on every deploy to force every device onto the newest files.
-const SW_VERSION = 'kb-v9';
+const SW_VERSION = 'kb-v10';
 const CACHE = SW_VERSION;
 
 // Install: take over immediately, don't wait for old tabs to close.
@@ -43,6 +43,14 @@ self.addEventListener('fetch', e => {
   const isImage = e.request.destination === 'image' ||
                   /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(url) ||
                   url.includes('i.ibb.co') || url.includes('ibb.co');
+  // REGRESSION FIX (collage): the pages show food photos with a plain <img src>,
+  // which is a no-cors request, so what lands in the cache is an OPAQUE response.
+  // The admin collage asks for the SAME url with crossOrigin='anonymous' (a cors
+  // request), and caches.match() matches on URL alone — so it handed the collage
+  // that opaque response. A cors image request cannot use an opaque response, so
+  // every photo failed and the collage fell back to the 🍛 emoji. Let cors image
+  // requests go straight to the network, untouched by this worker.
+  if (isImage && e.request.mode === 'cors') return;
   if (isImage) {
     e.respondWith((async () => {
       const cached = await caches.match(e.request);
