@@ -193,9 +193,6 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* "I have paid" big button */
 .i-paid-btn{width:100%;padding:13px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 3px 12px rgba(22,163,74,.35);margin-top:4px}
 /* Session 14: procedure ab numbering ke bajaye arrow-steps, ek compact row */
-.proc-num{margin:0 0 10px;padding:8px 12px 8px 30px;list-style:decimal;background:#f8fafc;border:1px solid #e5e9f0;border-left:4px solid var(--orange);border-radius:10px}
-.proc-num li{font-size:.78rem;color:#334;font-weight:600;line-height:1.5;margin:1px 0}
-.proc-num li::marker{color:var(--orange);font-weight:800}
 
 #payScreen{display:none;position:fixed;inset:0;z-index:200;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:linear-gradient(160deg,var(--dark),#0f3460);}
 .pay-bar{padding:7px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;background:linear-gradient(160deg,var(--dark),#16213e);}
@@ -649,11 +646,6 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
         <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
       </div>
-      <ol class="proc-num">
-        <li>QR <b>Download</b> karein (gallery me save)</li>
-        <li>UPI app kholein → <b>Scan → Gallery se QR</b> chunein</li>
-        <li>₹<span id="procAmt1"></span> auto-filled — <b>pay karein</b></li>
-      </ol>
 
       </div>
 
@@ -671,11 +663,6 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
         <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
       </div>
-      <ol class="proc-num">
-        <li><b>UPI ID Copy</b> karein</li>
-        <li>UPI app → "UPI ID se bhejein" → <b>paste</b></li>
-        <li>₹<span id="hintAmt2"></span> dalein — <b>pay karein</b></li>
-      </ol>
       </div>
 
       <!-- Wallet (dues clearing) -->
@@ -688,7 +675,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       </div>
 
       <div class="warn-note" id="payWarnNote">⚠️ <b>Pay karne ke baad hi</b> ye button dabaiye — tabhi order confirm hoga.</div>
-      <button class="i-paid-btn" id="iPaidBtn" onclick="iHavePaid()">✅ Click to Confirm Payment</button>
+      <button class="i-paid-btn" id="iPaidBtn" onclick="iHavePaid()">✅ Click to Confirm Payment and Order</button>
     </div>
 
   </div>
@@ -2268,11 +2255,11 @@ function showPayScreen(total){
   const ipb=document.getElementById('iPaidBtn');
   if(ipb) ipb.textContent=isDues
     ? '✅ Click to Confirm Payment'
-    : '✅ Click to Confirm Payment';
+    : '✅ Click to Confirm Payment and Order';
   const pwn=document.getElementById('payWarnNote');
   if(pwn) pwn.innerHTML=isDues
     ? '⚠️ Payment karne ke baad neeche <b>"Click to Confirm Payment"</b> zaroor dabaiye — tabhi aapke dues clear honge.'
-    : '⚠️ Pay karne ke baad neeche <b>"Click to Confirm Payment"</b> zaroor dabaiye — tabhi aapka order confirm hoga.';
+    : '⚠️ Pay karne ke baad neeche <b>"Click to Confirm Payment and Order"</b> zaroor dabaiye — tabhi aapka order confirm hoga.';
   {const el=document.getElementById('upiId');if(el)el.textContent=uid;}
   {const h1=document.getElementById('hintAmt');if(h1)h1.textContent=total;}
   {const h2=document.getElementById('hintAmt2');if(h2)h2.textContent=total;}
