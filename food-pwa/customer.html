@@ -610,10 +610,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   <div class="pay-bar"><div class="pay-logo">🍗 Kicken Bites</div><button class="pay-x" onclick="closePayScreen()">✕</button></div>
   <!-- Amount hero — always visible -->
   <div class="pay-hero">
-    <div class="pay-lbl">Order Total</div>
+    <div class="pay-lbl">Order Total –</div>
     <div class="pay-amt" id="payAmt">₹0</div>
-    <div class="pay-name" id="payTo">Kicken Bites</div>
-    <div class="pay-date" id="payDate" style="margin-top:6px;font-size:.8rem;opacity:.9;font-weight:600"></div>
+    <div class="pay-date" id="payDate" style="margin-top:2px;font-size:.72rem;opacity:.85;font-weight:600;width:100%"></div>
   </div>
 
   <!-- ── PAY NOW PANEL ── -->
@@ -643,7 +642,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         </div>
       </div>
       <button class="qr-dl-btn" onclick="downloadQR()">⬇️ QR Download / Save to Gallery</button>
-      <div class="upi-apps-lbl">⚡ Quick open your UPI app:</div>
+      <div class="upi-apps-lbl">⚡ UPI app kholein → Gallery se QR → pay</div>
       <div class="upi-apps-row">
         <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
         <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
@@ -665,7 +664,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <div class="upi-txt-big" id="upiId">—</div>
         <button class="copy-btn-big" id="copyBtn" onclick="copyUpi()">📋 UPI ID Copy karein</button>
       </div>
-      <div class="upi-apps-lbl">⚡ Apna UPI app kholein:</div>
+      <div class="upi-apps-lbl">⚡ UPI app kholein → Gallery se QR → pay</div>
       <div class="upi-apps-row">
         <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
         <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
@@ -689,7 +688,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       </div>
 
       <div class="warn-note" id="payWarnNote">⚠️ <b>Pay karne ke baad hi</b> ye button dabaiye — tabhi order confirm hoga.</div>
-      <button class="i-paid-btn" id="iPaidBtn" onclick="iHavePaid()">✅ Maine Pay Kar Diya — Order Confirm Karein</button>
+      <button class="i-paid-btn" id="iPaidBtn" onclick="iHavePaid()">✅ Click to Confirm Payment</button>
     </div>
 
   </div>
@@ -2268,12 +2267,12 @@ function showPayScreen(total){
   // Confirm button + warn note text depend on mode (dues vs new order)
   const ipb=document.getElementById('iPaidBtn');
   if(ipb) ipb.textContent=isDues
-    ? '✅ Maine Payment Kar Diya Hai'
-    : '✅ Maine Pay Kar Diya — Order Confirm Karein';
+    ? '✅ Click to Confirm Payment'
+    : '✅ Click to Confirm Payment';
   const pwn=document.getElementById('payWarnNote');
   if(pwn) pwn.innerHTML=isDues
-    ? '⚠️ Payment karne ke baad neeche <b>"Maine Payment Kar Diya Hai"</b> zaroor dabaiye — tabhi aapke dues clear honge.'
-    : '⚠️ Pay karne ke baad neeche <b>"Maine Pay Kar Diya"</b> zaroor dabaiye — tabhi aapka order confirm hoga.';
+    ? '⚠️ Payment karne ke baad neeche <b>"Click to Confirm Payment"</b> zaroor dabaiye — tabhi aapke dues clear honge.'
+    : '⚠️ Pay karne ke baad neeche <b>"Click to Confirm Payment"</b> zaroor dabaiye — tabhi aapka order confirm hoga.';
   {const el=document.getElementById('upiId');if(el)el.textContent=uid;}
   {const h1=document.getElementById('hintAmt');if(h1)h1.textContent=total;}
   {const h2=document.getElementById('hintAmt2');if(h2)h2.textContent=total;}
