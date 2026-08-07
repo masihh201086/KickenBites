@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#e65c00">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest-delivery.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Delivery Boy — Kicken Bites</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1152,6 +1154,69 @@ if('serviceWorker' in navigator){
     if(!_kbReloaded){ _kbReloaded=true; location.reload(); }
   });
 }
+</script>
+
+<!-- Session 19: Install-app affordance (PWA). Chrome/Edge par beforeinstallprompt
+     aane par button dikhta hai; iOS Safari par tap karne se ek hint modal khulta
+     hai (iOS install banner support nahi karta). Standalone mode me kuch nahi dikhta. -->
+<style>
+#kbInstallBtn{position:fixed;right:14px;bottom:16px;z-index:9000;display:none;
+  align-items:center;gap:7px;padding:11px 15px;border:none;border-radius:26px;
+  background:#e65c00;color:#fff;font-weight:800;font-size:.86rem;font-family:inherit;
+  box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:pointer;}
+#kbInstallBtn .kbi-ico{font-size:1.05rem;line-height:1}
+#kbIosSheet{position:fixed;inset:0;z-index:9001;display:none;background:rgba(0,0,0,.5);
+  align-items:flex-end;justify-content:center;}
+#kbIosSheet .kbi-card{background:#fff;border-radius:18px 18px 0 0;padding:18px 18px 26px;
+  width:100%;max-width:460px;font-family:inherit}
+#kbIosSheet h4{margin:0 0 8px;font-size:1rem;color:#1a1a2e}
+#kbIosSheet p{margin:6px 0;font-size:.86rem;color:#444;line-height:1.55}
+#kbIosSheet .kbi-close{margin-top:14px;width:100%;padding:12px;border:none;border-radius:12px;
+  background:#e65c00;color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit}
+</style>
+<button id="kbInstallBtn" onclick="kbDoInstall()"><span class="kbi-ico">⬇️</span>Install App</button>
+<div id="kbIosSheet" onclick="kbIosBackdrop(event)">
+  <div class="kbi-card">
+    <h4>📱 Delivery ko home screen par lagayein</h4>
+    <p>1️⃣ Neeche <b>Share</b> button (⬆️ box) par tap karein</p>
+    <p>2️⃣ Neeche scroll karke <b>"Add to Home Screen"</b> chunein</p>
+    <p>3️⃣ <b>Add</b> dabayein — icon home screen par aa jayega</p>
+    <button class="kbi-close" onclick="document.getElementById('kbIosSheet').style.display='none'">Theek hai</button>
+  </div>
+</div>
+<script>
+(function(){
+  var deferred=null;
+  var btn=function(){return document.getElementById('kbInstallBtn');};
+  // Already installed / running standalone? Kuch mat dikhao.
+  function isStandalone(){
+    return window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone===true;
+  }
+  function isIOS(){
+    return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  }
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault(); deferred=e;
+    if(!isStandalone()){ var b=btn(); if(b) b.style.display='inline-flex'; }
+  });
+  window.addEventListener('appinstalled',function(){
+    deferred=null; var b=btn(); if(b) b.style.display='none';
+  });
+  window.kbIosBackdrop=function(e){ if(e.target===e.currentTarget) e.currentTarget.style.display='none'; };
+  window.kbDoInstall=function(){
+    if(deferred){
+      deferred.prompt();
+      deferred.userChoice.finally(function(){ deferred=null; var b=btn(); if(b) b.style.display='none'; });
+    } else if(isIOS()){
+      document.getElementById('kbIosSheet').style.display='flex';
+    }
+  };
+  // iOS par beforeinstallprompt nahi aata — button khud dikhao (agar install nahi hai).
+  document.addEventListener('DOMContentLoaded',function(){
+    if(isIOS() && !isStandalone()){ var b=btn(); if(b) b.style.display='inline-flex'; }
+  });
+})();
 </script>
 </body>
 </html>
