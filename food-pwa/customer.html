@@ -3047,18 +3047,18 @@ if('serviceWorker' in navigator){
      aane par button dikhta hai; iOS Safari par tap karne se ek hint modal khulta
      hai (iOS install banner support nahi karta). Standalone mode me kuch nahi dikhta. -->
 <style>
-#kbInstallBtn{position:fixed;right:14px;bottom:16px;z-index:9000;display:none;
+#kbInstallBtn{position:fixed;right:14px;bottom:16px;z-index:9000;display:inline-flex;
   align-items:center;gap:7px;padding:11px 15px;border:none;border-radius:26px;
   background:#e65c00;color:#fff;font-weight:800;font-size:.86rem;font-family:inherit;
   box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:pointer;}
 #kbInstallBtn .kbi-ico{font-size:1.05rem;line-height:1}
-#kbIosSheet{position:fixed;inset:0;z-index:9001;display:none;background:rgba(0,0,0,.5);
+#kbIosSheet,#kbAndSheet{position:fixed;inset:0;z-index:9001;display:none;background:rgba(0,0,0,.5);
   align-items:flex-end;justify-content:center;}
-#kbIosSheet .kbi-card{background:#fff;border-radius:18px 18px 0 0;padding:18px 18px 26px;
+#kbIosSheet .kbi-card,#kbAndSheet .kbi-card{background:#fff;border-radius:18px 18px 0 0;padding:18px 18px 26px;
   width:100%;max-width:460px;font-family:inherit}
-#kbIosSheet h4{margin:0 0 8px;font-size:1rem;color:#1a1a2e}
-#kbIosSheet p{margin:6px 0;font-size:.86rem;color:#444;line-height:1.55}
-#kbIosSheet .kbi-close{margin-top:14px;width:100%;padding:12px;border:none;border-radius:12px;
+#kbIosSheet h4,#kbAndSheet h4{margin:0 0 8px;font-size:1rem;color:#1a1a2e}
+#kbIosSheet p,#kbAndSheet p{margin:6px 0;font-size:.86rem;color:#444;line-height:1.55}
+#kbIosSheet .kbi-close,#kbAndSheet .kbi-close{margin-top:14px;width:100%;padding:12px;border:none;border-radius:12px;
   background:#e65c00;color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit}
 </style>
 <button id="kbInstallBtn" onclick="kbDoInstall()"><span class="kbi-ico">⬇️</span>Install App</button>
@@ -3069,6 +3069,15 @@ if('serviceWorker' in navigator){
     <p>2️⃣ Neeche scroll karke <b>"Add to Home Screen"</b> chunein</p>
     <p>3️⃣ <b>Add</b> dabayein — icon home screen par aa jayega</p>
     <button class="kbi-close" onclick="document.getElementById('kbIosSheet').style.display='none'">Theek hai</button>
+  </div>
+</div>
+<div id="kbAndSheet" onclick="kbAndBackdrop(event)">
+  <div class="kbi-card">
+    <h4>📱 Home screen par app lagayein</h4>
+    <p>1️⃣ Upar dayein <b>⋮ (3 dots)</b> menu par tap karein</p>
+    <p>2️⃣ <b>"Add to Home screen"</b> ya <b>"Install app"</b> chunein</p>
+    <p>3️⃣ <b>Add / Install</b> dabayein — icon home screen par aa jayega</p>
+    <button class="kbi-close" onclick="document.getElementById('kbAndSheet').style.display='none'">Theek hai</button>
   </div>
 </div>
 <script>
@@ -3084,24 +3093,31 @@ if('serviceWorker' in navigator){
     return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
   }
   window.addEventListener('beforeinstallprompt',function(e){
-    e.preventDefault(); deferred=e;
-    if(!isStandalone()){ var b=btn(); if(b) b.style.display='inline-flex'; }
+    e.preventDefault(); deferred=e;   // native prompt ready — kbDoInstall use karega
   });
   window.addEventListener('appinstalled',function(){
     deferred=null; var b=btn(); if(b) b.style.display='none';
   });
   window.kbIosBackdrop=function(e){ if(e.target===e.currentTarget) e.currentTarget.style.display='none'; };
+  window.kbAndBackdrop=function(e){ if(e.target===e.currentTarget) e.currentTarget.style.display='none'; };
   window.kbDoInstall=function(){
     if(deferred){
       deferred.prompt();
-      deferred.userChoice.finally(function(){ deferred=null; var b=btn(); if(b) b.style.display='none'; });
+      deferred.userChoice.finally(function(){ deferred=null; });
+      // NOTE: button ko hide NAHI karte — kuch log prompt cancel kar dete hain,
+      // aur appinstalled event install hone par khud button hata dega.
     } else if(isIOS()){
       document.getElementById('kbIosSheet').style.display='flex';
+    } else {
+      // Android/desktop jahan Chrome ne abhi tak prompt nahi diya — manual guide.
+      document.getElementById('kbAndSheet').style.display='flex';
     }
   };
   // iOS par beforeinstallprompt nahi aata — button khud dikhao (agar install nahi hai).
   document.addEventListener('DOMContentLoaded',function(){
-    if(isIOS() && !isStandalone()){ var b=btn(); if(b) b.style.display='inline-flex'; }
+    // Button HTML me by-default visible hai; agar app already installed (standalone)
+    // chal rahi hai to use hata do.
+    if(isStandalone()){ var b=btn(); if(b) b.style.display='none'; }
   });
 })();
 </script>
