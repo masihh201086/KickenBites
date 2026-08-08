@@ -300,7 +300,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div class="tab" data-tab="dues" onclick="sw('dues')">💳 Dues</div>
     <div class="tab" data-tab="setup" onclick="sw('setup')">⚙️ Setup</div>
     <div class="tab" id="moreTab" onclick="toggleMoreMenu(event)" style="position:relative">⋯ More
-      <div id="moreMenu" style="display:none;position:absolute;top:100%;right:0;background:#fff;border:1px solid #eee;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.18);z-index:300;min-width:150px;overflow:hidden">
+      <div id="moreMenu" style="display:none;position:fixed;background:#fff;border:1px solid #eee;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.22);z-index:10001;min-width:160px;overflow:hidden">
         <div class="tab" data-tab="print" onclick="sw('print')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🖨️ Print</div>
         <div class="tab" data-tab="ai" onclick="sw('ai')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">📊 Demand</div>
       </div>
@@ -2987,7 +2987,27 @@ window.sw=function(t){
 window.toggleMoreMenu=function(e){
   if(e) e.stopPropagation();
   const md=document.getElementById('moreMenu');
-  if(md) md.style.display=(md.style.display==='block'?'none':'block');
+  const mt=document.getElementById('moreTab');
+  if(!md) return;
+  const open=(md.style.display!=='block');
+  if(open && mt){
+    // pehle dikhao (measure ke liye), phir More button ke theek neeche-dayein rakho —
+    // taaki .tabs ke overflow-x:auto se clip na ho (yahi bug tha: menu khulta tha par
+    // bar ke overflow me kat jaata tha, isliye kuch dikhta hi nahi tha).
+    md.style.visibility='hidden';
+    md.style.display='block';
+    const r=mt.getBoundingClientRect();
+    const w=md.offsetWidth||170;
+    let left=r.right-w;
+    if(left<8) left=8;
+    if(left+w>window.innerWidth-8) left=window.innerWidth-8-w;
+    md.style.top=(r.bottom+4)+'px';
+    md.style.left=left+'px';
+    md.style.right='auto';
+    md.style.visibility='visible';
+  } else {
+    md.style.display='none';
+  }
 };
 // tap outside closes the More dropdown
 document.addEventListener('click',function(e){
