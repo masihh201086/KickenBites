@@ -261,7 +261,14 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .qr-box img{width:150px;height:150px;display:block;border-radius:6px;}
 @media(min-width:380px){.qr-box img{width:165px;height:165px;}}
 .qr-hint{font-size:.72rem;color:var(--muted);margin-top:7px;line-height:1.5;}
-.warn-note{background:#fffbeb;border-radius:9px;padding:7px 9px;margin-bottom:9px;font-size:.73rem;color:#92400e;line-height:1.4;}
+/* Session 28: warn-note ab light-RED + zyada dhyaan-kheenchne wala — kyunki payment
+   ke baad agar green button na dabaya to order CANCEL ho jaata hai. */
+.warn-note{background:#fef2f2;border:1.5px solid #fecaca;border-left:5px solid #ef4444;
+  border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.82rem;color:#991b1b;
+  line-height:1.45;font-weight:600;box-shadow:0 2px 8px rgba(239,68,68,.12);}
+.warn-note b{color:#dc2626;}
+@keyframes kbWarnPulse{0%,100%{box-shadow:0 2px 8px rgba(239,68,68,.12);}50%{box-shadow:0 2px 14px rgba(239,68,68,.28);}}
+.warn-note{animation:kbWarnPulse 2s ease-in-out infinite;}
 .confirm-btn{width:100%;padding:15px;background:linear-gradient(135deg,var(--green),#16a34a);color:white;border:none;border-radius:var(--r);font-size:.97rem;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(34,197,94,.35);display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px;}
 .back-lnk{display:block;text-align:center;color:var(--muted);font-size:.78rem;cursor:pointer;padding:7px;}
 
@@ -713,7 +720,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <button onclick="useWallet()" style="width:100%;padding:11px;background:var(--green);color:white;border:none;border-radius:10px;font-weight:700;font-size:.86rem;cursor:pointer">✅ Wallet se pay karein</button>
       </div>
 
-      <div class="warn-note" id="payWarnNote">⚠️ <b>Pay karne ke baad hi</b> ye button dabaiye — tabhi order confirm hoga.</div>
+      <div class="warn-note" id="payWarnNote">🔴 <b>ZAROORI:</b> Pay karne ke <b>turant baad</b> neeche button dabaiye — <b>warna order CANCEL ho jayega.</b></div>
       <button class="i-paid-btn" id="iPaidBtn" onclick="iHavePaid()">✅ Click to Confirm Payment and Order</button>
     </div>
 
@@ -2339,6 +2346,9 @@ window.payDuesNow=async function(){
   showPayScreen(total);
 };
 function showPayScreen(total){
+  // Session 28: running-total bar (1 item · ₹X · Order Now) sirf order/menu page par —
+  // payment screen par usse chhupa do, warna wo pay button ke upar float karta hai.
+  try{ const rb=document.getElementById('runTotalBar'); if(rb) rb.style.display='none'; document.body.style.paddingBottom=''; }catch(e){}
   const uid=menuConfig.upiId||'';const uname=menuConfig.upiName||'Kicken Bites';
   // B-3: agar UPI ID set nahi hai to warning dikhao
   try{
@@ -2370,8 +2380,8 @@ function showPayScreen(total){
     : '✅ Click to Confirm Payment and Order';
   const pwn=document.getElementById('payWarnNote');
   if(pwn) pwn.innerHTML=isDues
-    ? '⚠️ Payment karne ke baad neeche <b>"Click to Confirm Payment"</b> zaroor dabaiye — tabhi aapke dues clear honge.'
-    : '⚠️ Pay karne ke baad neeche <b>"Click to Confirm Payment and Order"</b> zaroor dabaiye — tabhi aapka order confirm hoga.';
+    ? '🔴 <b>ZAROORI:</b> Payment ke baad neeche <b>"Click to Confirm Payment"</b> button zaroor dabaiye — <b>warna dues clear nahi honge.</b>'
+    : '🔴 <b>ZAROORI:</b> Pay karne ke <b>turant baad</b> neeche <b>"Click to Confirm Payment and Order"</b> button dabaiye — <b>warna aapka order CANCEL ho jayega.</b>';
   {const el=document.getElementById('upiId');if(el)el.textContent=uid;}
   {const h1=document.getElementById('hintAmt');if(h1)h1.textContent=total;}
   {const h2=document.getElementById('hintAmt2');if(h2)h2.textContent=total;}
@@ -2687,7 +2697,11 @@ window.rtGoToOrder=function(){
   try{ if(typeof switchTab==='function') switchTab('order'); }catch(e){}
   setTimeout(()=>{ document.getElementById('placeBtn')?.scrollIntoView({behavior:'smooth',block:'center'}); },80);
 };
-window.closePayScreen=function(){hide('payScreen');window._payMode='order';window._payTab='now';};
+window.closePayScreen=function(){
+  hide('payScreen');window._payMode='order';window._payTab='now';
+  // Session 28: pay screen band → running-total bar wapas (updateBill khud dikhayega agar items hain)
+  try{ if(typeof updateBill==='function') updateBill(); }catch(e){}
+};
 window.iHavePaid=async function(){
   // DUES MODE: mark all pending pay-later orders as customer-claimed-paid (admin still confirms)
   if(window._payMode==='dues'){
