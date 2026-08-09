@@ -314,6 +314,11 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="ct" style="margin:0 0 7px 0;color:#9a3412">🔑 PIN Reset Requests <span id="pinReqCount" style="background:#dc2626;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span></div>
       <div id="pinReqList"></div>
     </div>
+    <!-- Session 27: CUSTOMER REQUESTS (helpdesk msgs + invoice requests + app feedback) — hidden until at least one -->
+    <div class="card" id="custReqCard" style="display:none;padding:11px;border:2px solid #6366f1;background:#eef2ff;margin-bottom:9px">
+      <div class="ct" style="margin:0 0 7px 0;color:#3730a3">📨 Customer Requests <span id="custReqCount" style="background:#dc2626;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span></div>
+      <div id="custReqList"></div>
+    </div>
     <!-- PARTY BOOKINGS — hidden until there is at least one upcoming booking -->
     <div class="card" style="padding:11px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
@@ -1026,6 +1031,7 @@ async function initDash(){
   // isliye ek baar background me dues load kar lete hain (list hidden hai, sasta hai).
   try{ if(new Date().getDate()<=5 && !duesMonthDone()) setTimeout(()=>{ try{loadDues();}catch(e){} }, 2500); }catch(e){}
   listenPinResetRequests();
+  listenCustomerRequests();   // Session 27
   listenPartyBookings();
   // BUG-04: har minute check — page khula ho to bina refresh ke bhi stock chhoot jaaye
   try{ setInterval(function(){ try{ sweepStaleUnpaid(allOrders); }catch(e){} }, 60000); }catch(e){}
@@ -3101,6 +3107,75 @@ function renderPinReqs(list){
       +'</div></div>';
   }).join('');
 }
+// ══════════ Session 27: Customer Requests (helpdesk / invoice / feedback) ══════════
+let _hdUnsub=null,_invUnsub=null,_fbUnsub=null;
+let _hdList=[],_invList=[],_fbList=[]; let _custReqSeen=0;
+function _renderCustReqs(){
+  const card=document.getElementById('custReqCard'), box=document.getElementById('custReqList'), cnt=document.getElementById('custReqCount');
+  if(!card||!box) return;
+  const all=[]
+    .concat(_hdList.map(r=>Object.assign({_k:'helpdesk'},r)))
+    .concat(_invList.map(r=>Object.assign({_k:'invoice'},r)))
+    .concat(_fbList.map(r=>Object.assign({_k:'feedback'},r)))
+    .filter(r=>r.status!=='done');
+  if(!all.length){ card.style.display='none'; box.innerHTML=''; return; }
+  card.style.display='block';
+  if(cnt) cnt.textContent=all.length;
+  all.sort((a,b)=>Number(b.at||0)-Number(a.at||0));
+  box.innerHTML=all.map(function(r){
+    const phone=String(r.phone||'').replace(/[^0-9]/g,'');
+    const waPhone=phone.length===10?('91'+phone):phone;
+    let head='',body='';
+    if(r._k==='helpdesk'){ head='💬 Helpdesk'; body=esc(r.message||''); }
+    else if(r._k==='invoice'){ head='🧾 Invoice chahiye'; body=(r.orderId?('Order: '+esc(r.orderId)+'  '):'')+esc(r.note||'(koi note nahi)'); }
+    else { const st='★'.repeat(r.rating||0)+'☆'.repeat(5-(r.rating||0)); head='⭐ App Feedback'; body='<span style=\"color:#f59e0b\">'+st+'</span>  '+esc(r.message||''); }
+    const rowId=r._k+'|'+(r.phone||'')+'|'+(r.at||'');
+    const actionBtns=
+        '<button onclick="custReqWA(\''+esc(waPhone)+'\',\''+r._k+'\')" style="flex:1;background:#25d366;color:#fff;border:none;padding:8px;border-radius:8px;font-weight:800;font-size:.76rem;cursor:pointer">💬 Reply</button>'
+      + (phone?('<button onclick="custReqCall(\''+esc(waPhone)+'\')" style="background:#3b82f6;color:#fff;border:none;padding:8px 11px;border-radius:8px;font-weight:800;font-size:.76rem;cursor:pointer">📞</button>'):'')
+      + '<button onclick="custReqDone(\''+r._k+'\',\''+esc(String(r.docId||''))+'\')" style="background:#e5e7eb;border:none;padding:8px 11px;border-radius:8px;font-weight:700;font-size:.76rem;cursor:pointer">✓ Done</button>';
+    return '<div style="background:#fff;border-radius:10px;padding:10px;margin-bottom:7px">'
+      +'<div style="font-weight:800;font-size:.82rem;color:#3730a3">'+head+'</div>'
+      +'<div style="font-size:.74rem;color:#888;margin:1px 0 6px">'+esc(r.name||'(naam nahi)')+' • '+esc(r.phone||'')+' • '+fmtAgo(r.at)+'</div>'
+      +'<div style="font-size:.86rem;color:#333;line-height:1.45;margin-bottom:8px">'+body+'</div>'
+      +'<div style="display:flex;gap:6px">'+actionBtns+'</div>'
+      +'</div>';
+  }).join('');
+}
+function _custReqNoise(){
+  const total=_hdList.length+_invList.length+_fbList.length;
+  if(total>_custReqSeen && _custReqSeen!==0){ try{ showToast('📨 Nayi customer request'); }catch(e){} }
+  _custReqSeen=total;
+}
+function _listenColl(name, setter){
+  try{
+    return onSnapshot(collection(db,name), function(snap){
+      const list=[]; snap.forEach(function(d){ const v=d.data()||{}; v.docId=d.id; if(v.status!=='done') list.push(v); });
+      setter(list); _custReqNoise(); _renderCustReqs();
+    }, function(){});
+  }catch(e){ return null; }
+}
+function listenCustomerRequests(){
+  if(_hdUnsub)_hdUnsub(); if(_invUnsub)_invUnsub(); if(_fbUnsub)_fbUnsub();
+  _hdUnsub=_listenColl('helpdeskMessages', l=>_hdList=l);
+  _invUnsub=_listenColl('invoiceRequests', l=>_invList=l);
+  _fbUnsub =_listenColl('appFeedback',     l=>_fbList=l);
+}
+window.custReqWA=function(waPhone,kind){
+  if(!waPhone){ showToast('Iska number nahi hai'); return; }
+  const t=kind==='invoice'?'Namaste! Aapki Kicken Bites invoice request mili — main invoice bhej raha/rahi hoon.'
+        :kind==='feedback'?'Namaste! Kicken Bites — aapki feedback ke liye shukriya!'
+        :'Namaste! Kicken Bites helpdesk — aapki baat mili, bata rahe hain.';
+  window.open('https://wa.me/'+waPhone+'?text='+encodeURIComponent(t),'_blank');
+};
+window.custReqCall=function(waPhone){ if(waPhone) window.location.href='tel:+'+waPhone; };
+window.custReqDone=async function(kind,docId){
+  if(!docId){ return; }
+  const coll=kind==='invoice'?'invoiceRequests':kind==='feedback'?'appFeedback':'helpdeskMessages';
+  try{ await setDoc(doc(db,coll,docId),{status:'done',doneAt:Date.now()},{merge:true}); showToast('✓ Ho gaya'); }
+  catch(e){ alert('Nahi hua: '+e.message); }
+};
+
 function listenPinResetRequests(){
   try{
     if(pinReqUnsub) pinReqUnsub();

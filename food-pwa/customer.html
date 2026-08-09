@@ -328,6 +328,23 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .save-prof{width:100%;padding:12px;background:var(--orange);color:white;border:none;border-radius:var(--r);font-size:.9rem;font-weight:700;cursor:pointer;}
 .chg-pin{width:100%;padding:11px;background:var(--dark);color:white;border:none;border-radius:var(--r);font-size:.86rem;font-weight:700;cursor:pointer;margin-top:7px;}
 .logout-btn{width:100%;padding:11px;background:white;color:var(--red);border:2px solid var(--red);border-radius:var(--r);font-size:.84rem;font-weight:700;cursor:pointer;margin-top:7px;}
+/* Session 27: helpdesk/invoice/feedback buttons */
+.kb-prof-act{width:100%;padding:11px;background:#fff;color:var(--dark);border:2px solid #eee;border-radius:var(--r);font-size:.84rem;font-weight:700;cursor:pointer;margin-top:7px;text-align:left;}
+.kb-prof-act:active{transform:scale(.99);}
+.kb-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:650;display:none;align-items:flex-end;justify-content:center;}
+.kb-modal.show{display:flex;}
+.kb-sheet{background:#fff;border-radius:18px 18px 0 0;padding:17px 17px 24px;width:100%;max-width:460px;max-height:84vh;overflow-y:auto;}
+.kb-sheet h4{margin:0 0 4px;font-size:1.05rem;font-weight:800;display:flex;justify-content:space-between;align-items:center;}
+.kb-sheet .kb-x{background:none;border:none;font-size:1.3rem;cursor:pointer;line-height:1;}
+.kb-sheet p.sub{color:var(--muted);font-size:.8rem;margin:.2rem 0 .8rem;}
+.kb-row{display:flex;gap:9px;margin-bottom:9px;}
+.kb-row .kb-opt{flex:1;padding:13px 8px;border-radius:12px;border:2px solid #eee;background:#fff;font-weight:800;font-size:.86rem;cursor:pointer;text-align:center;color:var(--dark);}
+.kb-opt.wa{border-color:#25d366;color:#128c3e;}
+.kb-opt.call{border-color:#3b82f6;color:#1d4ed8;}
+.kb-ta{width:100%;border:2px solid #eee;border-radius:12px;padding:11px;font-family:inherit;font-size:.9rem;resize:vertical;min-height:84px;box-sizing:border-box;}
+.kb-send{width:100%;padding:13px;margin-top:10px;border:none;border-radius:12px;background:var(--ograd);color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;font-family:inherit;}
+.kb-star{font-size:1.7rem;cursor:pointer;color:#ddd;}
+.kb-star.on{color:#f59e0b;}
 
 /* CLOSED */
 .closed-box{text-align:center;padding:55px 20px;color:var(--muted);}
@@ -615,6 +632,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       </div>
       <button class="save-prof" onclick="saveProfile()">💾 Save Profile</button>
       <button class="chg-pin" onclick="changePinPrompt()">🔐 Change PIN</button>
+      <!-- Session 27: Helpdesk / Feedback / Invoice -->
+      <button class="kb-prof-act" onclick="openHelpdesk()">📞 Helpdesk / Sampark karein</button>
+      <button class="kb-prof-act" onclick="openInvoiceReq()">🧾 Invoice / Bill chahiye</button>
+      <button class="kb-prof-act" onclick="openFeedback()">💬 App Feedback dein</button>
       <button class="logout-btn" onclick="logoutCust()">Logout</button>
     </div>
   </div>
@@ -748,6 +769,46 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <div class="rt-amt" id="rtAmt">₹0</div>
   </div>
   <button class="rt-go" onclick="rtGoToOrder()">Order Now →</button>
+</div>
+<!-- Session 27: Helpdesk / Invoice / Feedback modals -->
+<div class="kb-modal" id="helpdeskModal" onclick="kbModalBackdrop(event,'helpdeskModal')">
+  <div class="kb-sheet">
+    <h4>📞 Helpdesk / Sampark <button class="kb-x" onclick="closeKbModal('helpdeskModal')">✕</button></h4>
+    <p class="sub">Kisi bhi madad ke liye shop se seedhe baat karein.</p>
+    <div class="kb-row">
+      <div class="kb-opt wa"   onclick="helpdeskWhatsApp()">💬 WhatsApp</div>
+      <div class="kb-opt call" onclick="helpdeskCall()">📞 Call karein</div>
+    </div>
+    <p class="sub" style="margin-top:6px">Ya yahin message likhein — shop tak pahunch jayega:</p>
+    <textarea class="kb-ta" id="helpdeskMsg" placeholder="Apni baat likhein..."></textarea>
+    <button class="kb-send" onclick="sendHelpdeskMsg()">Message bhejein</button>
+  </div>
+</div>
+
+<div class="kb-modal" id="invoiceModal" onclick="kbModalBackdrop(event,'invoiceModal')">
+  <div class="kb-sheet">
+    <h4>🧾 Invoice / Bill chahiye <button class="kb-x" onclick="closeKbModal('invoiceModal')">✕</button></h4>
+    <p class="sub">Shop ko request bhej dein — wo aapko GST invoice bhej denge. (App khud invoice nahi banata.)</p>
+    <input class="pi" id="invOrderId" placeholder="Order number (agar pata ho) — optional" type="text" style="width:100%;box-sizing:border-box;margin-bottom:8px">
+    <textarea class="kb-ta" id="invNote" placeholder="Koi detail (optional) — jaise kis order ka invoice chahiye"></textarea>
+    <button class="kb-send" onclick="sendInvoiceReq()">Invoice request bhejein</button>
+  </div>
+</div>
+
+<div class="kb-modal" id="feedbackModal" onclick="kbModalBackdrop(event,'feedbackModal')">
+  <div class="kb-sheet">
+    <h4>💬 App Feedback <button class="kb-x" onclick="closeKbModal('feedbackModal')">✕</button></h4>
+    <p class="sub">Aapki raay se app behtar banegi. Bataiye kaisा laga:</p>
+    <div id="fbStars" style="text-align:center;margin-bottom:8px">
+      <span class="kb-star" data-v="1" onclick="fbSetStar(1)">★</span>
+      <span class="kb-star" data-v="2" onclick="fbSetStar(2)">★</span>
+      <span class="kb-star" data-v="3" onclick="fbSetStar(3)">★</span>
+      <span class="kb-star" data-v="4" onclick="fbSetStar(4)">★</span>
+      <span class="kb-star" data-v="5" onclick="fbSetStar(5)">★</span>
+    </div>
+    <textarea class="kb-ta" id="fbText" placeholder="Kya achha laga, kya behtar ho sakta hai..."></textarea>
+    <button class="kb-send" onclick="sendFeedback()">Feedback bhejein</button>
+  </div>
 </div>
 <script type="module">
 import { db, getTodayDate, formatDisplayDate, getTodayMenu, getDailyMenu, listenToTodayMenu, listenToDelivery, confirmPayment, updateOrderStatus, submitRating, collection, doc, setDoc, getDoc, onSnapshot, query, where, runTransaction } from './src/utils/firebase.js';
@@ -2811,6 +2872,71 @@ window.openTrackingFor=function(id,ph,tot,addr,items){
 };
 
 // Session 25: item ke saare reviews ek modal me (card se comment hatane ke baad).
+// ══════════ Session 27: Helpdesk / Invoice / Feedback ══════════
+function kbCustInfo(){
+  const p=currentProfile||{};
+  return { phone:(p.phone||localStorage.getItem('custPhone')||''), name:(p.name||localStorage.getItem('custName')||'') };
+}
+async function kbAdminPhone(){
+  let a=''; try{ const c=await getMasterCfg(); a=(c&&c.adminPhone)||''; }catch(e){}
+  if(!a) a='919795482664'; a=a.replace(/[^0-9]/g,''); if(a.length===10) a='91'+a; return a;
+}
+window.kbModalBackdrop=function(e,id){ if(e.target===e.currentTarget) closeKbModal(id); };
+window.closeKbModal=function(id){ const m=document.getElementById(id); if(m) m.classList.remove('show'); };
+function openKbModal(id){ const m=document.getElementById(id); if(m) m.classList.add('show'); }
+
+window.openHelpdesk=function(){ openKbModal('helpdeskModal'); };
+window.helpdeskCall=async function(){ const a=await kbAdminPhone(); window.location.href='tel:+'+a; };
+window.helpdeskWhatsApp=async function(){
+  const a=await kbAdminPhone(); const u=kbCustInfo();
+  window.open('https://wa.me/'+a+'?text='+encodeURIComponent('Namaste! Kicken Bites helpdesk — '+(u.name||'')+' ('+(u.phone||'')+')'),'_blank');
+};
+window.sendHelpdeskMsg=async function(){
+  const t=(document.getElementById('helpdeskMsg').value||'').trim();
+  if(!t){ showToast('Pehle message likhein'); return; }
+  const u=kbCustInfo();
+  try{
+    await setDoc(doc(db,'helpdeskMessages', (u.phone||'anon')+'_'+Date.now()), {
+      type:'helpdesk', phone:u.phone, name:u.name, message:t, status:'new', at:Date.now()
+    });
+    document.getElementById('helpdeskMsg').value='';
+    closeKbModal('helpdeskModal');
+    showToast('✅ Message shop tak pahunch gaya');
+  }catch(e){ showToast('Nahi bheja gaya — dobara try karein'); }
+};
+
+window.openInvoiceReq=function(){ openKbModal('invoiceModal'); };
+window.sendInvoiceReq=async function(){
+  const u=kbCustInfo();
+  if(!u.phone){ showToast('Pehle profile me phone save karein'); return; }
+  const oid=(document.getElementById('invOrderId').value||'').trim();
+  const note=(document.getElementById('invNote').value||'').trim();
+  try{
+    await setDoc(doc(db,'invoiceRequests', u.phone+'_'+Date.now()), {
+      type:'invoice', phone:u.phone, name:u.name, orderId:oid, note:note, status:'new', at:Date.now()
+    });
+    document.getElementById('invOrderId').value=''; document.getElementById('invNote').value='';
+    closeKbModal('invoiceModal');
+    showToast('✅ Invoice request bhej di — shop aapko bhej denge');
+  }catch(e){ showToast('Nahi bheja gaya — dobara try karein'); }
+};
+
+let _fbStar=0;
+window.fbSetStar=function(v){ _fbStar=v; document.querySelectorAll('#fbStars .kb-star').forEach(s=>{ s.classList.toggle('on', (+s.dataset.v)<=v); }); };
+window.openFeedback=function(){ _fbStar=0; document.querySelectorAll('#fbStars .kb-star').forEach(s=>s.classList.remove('on')); const t=document.getElementById('fbText'); if(t)t.value=''; openKbModal('feedbackModal'); };
+window.sendFeedback=async function(){
+  const t=(document.getElementById('fbText').value||'').trim();
+  if(!_fbStar && !t){ showToast('Rating dein ya kuch likhein'); return; }
+  const u=kbCustInfo();
+  try{
+    await setDoc(doc(db,'appFeedback', (u.phone||'anon')+'_'+Date.now()), {
+      type:'feedback', phone:u.phone, name:u.name, rating:_fbStar, message:t, status:'new', at:Date.now()
+    });
+    closeKbModal('feedbackModal');
+    showToast('✅ Shukriya! Aapki feedback mil gayi');
+  }catch(e){ showToast('Nahi bheja gaya — dobara try karein'); }
+};
+
 window.openReviews=function(itemId){
   const d=(window._itemReviews||{})[itemId];
   if(!d) return;

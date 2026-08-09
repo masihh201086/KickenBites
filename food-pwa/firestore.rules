@@ -151,6 +151,27 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---- Session 27: customer -> admin request collections ----
+    // Chhoti request parchiyan (helpdesk message, invoice request, app feedback).
+    // Koi secret nahi. status string zaroori; admin inhe status:'done' se nipatता hai.
+    // ⚠️ Ye teen collections NAYE hain — rules publish karna zaroori, warna default-deny
+    // se writes silently fail honge (jaise ratings/pinReset me hua tha).
+    match /helpdeskMessages/{id} {
+      allow read: if true;
+      allow write: if request.resource.data.status is string;
+      allow delete: if false;
+    }
+    match /invoiceRequests/{id} {
+      allow read: if true;
+      allow write: if request.resource.data.status is string;
+      allow delete: if false;
+    }
+    match /appFeedback/{id} {
+      allow read: if true;
+      allow write: if request.resource.data.status is string;
+      allow delete: if false;
+    }
+
     // ---- everything else: DENY ----
     match /{document=**} {
       allow read, write: if false;
