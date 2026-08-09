@@ -78,8 +78,10 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .date-lbl{font-size:.73rem;color:var(--orange);font-weight:700;margin-bottom:8px;}
 
 /* MENU CARDS — Professional food app style */
-.menu-grid{display:grid;grid-template-columns:1fr;gap:12px;}
-@media(min-width:580px){.menu-grid{grid-template-columns:1fr 1fr;}}
+/* Session 24: mobile par bhi 2-column — pehle single lambा column tha.
+   Chhoti screen par gap+padding thoda kam taaki dono card theek aayein. */
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+@media(min-width:580px){.menu-grid{gap:14px;}}
 .mc{background:var(--card);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-md);border:2px solid transparent;transition:border-color .2s,box-shadow .25s,transform .25s;position:relative;}
 .mc.selected{border-color:var(--orange);box-shadow:var(--sh-brand);transform:translateY(-2px);}
 .mc.soldout{opacity:.55;}
@@ -91,11 +93,15 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .mc-emoji{width:100%;aspect-ratio:5/4;background:linear-gradient(135deg,#fff8f0,#ffe8d0);display:flex;align-items:center;justify-content:center;font-size:4.2rem;position:relative;}
 .sold-tag{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.72);color:#fff;font-weight:900;font-size:1.15rem;padding:9px 22px;border-radius:50px;letter-spacing:.06em;box-shadow:0 2px 8px rgba(0,0,0,.3);}
 .trending-tag{position:absolute;top:8px;left:8px;background:#ef4444;color:white;font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:20px;}
-.mc-body{padding:11px 12px;}
-.mc-name{font-weight:800;font-size:1.26rem;line-height:1.22;margin-bottom:5px;letter-spacing:-.015em;}
+.mc-body{padding:9px 10px;}
+/* 2-col me name thoda chhota taaki wrap na kare; price ab zyada prominent (neeche) */
+.mc-name{font-weight:800;font-size:1.02rem;line-height:1.2;margin-bottom:4px;letter-spacing:-.01em;}
+@media(min-width:580px){.mc-name{font-size:1.2rem;}}
 .mc-desc{font-size:.76rem;color:var(--muted);margin-bottom:6px;line-height:1.45;}
-.mc-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
-.mc-price{font-weight:800;color:var(--orange);font-size:1.15rem;letter-spacing:-.02em;}
+.mc-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px;margin-top:2px;}
+/* Session 24: price ab card ka sabse prominent element — bada, bold, apni line par */
+.mc-price{font-weight:900;color:var(--orange);font-size:1.42rem;letter-spacing:-.02em;line-height:1;}
+.mc-price .rs{font-size:.9rem;font-weight:800;vertical-align:2px;margin-right:1px;}
 .mc-badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
 .qbadge{font-size:.9rem;padding:4px 12px;border-radius:20px;font-weight:800;}
 .stockbar-wrap{margin:7px 0 2px;}
@@ -146,6 +152,16 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .bill{background:var(--card);border-radius:var(--r);padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
 .br{display:flex;justify-content:space-between;font-size:.84rem;padding:4px 0;color:var(--muted);}
 .br.tot{font-weight:700;font-size:1rem;color:var(--text);border-top:1px solid #eee;margin-top:5px;padding-top:8px;}
+/* Session 24: chalta hua running total — cart me kuch hote hi neeche fixed bar,
+   taaki customer ko har waqt total dikhe (bill summary neeche scroll me chhup jaata tha). */
+#runTotalBar{position:fixed;left:0;right:0;bottom:0;z-index:400;display:none;
+  background:#fff;border-top:1px solid #eee;box-shadow:0 -4px 16px rgba(0,0,0,.1);
+  padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));align-items:center;gap:11px}
+#runTotalBar .rt-info{flex:1;min-width:0}
+#runTotalBar .rt-count{font-size:.72rem;color:var(--muted);font-weight:700;line-height:1.1}
+#runTotalBar .rt-amt{font-size:1.35rem;font-weight:900;color:var(--dark);line-height:1.1;letter-spacing:-.02em}
+#runTotalBar .rt-go{flex-shrink:0;padding:12px 20px;border:none;border-radius:12px;background:var(--ograd);
+  color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;box-shadow:var(--sh-brand);font-family:inherit}
 .place-btn{width:calc(100% - 26px);margin:13px 13px 26px;padding:16px;border-radius:var(--r-lg);border:none;background:var(--ograd);color:white;font-family:var(--font-head);font-size:1.05rem;font-weight:700;letter-spacing:.01em;cursor:pointer;box-shadow:var(--sh-brand);transition:transform .12s,box-shadow .2s;}
 .place-btn:active:not(:disabled){transform:translateY(1px);box-shadow:0 3px 12px rgba(230,92,0,.3);}
 .place-btn:disabled{opacity:.4;cursor:not-allowed;}
@@ -724,6 +740,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
 <div id="toast"></div>
 
+<!-- Session 24: fixed running-total bar (JS updateBill isko bharta hai) -->
+<div id="runTotalBar">
+  <div class="rt-info">
+    <div class="rt-count" id="rtCount">0 items</div>
+    <div class="rt-amt" id="rtAmt">₹0</div>
+  </div>
+  <button class="rt-go" onclick="rtGoToOrder()">Order Now →</button>
+</div>
 <script type="module">
 import { db, getTodayDate, formatDisplayDate, getTodayMenu, getDailyMenu, listenToTodayMenu, listenToDelivery, confirmPayment, updateOrderStatus, submitRating, collection, doc, setDoc, getDoc, onSnapshot, query, where, runTransaction } from './src/utils/firebase.js';
 
@@ -1810,7 +1834,7 @@ function buildCard(item){
       <div class="mc-name">${item.name}</div>
       ${item.desc?`<div class="mc-desc">${item.desc}</div>`:''}
       <div class="mc-meta">
-        <span class="mc-price">₹${item.price}</span>
+        <span class="mc-price"><span class="rs">₹</span>${item.price}</span>
         <div class="mc-badges">${qtyBadge}${ratingHtml}</div>
       </div>
       ${stockBar}
@@ -2081,6 +2105,23 @@ function updateBill(){
   document.getElementById('delAmt').textContent='₹'+delivery;
   document.getElementById('totAmt').textContent='₹'+total;
   currentTotal=total;
+  // Session 24: fixed running-total bar update
+  {
+    const bar=document.getElementById('runTotalBar');
+    const nItems=items.reduce((n,i)=>n+(quantities[i.id]>0?quantities[i.id]:0),0);
+    if(bar){
+      if(nItems>0){
+        bar.style.display='flex';
+        const rc=document.getElementById('rtCount'), ra=document.getElementById('rtAmt');
+        if(rc) rc.textContent=nItems+(nItems===1?' item':' items');
+        if(ra) ra.textContent='₹'+total;
+        document.body.style.paddingBottom='74px';   // bar ke peeche content na chhupe
+      } else {
+        bar.style.display='none';
+        document.body.style.paddingBottom='';
+      }
+    }
+  }
   const btn=document.getElementById('placeBtn');
   btn.disabled=sub===0;
   btn.textContent=sub>0?`Proceed to Pay ₹${total} →`:'Select items to order';
@@ -2475,10 +2516,14 @@ window._payMethod='qr';
 window.switchPayMethod=function(m){
   // Pay Later locked ho to us chip par jaane hi mat do
   if(m==='later' && window._plEligible && window._plEligible.allowed===false){
+    // locked chip: note dikhao (yahi wo jagah hai jahan customer ineligible reason dekhega)
+    const note=document.getElementById('plLockNote');
+    if(note){ note.style.display='block'; note.innerHTML=(window._plEligible.msg||''); }
     showToast((window._plEligible.short)||'Pay Later abhi available nahi hai');
     return;
   }
   window._payMethod=(m==='upi')?'upi':(m==='later'?'later':'qr');
+  if(m!=='later'){ const n=document.getElementById('plLockNote'); if(n){ n.style.display='none'; n.innerHTML=''; } }
   const isLater=(m==='later');
   const isQR=(m==='qr'||(!isLater&&m!=='upi'));
   const q=document.getElementById('payMethQR'), u=document.getElementById('payMethUPI');
@@ -2551,14 +2596,22 @@ function applyPayLaterGate(el){
   const ok=(!el||el.allowed!==false);
   if(chip) chip.classList.toggle('locked',!ok);
   if(note){
-    // Note sirf tab dikhe jab customer Pay Later chip par ho aur wo locked ho
+    // Session 24 fix: note SIRF tab dikhe jab customer Pay Later chip par ho AUR wo
+    // locked ho. Pehle ye locked hote hi hamesha block ho jaata tha — eligible/QR
+    // wale customer ko bhi ganda note dikh jaata tha.
     const onLater=(window._payMethod==='later');
-    note.style.display=(!ok)?'block':'none';
-    note.innerHTML=ok?'':(el.msg||'');
+    const showNote=(!ok && onLater);
+    note.style.display=showNote?'block':'none';
+    note.innerHTML=showNote?(el.msg||''):'';
   }
   // Agar locked ho gaya aur customer Later par tha, to QR par wapas le aao
   if(!ok && window._payMethod==='later') switchPayMethod('qr');
 }
+window.rtGoToOrder=function(){
+  // agar Order tab par nahi to wahan le aao, phir bill/place-button tak scroll
+  try{ if(typeof switchTab==='function') switchTab('order'); }catch(e){}
+  setTimeout(()=>{ document.getElementById('placeBtn')?.scrollIntoView({behavior:'smooth',block:'center'}); },80);
+};
 window.closePayScreen=function(){hide('payScreen');window._payMode='order';window._payTab='now';};
 window.iHavePaid=async function(){
   // DUES MODE: mark all pending pay-later orders as customer-claimed-paid (admin still confirms)
@@ -3047,6 +3100,9 @@ if('serviceWorker' in navigator){
      aane par button dikhta hai; iOS Safari par tap karne se ek hint modal khulta
      hai (iOS install banner support nahi karta). Standalone mode me kuch nahi dikhta. -->
 <style>
+/* Session 24: jab running-total bar dikhta hai (body me padding-bottom lagta hai)
+   to install button ko uske upar khiska do taaki overlap na ho. */
+body[style*="padding-bottom: 74px"] #kbInstallBtn{bottom:84px;}
 #kbInstallBtn{position:fixed;right:14px;bottom:16px;z-index:9000;display:inline-flex;
   align-items:center;gap:7px;padding:11px 15px;border:none;border-radius:26px;
   background:#e65c00;color:#fff;font-weight:800;font-size:.86rem;font-family:inherit;
