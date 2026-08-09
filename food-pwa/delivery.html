@@ -560,6 +560,11 @@ async function startApp() {
   try{ listenForAssignments(); }catch(e){ console.error('assignments',e); }
   try{ listenForSalaryPaid(); }catch(e){ console.error('salaryPaid',e); }
   try{ watchDeviceSession(); }catch(e){ console.error('deviceWatch',e); }
+  // Session 29: GPS AUTO-SHARE on login — boy ko manually "Start" dabana na pade.
+  // Browser pehli baar location permission maangega (ye browser ka rule hai, bypass
+  // nahi hota); permission pehle se di ho to seedhe chalu ho jata hai. Agar deny ho
+  // to button se manually start kar sakte hain (wo waise hi kaam karta hai).
+  try{ autoStartGPS(); }catch(e){ console.error('autoGps',e); }
   // Safety net: if orders haven't loaded within 6s, stop showing "Loading…"
   setTimeout(function(){
     var a=document.getElementById('tab-active');
@@ -790,6 +795,24 @@ async function setOnlineStatus(online){
 }
 
 window.toggleGPS = function() { isGPS ? stopGPS() : startGPS(); };
+
+// Session 29: login ke baad GPS apne aap start karne ki koshish. startGPS khud
+// permission maangta hai; agar user pehle allow kar chuka hai to bina poochhe chal
+// jayega. Deny/na-support par chup-chaap ruk jata hai (button se manual option rehta hai).
+function autoStartGPS(){
+  if(isGPS) return;                       // already chal raha hai
+  if(!navigator.geolocation) return;      // support nahi
+  // Agar Permissions API se pata chale ki abhi 'prompt' hai to bhi start karte hain —
+  // getCurrentPosition khud prompt dikha dega. 'denied' par kuch nahi karte.
+  if(navigator.permissions && navigator.permissions.query){
+    navigator.permissions.query({name:'geolocation'}).then(function(st){
+      if(st.state!=='denied'){ startGPS(); }
+      else { setBar('bad','GPS band hai — Start dabakar location allow karein'); }
+    }).catch(function(){ startGPS(); });
+  } else {
+    startGPS();
+  }
+}
 
 function startGPS() {
   if (!navigator.geolocation) { alert('GPS not supported. Use Chrome on Android.'); return; }
