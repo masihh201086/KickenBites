@@ -2352,20 +2352,33 @@ function showPayScreen(total){
 // Download the payment QR to the gallery so the customer can upload it in their UPI app
 // Open a specific UPI app (app only — NO amount prefill, since deep-linking the amount
 // caused GPay to decline). Customer then scans/uploads the saved QR inside the app.
+// Session 26b: PAYMENT-SAFE deep-link. User ne bताya deep-link se app to khulta tha
+// par payment FAIL hota tha — isliye QR/gallery wala rasta apnaya gaya tha. Wajah:
+// pehle intent:// ne UPI string ko re-format kiya, jisse app payload ko theek se
+// parse nahi kar paata tha. QR isliye kaam karta hai kyunki wo BILKUL wahi upi://
+// string deta hai bina kisi badlav ke. To ab hum bhi wahi karte hain: har app ko
+// _payUpiStr (= QR ki hu-ba-hu same string) SEEDHA bhejte hain, koi re-format nahi.
+// Ye "gallery se scan" ke barabar hai — amount bhara, aur payment usi tarah complete.
+// App-specific: GPay/PhonePe/Paytm ke apne payment-scheme (jo poori upi query lete
+// hain) taaki wahi app khule; kaam na kare to 1.2s me generic upi:// (phone app-picker).
 window.openUpiApp=function(app){
-  const schemes={
-    gpay:['tez://upi/','gpay://','https://gpay.app.goo.gl/'],
-    phonepe:['phonepe://','ppe://'],
-    paytm:['paytmmp://','paytm://'],
-    bhim:['bhim://','upi://']
-  };
-  const list=schemes[app]||['upi://'];
-  // Try the app's scheme; if it doesn't open, the generic upi:// lets the phone pick an app.
-  let opened=false;
-  try{ window.location.href=list[0]; opened=true; }catch(e){}
-  // Fallback to a generic UPI intent after a short delay if nothing opened
-  setTimeout(()=>{ if(!document.hidden) { try{ window.location.href='upi://pay'; }catch(e){} } }, 800);
-  showToast('Opening '+app.toUpperCase()+' — then Scan QR → Gallery → pick the saved QR');
+  const upi=window._payUpiStr||'';
+  if(!upi){ showToast('QR ready nahi — thodi der baad try karein'); return; }
+  const q=upi.replace(/^upi:\/\/pay\??/,'');   // query part: pa=..&pn=..&am=..&cu=INR&tn=..
+  // App ke apne UPI-pay scheme (poori query same rehti hai — koi param nahi badalta).
+  // Ye upi:// jaisा hi payload le jaate hain, bas seedhे us app me. GPay=tez, PhonePe=phonepe, Paytm=paytmmp.
+  const appUrl={ gpay:'tez://upi/pay?'+q,
+                 phonepe:'phonepe://pay?'+q,
+                 paytm:'paytmmp://pay?'+q,
+                 bhim:upi }[app] || upi;
+  let jumped=false;
+  try{ window.location.href=appUrl; jumped=true; }catch(e){}
+  // App na khule / handle na kare to generic upi:// — phone khud app picker dikhata hai
+  // (bilkul QR-scan jaisा). Same string, isliye payment usi tarah chalta hai.
+  setTimeout(()=>{
+    if(!document.hidden && jumped){ try{ window.location.href=upi; }catch(e){} }
+  }, 1200);
+  showToast(app.toUpperCase()+' khul raha hai — amount pehle se bhara hoga');
 };
 // Session 16: QR ko canvas par khud banao — koi network call nahi, isliye
 // download hamesha chalta hai. qrcode() global embedded library se aata hai.
