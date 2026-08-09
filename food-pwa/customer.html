@@ -101,6 +101,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .mc-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px;margin-top:2px;}
 /* Session 24: price ab card ka sabse prominent element — bada, bold, apni line par */
 .mc-price{font-weight:900;color:var(--orange);font-size:1.42rem;letter-spacing:-.02em;line-height:1;}
+.mc-stars{margin-top:6px;display:flex;align-items:center;flex-wrap:wrap;gap:2px;}
 .mc-price .rs{font-size:.9rem;font-weight:800;vertical-align:2px;margin-right:1px;}
 .mc-badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
 .qbadge{font-size:.9rem;padding:4px 12px;border-radius:20px;font-weight:800;}
@@ -1823,12 +1824,20 @@ function buildCard(item){
       </div>
     </div>`;
   }
+// Session 25: review COMMENTS ab card par nahi (jagah gher rahe the) — sirf ek
+  // compact stars line. Tap par saare reviews ek modal me. Reviews window._itemReviews
+  // me stash hote hain taaki lambा text onclick/data-attr me na jaaye (XSS-safe bhi).
   const starsHtml = avgRating>0 ? '★'.repeat(Math.round(avgRating))+'☆'.repeat(5-Math.round(avgRating)) : '';
-  const reviewsHtml = rReviews.length>0 ? `
-    <div style="margin-top:7px;border-top:1px solid #f0f0f0;padding-top:7px">
-      <div style="color:#f59e0b;font-size:.82rem;margin-bottom:4px">${starsHtml} <span style="color:#333;font-weight:700;font-size:.8rem">${avgRating.toFixed(1)}</span> <span style="color:#999;font-size:.7rem">(${rCount} reviews)</span></div>
-      ${rReviews.map(r=>`<div style="font-size:.72rem;color:#555;line-height:1.4;margin-bottom:3px;padding:4px 7px;background:#f9f9f9;border-radius:6px;border-left:2px solid #f59e0b">💬 ${r}</div>`).join('')}
-    </div>` : (avgRating>0 ? `<div style="color:#f59e0b;font-size:.8rem;margin-top:5px">${starsHtml} ${avgRating.toFixed(1)} <span style="color:#999;font-size:.7rem">(${rCount})</span></div>` : '');
+  if(avgRating>0){ (window._itemReviews=window._itemReviews||{})[item.id]={name:item.name, avg:avgRating, count:rCount, reviews:(itemR.reviews||[])}; }
+  const hasComments=(itemR.reviews||[]).length>0;
+  const reviewsHtml = avgRating>0
+    ? `<div class="mc-stars" ${hasComments?`onclick="openReviews('${item.id}')" style="cursor:pointer"`:''} title="${hasComments?'Reviews padhein':''}">
+         <span style="color:#f59e0b;font-size:.9rem;letter-spacing:1px">${starsHtml}</span>
+         <span style="color:#333;font-weight:700;font-size:.78rem;margin-left:3px">${avgRating.toFixed(1)}</span>
+         <span style="color:#999;font-size:.68rem">(${rCount})</span>
+         ${hasComments?'<span style="color:#f59e0b;font-size:.66rem;font-weight:700;margin-left:2px">— reviews ›</span>':''}
+       </div>`
+    : '';
   div.innerHTML=imgHtml+`
     <div class="mc-body">
       <div class="mc-name">${item.name}</div>
@@ -2796,6 +2805,28 @@ window.openTrackingFor=function(id,ph,tot,addr,items){
   window.open(`track.html?order=${id}&total=${tot}&addr=${addr}&items=${items}`,'_blank');
 };
 
+// Session 25: item ke saare reviews ek modal me (card se comment hatane ke baad).
+window.openReviews=function(itemId){
+  const d=(window._itemReviews||{})[itemId];
+  if(!d) return;
+  document.getElementById('reviewModal')?.remove();
+  const stars=d.avg>0?'★'.repeat(Math.round(d.avg))+'☆'.repeat(5-Math.round(d.avg)):'';
+  const list=(d.reviews||[]).map(r=>`<div style="font-size:.82rem;color:#444;line-height:1.5;margin-bottom:8px;padding:9px 11px;background:#f9f9f9;border-radius:9px;border-left:3px solid #f59e0b">💬 ${esc(r)}</div>`).join('') || '<div style="color:#999;font-size:.82rem">Abhi koi likhit review nahi.</div>';
+  const m=document.createElement('div');
+  m.id='reviewModal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:flex;align-items:flex-end;justify-content:center';
+  m.onclick=function(e){ if(e.target===m) m.remove(); };
+  m.innerHTML=`<div style="background:#fff;border-radius:18px 18px 0 0;padding:17px 17px 26px;width:100%;max-width:460px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <div style="font-weight:800;font-size:1rem">${esc(d.name)}</div>
+      <button onclick="document.getElementById('reviewModal').remove()" style="background:none;border:none;font-size:1.3rem;cursor:pointer">✕</button>
+    </div>
+    <div style="color:#f59e0b;font-size:1rem;margin-bottom:12px">${stars} <span style="color:#333;font-weight:800;font-size:.9rem">${d.avg.toFixed(1)}</span> <span style="color:#999;font-size:.78rem">(${d.count} reviews)</span></div>
+    ${list}
+  </div>`;
+  document.body.appendChild(m);
+};
+
 window.openRating=async function(orderId){
   // Load order items and show rating dialog
   try{
@@ -3102,12 +3133,15 @@ if('serviceWorker' in navigator){
 <style>
 /* Session 24: jab running-total bar dikhta hai (body me padding-bottom lagta hai)
    to install button ko uske upar khiska do taaki overlap na ho. */
-body[style*="padding-bottom: 74px"] #kbInstallBtn{bottom:84px;}
-#kbInstallBtn{position:fixed;right:14px;bottom:16px;z-index:9000;display:inline-flex;
-  align-items:center;gap:7px;padding:11px 15px;border:none;border-radius:26px;
-  background:#e65c00;color:#fff;font-weight:800;font-size:.86rem;font-family:inherit;
-  box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:pointer;}
-#kbInstallBtn .kbi-ico{font-size:1.05rem;line-height:1}
+body[style*="padding-bottom: 74px"] #kbInstallBtn{bottom:80px;}
+/* Session 25: install button ~70% chhota + halka, taaki dhyan na bhatkaaye.
+   opacity kam; tap/hover par poora clear ho jaata hai. */
+#kbInstallBtn{position:fixed;right:11px;bottom:12px;z-index:9000;display:inline-flex;
+  align-items:center;gap:4px;padding:6px 10px;border:none;border-radius:20px;
+  background:#e65c00;color:#fff;font-weight:800;font-size:.66rem;font-family:inherit;
+  box-shadow:0 3px 10px rgba(0,0,0,.2);cursor:pointer;opacity:.55;transition:opacity .2s;}
+#kbInstallBtn:hover,#kbInstallBtn:active{opacity:1;}
+#kbInstallBtn .kbi-ico{font-size:.82rem;line-height:1}
 #kbIosSheet,#kbAndSheet{position:fixed;inset:0;z-index:9001;display:none;background:rgba(0,0,0,.5);
   align-items:flex-end;justify-content:center;}
 #kbIosSheet .kbi-card,#kbAndSheet .kbi-card{background:#fff;border-radius:18px 18px 0 0;padding:18px 18px 26px;
