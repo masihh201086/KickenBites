@@ -241,6 +241,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .upi-app-btn.paytm .upi-app-ico{background:#00baf2;}
 .upi-app-btn.bhim .upi-app-ico{background:#00796b;}
 .upi-app-btn:active{transform:scale(.96);}
+.upi-app-btn{text-decoration:none;} /* Session 26b: buttons ab <a> links hain */
 .upi-box-big{background:linear-gradient(135deg,#fff8f0,#ffe8d0);border:2px solid var(--op);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;align-items:stretch;margin-bottom:11px;}
 .upi-txt-big{font-size:1.15rem;font-weight:800;color:var(--dark);text-align:center;word-break:break-all;letter-spacing:.02em;}
 .copy-btn-big{width:100%;padding:13px;background:var(--orange);color:white;border:none;border-radius:11px;font-size:.95rem;font-weight:800;cursor:pointer;}
@@ -658,11 +659,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       </div>
       <button class="qr-dl-btn" onclick="downloadQR()">⬇️ QR Download / Save to Gallery</button>
       <div class="upi-apps-lbl">⚡ UPI app kholein → Gallery se QR → pay</div>
-      <div class="upi-apps-row">
-        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
-        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
-        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
-        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
+<div class="upi-apps-row">
+        <a class="upi-app-btn gpay"    id="upiLinkGpay1"    href="#" onclick="return upiLinkTap(this,'gpay')"><span class="upi-app-ico">G</span>GPay</a>
+        <a class="upi-app-btn phonepe" id="upiLinkPhonepe1" href="#" onclick="return upiLinkTap(this,'phonepe')"><span class="upi-app-ico">P</span>PhonePe</a>
+        <a class="upi-app-btn paytm"   id="upiLinkPaytm1"   href="#" onclick="return upiLinkTap(this,'paytm')"><span class="upi-app-ico">P</span>Paytm</a>
+        <a class="upi-app-btn bhim"    id="upiLinkBhim1"    href="#" onclick="return upiLinkTap(this,'bhim')"><span class="upi-app-ico">B</span>BHIM</a>
       </div>
 
       </div>
@@ -675,11 +676,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <button class="copy-btn-big" id="copyBtn" onclick="copyUpi()">📋 UPI ID Copy karein</button>
       </div>
       <div class="upi-apps-lbl">⚡ UPI app kholein → Gallery se QR → pay</div>
-      <div class="upi-apps-row">
-        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
-        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
-        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
-        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
+<div class="upi-apps-row">
+        <a class="upi-app-btn gpay"    id="upiLinkGpay2"    href="#" onclick="return upiLinkTap(this,'gpay')"><span class="upi-app-ico">G</span>GPay</a>
+        <a class="upi-app-btn phonepe" id="upiLinkPhonepe2" href="#" onclick="return upiLinkTap(this,'phonepe')"><span class="upi-app-ico">P</span>PhonePe</a>
+        <a class="upi-app-btn paytm"   id="upiLinkPaytm2"   href="#" onclick="return upiLinkTap(this,'paytm')"><span class="upi-app-ico">P</span>Paytm</a>
+        <a class="upi-app-btn bhim"    id="upiLinkBhim2"    href="#" onclick="return upiLinkTap(this,'bhim')"><span class="upi-app-ico">B</span>BHIM</a>
       </div>
       </div>
 
@@ -2320,6 +2321,7 @@ function showPayScreen(total){
   const ud=`upi://pay?pa=${encodeURIComponent(uid)}&pn=${encodeURIComponent(uname)}&am=${total}&cu=INR&tn=${encodeURIComponent(isDues?'Kicken Bites Dues':'Kicken Bites')}`;
   window._payUpiStr=ud; window._payQrName='KickenBites-Pay-'+total+'.png';
   renderQrCanvas(ud);
+  setUpiLinkHrefs(ud);   // Session 26b: real <a href> per app (fixes JS-navigation payment drop)
   // populate Pay Later panel amounts
   {const el=document.getElementById('plOrderAmt'); if(el)el.textContent='₹'+total;}
   // show previous dues if any
@@ -2361,6 +2363,34 @@ function showPayScreen(total){
 // Ye "gallery se scan" ke barabar hai — amount bhara, aur payment usi tarah complete.
 // App-specific: GPay/PhonePe/Paytm ke apne payment-scheme (jo poori upi query lete
 // hain) taaki wahi app khule; kaam na kare to 1.2s me generic upi:// (phone app-picker).
+// Session 26b: har UPI anchor ka href asli scheme+payload se set karo. Direct tap OS
+// ko poora payload deta hai (QR-scan jaisा) — JS location.href wali drop-problem khatam.
+function upiHrefFor(app, upi){
+  const q=upi.replace(/^upi:\/\/pay\??/,'');
+  return { gpay:'tez://upi/pay?'+q, phonepe:'phonepe://pay?'+q, paytm:'paytmmp://pay?'+q, bhim:upi }[app] || upi;
+}
+window.setUpiLinkHrefs=function(upi){
+  if(!upi) return;
+  ['1','2'].forEach(sfx=>{
+    [['Gpay','gpay'],['Phonepe','phonepe'],['Paytm','paytm'],['Bhim','bhim']].forEach(([cap,app])=>{
+      const a=document.getElementById('upiLink'+cap+sfx);
+      if(a) a.setAttribute('href', upiHrefFor(app,upi));
+    });
+  });
+};
+// Tap handler: href pehle se sahi hai (real navigation hoga). Bas ek fallback rakhte
+// hain — agar app 1.2s me na khule to generic upi:// (phone app-picker = scan jaisा).
+// return true dete hain taaki browser anchor ke href par asli navigation kare.
+window.upiLinkTap=function(a, app){
+  const upi=window._payUpiStr||'';
+  if(!upi){ showToast('QR ready nahi — thodi der baad try karein'); return false; }
+  // ensure href current hai (amount badla ho to)
+  a.setAttribute('href', upiHrefFor(app, upi));
+  setTimeout(()=>{ if(!document.hidden){ try{ window.location.href=upi; }catch(e){} } }, 1200);
+  showToast(app.toUpperCase()+' khul raha hai — amount pehle se bhara hoga');
+  return true;  // asli <a> navigation hone do (OS ko poora payload jaata hai)
+};
+// purana JS-navigation opener (ab use nahi hota, par kisi aur jagah call ho to safe rahe)
 window.openUpiApp=function(app){
   const upi=window._payUpiStr||'';
   if(!upi){ showToast('QR ready nahi — thodi der baad try karein'); return; }
