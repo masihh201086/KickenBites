@@ -2187,7 +2187,11 @@ function updateBill(){
     const bar=document.getElementById('runTotalBar');
     const nItems=items.reduce((n,i)=>n+(quantities[i.id]>0?quantities[i.id]:0),0);
     if(bar){
-      if(nItems>0){
+      // Session 28b: agar pay/success/login screen khula hai to running bar KABHI na dikhe
+      // (updateBill in overlays ke khulne ke baad bhi chal sakta hai — yahi float ka asli karan tha).
+      const payOpen=(function(){ const el=document.getElementById('payScreen'); return el && el.style.display && el.style.display!=='none'; })();
+      const okToShow=!payOpen;
+      if(nItems>0 && okToShow){
         bar.style.display='flex';
         const rc=document.getElementById('rtCount'), ra=document.getElementById('rtAmt');
         if(rc) rc.textContent=nItems+(nItems===1?' item':' items');
