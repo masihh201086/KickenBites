@@ -103,6 +103,8 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .mc-price{font-weight:900;color:var(--orange);font-size:1.42rem;letter-spacing:-.02em;line-height:1;}
 .mc-stars{margin-top:6px;display:flex;align-items:center;flex-wrap:wrap;gap:2px;}
 .mc-price .rs{font-size:.9rem;font-weight:800;vertical-align:2px;margin-right:1px;}
+/* Session 30: price ke saath unit suffix (per plate/unit/kg...) — chhota, halka */
+.mc-unit{font-size:.62rem;font-weight:700;color:var(--muted);margin-left:2px;letter-spacing:0;}
 .mc-badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
 .qbadge{font-size:.9rem;padding:4px 12px;border-radius:20px;font-weight:800;}
 .stockbar-wrap{margin:7px 0 2px;}
@@ -1911,7 +1913,7 @@ function buildCard(item){
       <div class="mc-name">${item.name}</div>
       ${item.desc?`<div class="mc-desc">${item.desc}</div>`:''}
       <div class="mc-meta">
-        <span class="mc-price"><span class="rs">₹</span>${item.price}</span>
+        <span class="mc-price"><span class="rs">₹</span>${item.price}<span class="mc-unit">/${item.unit||'plate'}</span></span>
         <div class="mc-badges">${qtyBadge}${ratingHtml}</div>
       </div>
       ${stockBar}
@@ -2038,6 +2040,7 @@ async function mergeMasterPrices(menuObj){
         id:m.id,
         name:m.name,
         price:m.price,
+        unit:m.unit||'plate',
         emoji:m.emoji||'🍛',
         desc:m.desc||'',
         imageUrl:m.imageUrl||'',
@@ -2050,7 +2053,7 @@ async function mergeMasterPrices(menuObj){
 function buildDefaultMenuC(ds,mcfg){
   const wd=weekdayKey(ds);
   const items=((mcfg&&mcfg.masterItems)||[]).filter(i=>i.name&&i.price>0&&i.weekdays&&i.weekdays[wd])
-    .map(i=>({id:i.id,name:i.name,price:i.price,emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
+    .map(i=>({id:i.id,name:i.name,price:i.price,unit:i.unit||'plate',emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
   if(!items.length)return null;
   return {date:ds,isOpen:true,isDefault:true,locationCharges:mcfg.locationCharges||{},shopName:mcfg.shopName||'Kicken Bites',upiId:mcfg.upiId||'',upiName:mcfg.upiName||'',imgbbKey:mcfg.imgbbKey||'',items};
 }
