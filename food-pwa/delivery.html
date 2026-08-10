@@ -637,31 +637,88 @@ function listenForAssignments(){
         knownIds.add(d.id);
         const o=od;
         if(knownIds.size>1||(knownIds.size===1&&o.status!=='delivered')){
-          notifyBoy(`📦 New order assigned! ${o.name} — ₹${o.total}`);
+          notifyBoy(`📦 New order assigned! ${o.name} — ₹${o.total}`, o);
         }
       }
     });
   });
 }
 
-function notifyBoy(msg){
-  // In-app
+function notifyBoy(msg, order){
+  // In-app toast
   showToast(msg);
-  // Browser
+  // Browser notification (works even if tab backgrounded, if permission granted)
   if('Notification' in window && Notification.permission==='granted'){
-    try{
-      new Notification('🍗 Kicken Bites',{body:msg,tag:'assignment'});
-    }catch(e){}
+    try{ new Notification('🍗 Kicken Bites',{body:msg,tag:'assignment'}); }catch(e){}
   }
-  // Sound
+  // Session 31: full-page ASSIGNED popup (app khuli ho tab) — admin ke delivered
+  // notice jaisा, taaki delivery boy miss na kare.
+  try{ if(document.visibilityState==='visible') showAssignedPopup(order,msg); }catch(e){}
+  // 3-note tone
+  kbPlayNotifTone();
+}
+// Session 31: pleasant 3-note tone
+// Session 32: animation keyframes (halka pulse/scale + emoji bounce + bg blink)
+function kbEnsureAnimStyles(){
+  if(document.getElementById('kbNotifStyles')) return;
+  var st=document.createElement('style'); st.id='kbNotifStyles';
+  st.textContent='@keyframes kbCardPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}'+
+    '@keyframes kbEmojiBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}'+
+    '@keyframes kbBgBlink{0%,100%{background:rgba(0,0,0,.75)}50%{background:rgba(0,0,0,.85)}}';
+  document.head.appendChild(st);
+}
+function kbPlayNotifTone(){
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    const o=ctx.createOscillator(),g=ctx.createGain();
-    o.connect(g);g.connect(ctx.destination);
-    o.frequency.value=660;g.gain.setValueAtTime(0.3,ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.4);
-    o.start();o.stop(ctx.currentTime+0.4);
+    [880,660,880].forEach(function(freq,i){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=freq;
+      g.gain.setValueAtTime(0.25,ctx.currentTime+i*0.15);
+      g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+i*0.15+0.12);
+      o.start(ctx.currentTime+i*0.15);
+      o.stop(ctx.currentTime+i*0.15+0.13);
+    });
   }catch(e){}
+}
+// Session 31: full-page assigned popup
+// Session 32b: assigned popup se seedhe order list (Active tab) par — admin ke "View Order" jaisा
+window.viewAssignedOrder=function(){
+  const el=document.getElementById('assignedPopup'); if(el)el.remove();
+  try{ if(typeof swTab==='function') swTab('active'); }catch(e){}
+  try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+};
+function showAssignedPopup(order, msg){
+  let el=document.getElementById('assignedPopup'); if(el)el.remove();
+  const items=order&&order.items?(order.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', '):'';
+  const addr=order&&order.address?order.address:'';
+  const nm=order&&order.name?order.name:'';
+  kbEnsureAnimStyles();  // Session 32: animated popup
+  el=document.createElement('div');
+  el.id='assignedPopup';
+  el.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:18px;animation:kbBgBlink 1.3s ease infinite';
+  el.innerHTML='<div style="background:#fff;border-radius:20px;max-width:360px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:kbCardPulse 1.3s ease infinite">'+
+    '<div style="background:var(--g,#16a34a);padding:20px;text-align:center;color:#fff">'+
+      '<div style="font-size:3rem;animation:kbEmojiBounce 0.9s ease infinite">📦</div>'+
+      '<div style="font-size:1.2rem;font-weight:900;margin-top:6px">Naya Order Mila!</div>'+
+      '<div style="font-size:.78rem;opacity:.9;margin-top:3px">Aapko ye order assign hua hai</div>'+
+    '</div>'+
+    '<div style="padding:15px 16px">'+
+      (nm||items||addr?('<div style="background:#f7f7f7;border-radius:12px;padding:12px;font-size:.85rem;line-height:1.7;margin-bottom:12px">'+
+        (nm?'<b>'+esc(nm)+'</b><br>':'')+
+        (items?esc(items)+'<br>':'')+
+        (addr?'📍 '+esc(addr):'')+
+        (order&&order.total?'<br><span style="font-weight:900;color:var(--g,#16a34a);font-size:1.05rem">₹'+order.total+'</span>':'')+
+      '</div>'):'')+
+      '<div style="display:flex;gap:8px">'+
+        '<button onclick="document.getElementById(\'assignedPopup\').remove()" style="flex:1;background:#eee;color:#333;border:none;padding:13px;border-radius:12px;font-weight:700;font-size:.9rem;cursor:pointer">Theek hai</button>'+
+        '<button onclick="viewAssignedOrder()" style="flex:2;background:var(--g,#16a34a);color:#fff;border:none;padding:13px;border-radius:12px;font-weight:800;font-size:.9rem;cursor:pointer">📋 Order dekhein</button>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+  el.addEventListener('click',e=>{if(e.target===el)el.remove();});
+  document.body.appendChild(el);
+  setTimeout(()=>{try{el.remove();}catch(e){}},60000);
 }
 
 window.doLogout = async function() {

@@ -1146,11 +1146,12 @@ function checkDeliveredNotice(orders){
 function showDeliveredPopup(o){
   let el=document.getElementById('deliveredPopup'); if(el)el.remove();
   const items=(o.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', ');
+  kbEnsureAnimStyles();  // Session 32: halka chhota-bada animated popup
   el=document.createElement('div');
   el.id='deliveredPopup';
-  el.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px';
-  el.innerHTML='<div style="background:white;border-radius:18px;max-width:360px;width:100%;padding:22px;text-align:center">'+
-    '<div style="font-size:3rem">🎉</div>'+
+  el.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;animation:kbBgBlink 1.3s ease infinite';
+  el.innerHTML='<div style="background:white;border-radius:18px;max-width:360px;width:100%;padding:22px;text-align:center;animation:kbCardPulse 1.3s ease infinite">'+
+    '<div style="font-size:3rem;animation:kbEmojiBounce 0.9s ease infinite">🎉</div>'+
     '<div style="font-size:1.2rem;font-weight:900;color:#16a34a;margin:6px 0">Order Delivered!</div>'+
     '<div style="font-size:.8rem;font-weight:800;color:#333;margin-bottom:2px">Order #'+(o.id?o.id.slice(-5).toUpperCase():'')+'</div>'+
     '<div style="font-size:.85rem;color:#555;margin-bottom:4px">'+(items||'Your order')+'</div>'+
@@ -1160,6 +1161,32 @@ function showDeliveredPopup(o){
   '</div>';
   el.addEventListener('click',e=>{if(e.target===el)el.remove();});
   document.body.appendChild(el);
+  kbPlayNotifTone();   // Session 31: delivered popup ke saath tone
+}
+// Session 31: chhota pleasant 3-note tone (admin ke jaisा). App khuli ho tabhi bajta hai.
+// Session 32: ek baar animation keyframes inject karo (admin ke orderAlert jaisा —
+// halka pulse/scale, emoji bounce, background blink). Blank/flat popup se zyada appealing.
+function kbEnsureAnimStyles(){
+  if(document.getElementById('kbNotifStyles')) return;
+  var st=document.createElement('style'); st.id='kbNotifStyles';
+  st.textContent='@keyframes kbCardPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}'+
+    '@keyframes kbEmojiBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}'+
+    '@keyframes kbBgBlink{0%,100%{background:rgba(0,0,0,.6)}50%{background:rgba(0,0,0,.72)}}';
+  document.head.appendChild(st);
+}
+function kbPlayNotifTone(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [880,660,880].forEach(function(freq,i){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=freq;
+      g.gain.setValueAtTime(0.2,ctx.currentTime+i*0.15);
+      g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+i*0.15+0.12);
+      o.start(ctx.currentTime+i*0.15);
+      o.stop(ctx.currentTime+i*0.15+0.13);
+    });
+  }catch(e){}
 }
 window.rateFromDelivered=function(orderId){
   const el=document.getElementById('deliveredPopup'); if(el)el.remove();
