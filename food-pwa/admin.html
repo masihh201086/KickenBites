@@ -2166,7 +2166,7 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;'
 function buildDefaultMenu(ds){
   const wd=weekdayKey(ds);
   const items=(masterItems||[]).filter(i=>i.name&&i.price>0&&i.weekdays&&i.weekdays[wd])
-    .map(i=>({id:i.id,name:i.name,price:i.price,unit:i.unit||'plate',emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
+    .map(i=>({id:i.id,name:i.name,price:i.price,halfPrice:Number(i.halfPrice)||0,unit:i.unit||'plate',emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
   if(!items.length)return null;
   return {date:ds,isOpen:true,isDefault:true,locationCharges:cfg.locationCharges||{},shopName:cfg.shopName||'Kicken Bites',upiId:cfg.upiId||'',upiName:cfg.upiName||'',imgbbKey:cfg.imgbbKey||'',items};
 }
@@ -2468,6 +2468,11 @@ function renderMaster(){
               ${['plate','unit','kg','piece','half kg','bowl','glass'].map(u=>`<option value="${u}" ${((item.unit||'plate')===u)?'selected':''}>per ${u}</option>`).join('')}
             </select>
           </div>
+          <div class="inp-row" style="margin-top:6px">
+            <label style="font-size:.64rem;font-weight:800;text-transform:uppercase;color:var(--muted);align-self:center">Half price:</label>
+            <input class="inp" data-i="${idx}" data-f="halfPrice" type="number" inputmode="numeric" value="${item.halfPrice||''}" placeholder="₹ (optional — Full/Half chips)" style="flex:1">
+          </div>
+          <div style="font-size:.58rem;color:var(--muted);margin-top:2px">Half price bharenge to customer ko Full/Half chunne ka option milega (jaise grilled chicken). Khaali = normal item.</div>
           <input class="inp" data-i="${idx}" data-f="desc" value="${item.desc||''}" placeholder="Description (optional)">
           <input class="inp" data-i="${idx}" data-f="emoji" value="${item.emoji||'🍛'}" placeholder="Emoji" style="width:60px">
           <div style="margin-top:7px">
@@ -2490,7 +2495,7 @@ function renderMaster(){
       </div>
     </div>`).join('');
   list.querySelectorAll('input[data-f]').forEach(inp=>{
-    inp.addEventListener('input',()=>{const i=parseInt(inp.dataset.i),f=inp.dataset.f;if(!isNaN(i)&&masterItems[i])masterItems[i][f]=f==='price'?Number(inp.value):inp.value;});
+    inp.addEventListener('input',()=>{const i=parseInt(inp.dataset.i),f=inp.dataset.f;if(!isNaN(i)&&masterItems[i])masterItems[i][f]=(f==='price'||f==='halfPrice')?Number(inp.value):inp.value;});
   });
   // Session 30: unit dropdown (select) bhi masterItems me save ho
   list.querySelectorAll('select[data-f]').forEach(sel=>{

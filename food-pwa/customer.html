@@ -105,6 +105,10 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .mc-price .rs{font-size:.9rem;font-weight:800;vertical-align:2px;margin-right:1px;}
 /* Session 30: price ke saath unit suffix (per plate/unit/kg...) — chhota, halka */
 .mc-unit{font-size:.62rem;font-weight:700;color:var(--muted);margin-left:2px;letter-spacing:0;}
+/* Session 33: Full/Half portion chips (grilled chicken jaisे items) */
+.portion-row{display:flex;gap:6px;margin-top:6px;}
+.portion-chip{flex:1;padding:6px 4px;border:1.5px solid #e5e7eb;border-radius:9px;background:#fff;font-weight:800;font-size:.72rem;color:var(--dark);cursor:pointer;}
+.portion-chip.on{border-color:var(--orange);background:#fff4ec;color:var(--orange);}
 .mc-badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
 .qbadge{font-size:.9rem;padding:4px 12px;border-radius:20px;font-weight:800;}
 .stockbar-wrap{margin:7px 0 2px;}
@@ -1940,9 +1944,13 @@ function buildCard(item){
       <div class="mc-name">${item.name}</div>
       ${item.desc?`<div class="mc-desc">${item.desc}</div>`:''}
       <div class="mc-meta">
-        <span class="mc-price"><span class="rs">₹</span>${item.price}<span class="mc-unit">/${item.unit||'plate'}</span></span>
+        <span class="mc-price" id="pr_${item.id}"><span class="rs">₹</span>${portionPrice(item)}<span class="mc-unit">/${portionUnitLabel(item)}</span></span>
         <div class="mc-badges">${qtyBadge}${ratingHtml}</div>
       </div>
+      ${(Number(item.halfPrice)>0)?`<div class="portion-row">
+        <button class="portion-chip on" id="pcF_${item.id}" onclick="setPortion('${item.id}','full')">Full ₹${item.price}</button>
+        <button class="portion-chip" id="pcH_${item.id}" onclick="setPortion('${item.id}','half')">Half ₹${item.halfPrice}</button>
+      </div>`:''}
       ${stockBar}
       ${reviewsHtml}
     </div>
@@ -2009,6 +2017,31 @@ window.sortMenu = function(sort) {
   renderMenu(items);
 };
 
+// ══════════ Session 33: Full/Half portion ══════════
+window._portionSel=window._portionSel||{};   // item.id -> 'full'|'half'
+function portionOf(id){ return (window._portionSel && window._portionSel[id]==='half')?'half':'full'; }
+function itemById(id){ return (menuConfig.items||[]).find(i=>i.id===id); }
+function portionPrice(item){
+  if(!item) return 0;
+  if(Number(item.halfPrice)>0 && portionOf(item.id)==='half') return Number(item.halfPrice);
+  return Number(item.price)||0;
+}
+function portionUnitLabel(item){
+  if(item && Number(item.halfPrice)>0) return portionOf(item.id)==='half'?'half':'full';
+  return (item&&item.unit)||'plate';
+}
+window.setPortion=function(id,which){
+  window._portionSel[id]=which;
+  const it=itemById(id);
+  // price label update
+  const pr=document.getElementById('pr_'+id);
+  if(pr&&it) pr.innerHTML='<span class="rs">₹</span>'+portionPrice(it)+'<span class="mc-unit">/'+portionUnitLabel(it)+'</span>';
+  // chip active state
+  const f=document.getElementById('pcF_'+id), h=document.getElementById('pcH_'+id);
+  if(f)f.classList.toggle('on',which==='full');
+  if(h)h.classList.toggle('on',which==='half');
+  updateBill();
+};
 window.chgQty=function(id,d,max){
   const cur=quantities[id]||0,nw=Math.max(0,Math.min(max,cur+d));
   if(d>0&&nw===cur&&cur>=max){showToast('Maximum available quantity!');return;}
@@ -2067,6 +2100,7 @@ async function mergeMasterPrices(menuObj){
         id:m.id,
         name:m.name,
         price:m.price,
+        halfPrice:Number(m.halfPrice)||0,
         unit:m.unit||'plate',
         emoji:m.emoji||'🍛',
         desc:m.desc||'',
@@ -2080,7 +2114,7 @@ async function mergeMasterPrices(menuObj){
 function buildDefaultMenuC(ds,mcfg){
   const wd=weekdayKey(ds);
   const items=((mcfg&&mcfg.masterItems)||[]).filter(i=>i.name&&i.price>0&&i.weekdays&&i.weekdays[wd])
-    .map(i=>({id:i.id,name:i.name,price:i.price,unit:i.unit||'plate',emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
+    .map(i=>({id:i.id,name:i.name,price:i.price,halfPrice:Number(i.halfPrice)||0,unit:i.unit||'plate',emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
   if(!items.length)return null;
   return {date:ds,isOpen:true,isDefault:true,locationCharges:mcfg.locationCharges||{},shopName:mcfg.shopName||'Kicken Bites',upiId:mcfg.upiId||'',upiName:mcfg.upiName||'',imgbbKey:mcfg.imgbbKey||'',items};
 }
@@ -2131,7 +2165,7 @@ window.selectDate=async function(which,val){
     quantities={};menuConfig={};updateBill();
   }else{
     data=await mergeMasterPrices(data);
-    menuConfig=data;quantities={};
+    menuConfig=data;quantities={};window._portionSel={};
     // Reload ratings then render
     await loadItemRatings();
     renderMenu(data.items);
@@ -2181,7 +2215,7 @@ window.locChanged=function(){
 
 function getTotal(){
   const items=menuConfig.items||[];
-  let sub=0;items.forEach(i=>{sub+=(quantities[i.id]||0)*i.price;});
+  let sub=0;items.forEach(i=>{sub+=(quantities[i.id]||0)*portionPrice(i);});
   let dc=0;
   if(orderType==='delivery'&&sub>0){
     const loc=document.getElementById('cLoc')?.value||'';
@@ -2194,7 +2228,7 @@ function getTotal(){
 function updateBill(){
   const{sub,delivery,total}=getTotal();
   const items=menuConfig.items||[];
-  let html='';items.forEach(i=>{if(quantities[i.id]>0)html+=`<div class="br"><span>${i.name} ×${quantities[i.id]}</span><span>₹${quantities[i.id]*i.price}</span></div>`;});
+  let html='';items.forEach(i=>{if(quantities[i.id]>0){const pp=portionPrice(i);const pn=(Number(i.halfPrice)>0)?(' ('+(portionOf(i.id)==='half'?'Half':'Full')+')'):'';html+=`<div class="br"><span>${i.name}${pn} ×${quantities[i.id]}</span><span>₹${quantities[i.id]*pp}</span></div>`;}});
   document.getElementById('billItems').innerHTML=html;
   // Show the day + date this order is for, in the Bill Summary
   const bd=document.getElementById('billDate');
@@ -2291,7 +2325,12 @@ window.placeOrderClick=async function(){
   }
   const notes=document.getElementById('orderNotes').value.trim();
   const{sub,delivery,total}=getTotal();
-  const items=(menuConfig.items||[]).filter(i=>quantities[i.id]>0).map(i=>({id:i.id,name:i.name,qty:quantities[i.id],price:i.price,subtotal:quantities[i.id]*i.price}));
+  const items=(menuConfig.items||[]).filter(i=>quantities[i.id]>0).map(i=>{
+    const isHalf=(Number(i.halfPrice)>0 && portionOf(i.id)==='half');
+    const pp=portionPrice(i);
+    const pname=i.name+((Number(i.halfPrice)>0)?(' ('+(isHalf?'Half':'Full')+')'):'');
+    return {id:i.id,name:pname,qty:quantities[i.id],price:pp,subtotal:quantities[i.id]*pp,portion:(Number(i.halfPrice)>0?(isHalf?'half':'full'):'')};
+  });
   const btn=document.getElementById('placeBtn');btn.disabled=true;btn.textContent='Placing…';
   try{
     const ds=selectedDate||today;
