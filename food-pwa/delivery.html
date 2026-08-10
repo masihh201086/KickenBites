@@ -469,7 +469,10 @@ window.verifyPin = async function() {
   try {
     const snap = await getDoc(doc(db,'deliveryBoys',loginPhone));
     if (snap.exists() && await pinMatches(snap.data().pin, pin)) {
-      boy = snap.data();
+      // Session 34: phone hamesha set karo — deliveryBoys doc me phone field na ho
+      // to boy.phone undefined reh jata tha aur listenForAssignments() chup-chaap
+      // return kar jata tha (koi assignment popup hi nahi).
+      boy = {...snap.data(), phone: loginPhone};
       // purana plaintext PIN mila to chupchaap hash me upgrade kar do
       if(!isHashedPin(boy.pin)){
         try{ const h=await hashPin(pin); await setDoc(doc(db,'deliveryBoys',loginPhone),{pin:h},{merge:true}); boy.pin=h; }catch(e){}
@@ -558,6 +561,8 @@ async function startApp() {
   try{ loadOrders(); }catch(e){ console.error('loadOrders',e); showLoadError(); }
   try{ watchDelDaysWithOrders(); }catch(e){ console.error('dayWatch',e); }
   try{ listenForAssignments(); }catch(e){ console.error('assignments',e); }
+  // Session 34: app band hone se pehle koi assignment pending rah gayi thi to abhi dikhao
+  setTimeout(function(){ try{ replayPendingAssign(); }catch(e){} },1200);
   try{ listenForSalaryPaid(); }catch(e){ console.error('salaryPaid',e); }
   try{ watchDeviceSession(); }catch(e){ console.error('deviceWatch',e); }
   // Session 29: GPS AUTO-SHARE on login — boy ko manually "Start" dabana na pade.
@@ -628,21 +633,62 @@ function listenForAssignments(){
   // without a composite index that this project does not have — so assignment
   // notifications silently never fired. Query one field, filter the other here.
   const q=query(collection(db,'orders'),where('assignedBoyPhone','==',boy.phone));
-  let knownIds=new Set();
+  // Session 34 — POPUP KYUN NAHI AATA THA:
+  // purana code ek in-memory Set rakhta tha. Jab order assign hua aur app background
+  // me thi (screen off / doosri app), snapshot chal jata tha, id Set me chali jati thi,
+  // par popup ka koi rasta nahi tha — aur wapas kholne par snapshot dobara nahi chalta,
+  // isliye popup HAMESHA gum ho jata tha. Ab:
+  //   * seen-map localStorage me hai (per-day, taaki badhta na jaye)
+  //   * app saamne ho -> turant popup
+  //   * app peeche ho -> pending me rakho, foreground aate hi replay (replayPendingAssign)
+  let _assignFirst = true;
   onSnapshot(q,snap=>{
+    let ids={};
+    try{ const p=JSON.parse(localStorage.getItem('kb_del_assign_seen')||'null'); if(p&&p.date===today) ids=p.ids||{}; }catch(e){}
+    let everRun=false;
+    try{ everRun = localStorage.getItem('kb_del_assign_init')==='1'; }catch(e){}
+    const fresh=[];
     snap.docs.forEach(d=>{
       const od=d.data();
       if((od.date||'')!==today) return;
-      if(!knownIds.has(d.id)){
-        knownIds.add(d.id);
-        const o=od;
-        if(knownIds.size>1||(knownIds.size===1&&o.status!=='delivered')){
-          notifyBoy(`📦 New order assigned! ${o.name} — ₹${o.total}`, o);
-        }
-      }
+      if(ids[d.id]) return;
+      ids[d.id]=true;
+      if(od.status!=='delivered' && od.status!=='cancelled') fresh.push({id:d.id,...od});
     });
+    try{ localStorage.setItem('kb_del_assign_seen',JSON.stringify({date:today,ids:ids})); }catch(e){}
+    if(_assignFirst){
+      _assignFirst=false;
+      // Is device par bilkul pehli baar: sirf baseline banao, purane orders ka popup mat do.
+      if(!everRun){ try{ localStorage.setItem('kb_del_assign_init','1'); }catch(e){} return; }
+    }
+    if(!fresh.length) return;
+    const o=fresh[0];
+    const msg='📦 New order assigned! '+(o.name||'')+' — ₹'+(o.total||0);
+    if(document.visibilityState==='visible'){
+      notifyBoy(msg, o);
+    }else{
+      try{ localStorage.setItem('kb_del_assign_pop',JSON.stringify({
+        id:o.id, name:o.name||'', items:o.items||[], address:o.address||'', total:o.total||0, msg:msg
+      })); }catch(e){}
+      try{ if('Notification' in window && Notification.permission==='granted') new Notification('🍗 Kicken Bites',{body:msg,tag:'assignment'}); }catch(e){}
+    }
   });
 }
+
+// Session 34: app peeche thi tab jo assignment aayi thi, uska popup foreground par replay.
+function replayPendingAssign(){
+  let raw=null;
+  try{ raw=localStorage.getItem('kb_del_assign_pop'); }catch(e){}
+  if(!raw) return;
+  try{ localStorage.removeItem('kb_del_assign_pop'); }catch(e){}
+  let o=null; try{ o=JSON.parse(raw); }catch(e){ o=null; }
+  if(!o||!o.id) return;
+  try{ showAssignedPopup(o, o.msg||''); }catch(e){}
+  try{ kbPlayNotifTone(); }catch(e){}
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible') setTimeout(replayPendingAssign,300);
+});
 
 function notifyBoy(msg, order){
   // In-app toast

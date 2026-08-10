@@ -761,11 +761,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   <div class="oid">Order ID: <strong id="succOrderId"></strong></div>
   <div class="sdet" id="succDetails"></div>
 <!-- Rating moved to My Orders tab for delivered orders only -->
+  <!-- Session 34: pichle delivered order ka feedback — naya order dete hi yahin option -->
+  <div id="prevFbCard" style="display:none;width:100%;margin-bottom:10px"></div>
   <!-- Navigation buttons -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin-bottom:8px">
     <button onclick="goMyOrders()" style="padding:12px;background:var(--dark);color:white;border:none;border-radius:var(--r);font-weight:700;font-size:.84rem;cursor:pointer">📋 My Orders</button>
     <button onclick="placeNext()" style="padding:12px;background:var(--orange);color:white;border:none;border-radius:var(--r);font-weight:700;font-size:.84rem;cursor:pointer">🛒 Order More</button>
   </div>
+  <!-- Session 34: order poora hone ke baad seedha Home (menu) par -->
+  <button id="succHomeBtn" onclick="goHomeFromSuccess()" style="width:100%;padding:12px;background:white;color:var(--dark);border:2px solid var(--dark);border-radius:var(--r);font-weight:800;font-size:.86rem;cursor:pointer;margin-bottom:8px">🏠 Home par jayein</button>
   <button class="track-btn" id="trackBtn" onclick="openTracking()" style="display:flex"><span>📍</span> Track Delivery & See Path</button>
   <button class="wa-btn" onclick="try{sendCustomerConfirmWA()}catch(err){alert('Error: '+err.message)}" style="background:#25d366">
     <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -1124,8 +1128,8 @@ window.changePinPrompt = async function() {
 // Popup if the app is open; always leave an unseen flag so a banner shows in Orders tab.
 let _deliveredInit=false;
 function checkDeliveredNotice(orders){
-  let seen={};
-  try{ seen=JSON.parse(localStorage.getItem('kb_delivered_seen')||'{}'); }catch(e){}
+  let seen={}, hadSeen=false;
+  try{ const _r=localStorage.getItem('kb_delivered_seen'); if(_r!=null){ seen=JSON.parse(_r)||{}; hadSeen=true; } }catch(e){}
   const justDelivered=[];
   (orders||[]).forEach(o=>{
     if(o.status==='delivered' && !seen[o.id]){
@@ -1134,22 +1138,47 @@ function checkDeliveredNotice(orders){
     }
   });
   try{ localStorage.setItem('kb_delivered_seen',JSON.stringify(seen)); }catch(e){}
-  // On the very first snapshot after login, don't pop up for already-delivered history —
-  // just mark them seen (above) so only NEW deliveries during this session pop up.
-  if(!_deliveredInit){ _deliveredInit=true; return; }
+  // Session 34 — POPUP KYUN NAHI AATA THA (sirf banner aata tha):
+  //  (a) har session ki PEHLI snapshot chhod di jati thi. Customer app aam taur par
+  //      delivery ke BAAD hi kholta hai, to delivered order usi pehli snapshot me
+  //      aata tha -> chupchaap "seen" mark hokar popup gum ho jata tha.
+  //  (b) delivery ke waqt app peeche ho (screen off) to sirf banner ka flag banta tha
+  //      aur popup ka koi replay nahi tha.
+  // Ab: pehli-baar-is-device-par (koi seen-map hi nahi) hi silent hota hai; uske baad
+  // har un-seen delivered order ka popup zaroor dikhta hai — turant ya foreground par.
+  const firstEverRun = !hadSeen;
+  if(!_deliveredInit){ _deliveredInit=true; if(firstEverRun) return; }
   if(!justDelivered.length)return;
-  // Show popup if app is visible, else store a pending banner for the Orders tab
+  const o=justDelivered[0];
+  const itemsText=(o.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', ');
   if(document.visibilityState==='visible'){
-    showDeliveredPopup(justDelivered[0]);
+    showDeliveredPopup(o);
   }else{
-    const o=justDelivered[0];
-    const info={id:o.id, items:(o.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', '), total:o.total||0, date:o.date||''};
+    const info={id:o.id, items:itemsText, total:o.total||0, date:o.date||''};
     try{ localStorage.setItem('kb_delivered_pending', JSON.stringify(info)); }catch(e){}
+    try{ localStorage.setItem('kb_delivered_pop', JSON.stringify({id:o.id, itemsText:itemsText, total:o.total||0})); }catch(e){}
   }
 }
+// Session 34: app peeche thi tab jo delivery hui thi — foreground aate hi POPUP replay
+// (pehle yahan sirf banner dikhta tha). Popup dikhne par banner ka flag bhi hata dete
+// hain taaki dono ek saath na aayen.
+function replayPendingDeliveredPopup(){
+  let raw=null;
+  try{ raw=localStorage.getItem('kb_delivered_pop'); }catch(e){}
+  if(!raw)return;
+  try{ localStorage.removeItem('kb_delivered_pop'); localStorage.removeItem('kb_delivered_pending'); }catch(e){}
+  let info=null; try{ info=JSON.parse(raw); }catch(e){ info=null; }
+  if(!info||!info.id)return;
+  showDeliveredPopup(info);
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible') setTimeout(replayPendingDeliveredPopup,300);
+});
+setTimeout(function(){ try{ replayPendingDeliveredPopup(); }catch(e){} },2500);
 function showDeliveredPopup(o){
   let el=document.getElementById('deliveredPopup'); if(el)el.remove();
-  const items=(o.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', ');
+  // Session 34: replay ke waqt sirf {id,itemsText} milta hai, poora order nahi.
+  const items=(o&&o.itemsText!=null)?o.itemsText:((o&&o.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', '));
   kbEnsureAnimStyles();  // Session 32: halka chhota-bada animated popup
   el=document.createElement('div');
   el.id='deliveredPopup';
@@ -1244,6 +1273,7 @@ function loadMyOrders(phone) {
     const q=query(collection(db,'orders'),where('phone','==',phone));
     ordersUnsub=onSnapshot(q,snap=>{
       const orders=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+      window._myOrdersAll=orders;   // Session 34: pichle order ka feedback prompt isi se banta hai
       checkDeliveredNotice(orders);
       renderMyOrders(orders);
       renderOrderDateChips(orders);
@@ -1720,6 +1750,13 @@ async function loadItemRatings() {
     const {getDocs:firestoreGetDocs} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap = await firestoreGetDocs(collection(db,'ratings'));
     const ratings = snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Session 34: jin orders ka feedback aa chuka hai unka set — naye order ke baad
+    // "pichle order ka feedback dein" prompt isi se decide hota hai.
+    try{
+      const done=new Set();
+      ratings.forEach(r=>{ const oid=r.orderId||String(r.id||'').split('_')[0]; if(oid) done.add(oid); });
+      window._ratedOrders=done;
+    }catch(e){ window._ratedOrders=window._ratedOrders||new Set(); }
 // console.log('Total ratings in DB:',ratings.length);
 
     // Clear existing
@@ -2917,6 +2954,8 @@ function showSuccess(){
   document.getElementById('succDetails').innerHTML=s;
   show('successScreen');
   if(currentProfile?.phone) loadMyOrders(currentProfile.phone);
+  // Session 34: naya order dete hi pichle delivered order ka feedback maango
+  setTimeout(function(){ try{ maybeShowPrevFeedback(); }catch(e){} },1000);
 }
 
 // ---- RATING ----
@@ -3106,6 +3145,48 @@ window.goMyOrders=function(){
   hide('successScreen');
   switchTab('myorders');
 };
+
+// Session 34: order complete hone ke baad Home (menu) par wapas jane ka button.
+// Cart khali karta hai taaki neeche wali running-total bar purana amount na dikhaye.
+window.goHomeFromSuccess=function(){
+  hide('successScreen');
+  quantities={};
+  try{ window._portionSel={}; }catch(e){}
+  try{ renderMenu(menuConfig.items||[]); }catch(e){}
+  try{ updateBill(); }catch(e){}
+  switchTab('order');
+  window.scrollTo(0,0);
+};
+
+// ===== Session 34: PICHLE ORDER KA FEEDBACK (naya order dene par) =====
+window.rateFromSuccess=function(orderId){
+  const c=document.getElementById('prevFbCard'); if(c)c.style.display='none';
+  try{ openRating(orderId); }catch(e){}
+};
+window.dismissPrevFb=function(){
+  const c=document.getElementById('prevFbCard'); if(c)c.style.display='none';
+};
+async function maybeShowPrevFeedback(){
+  const box=document.getElementById('prevFbCard'); if(!box)return;
+  box.style.display='none'; box.innerHTML='';
+  try{ await loadItemRatings(); }catch(e){}
+  const rated=window._ratedOrders||new Set();
+  const mine=window._myOrdersAll||[];
+  const cand=mine
+    .filter(o=>o.status==='delivered' && o.id!==currentOrderId && !rated.has(o.id))
+    .sort((a,b)=>String(b.deliveredAt||b.createdAt||'').localeCompare(String(a.deliveredAt||a.createdAt||'')))[0];
+  if(!cand)return;
+  const items=(cand.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', ');
+  box.innerHTML='<div style="background:#fff7ed;border:2px solid #f59e0b;border-radius:14px;padding:13px;text-align:left">'
+    +'<div style="font-weight:900;font-size:.92rem;color:#b45309;margin-bottom:3px">⭐ Pichle order ka feedback dein</div>'
+    +'<div style="font-size:.77rem;color:#555;margin-bottom:2px">Order #'+String(cand.id).slice(-5).toUpperCase()+(cand.date?' · '+esc(cand.date):'')+'</div>'
+    +(items?'<div style="font-size:.77rem;color:#777;margin-bottom:9px">'+esc(items)+'</div>':'<div style="height:7px"></div>')
+    +'<div style="display:grid;grid-template-columns:2fr 1fr;gap:7px">'
+      +'<button onclick="rateFromSuccess(\''+cand.id+'\')" style="padding:10px;background:#f59e0b;color:#fff;border:none;border-radius:10px;font-weight:800;font-size:.82rem;cursor:pointer">⭐ Rating dein</button>'
+      +'<button onclick="dismissPrevFb()" style="padding:10px;background:#eee;color:#555;border:none;border-radius:10px;font-weight:700;font-size:.82rem;cursor:pointer">Baad me</button>'
+    +'</div></div>';
+  box.style.display='block';
+}
 
 window.placeNext=function(){
   quantities={};currentOrderId=null;currentTotal=0;
