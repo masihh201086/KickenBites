@@ -2185,13 +2185,23 @@ const _closedDatesSet=new Set();
 async function preloadClosedDates(){
   try{
     const days=next7Days().map(function(d){return d.date;});
+    const mcfg=await getMasterCfg().catch(function(){return null;});
     const snaps=await Promise.all(days.map(function(ds){return getDoc(doc(db,'dailyMenu',ds));}));
     snaps.forEach(function(snap,i){
-      const d2=snap.data()||{};
-      const closed=snap.exists()&&d2.isDefault!==true&&d2.isOpen===false;
-      if(closed)_closedDatesSet.add(days[i]);else _closedDatesSet.delete(days[i]);
+      const ds=days[i]; const d2=snap.data()||{};
+      let closed=false;
+      if(snap.exists()&&d2.isDefault!==true){
+        // explicit override doc: trust its isOpen flag
+        closed=(d2.isOpen===false);
+      } else {
+        // no override: check if weekly default has any items for this weekday
+        // buildDefaultMenuC returns null when no items → that day has no menu → closed
+        const def=mcfg?buildDefaultMenuC(ds,mcfg):null;
+        closed=!def;   // null = no menu = closed/no-menu
+      }
+      if(closed)_closedDatesSet.add(ds);else _closedDatesSet.delete(ds);
     });
-    renderOrderDayChips();   // re-render chips with freshly-loaded closed info
+    renderOrderDayChips();
   }catch(e){}
 }
 window.selectDate=async function(which,val){

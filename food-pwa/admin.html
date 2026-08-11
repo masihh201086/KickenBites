@@ -1206,9 +1206,16 @@ async function preloadAdminClosedDates(){
     const days=next7Days().map(function(d){return d.date;});
     const snaps=await Promise.all(days.map(function(ds){return getDoc(doc(db,'dailyMenu',ds));}));
     snaps.forEach(function(snap,i){
-      const d2=snap.data()||{};
-      const closed=snap.exists()&&d2.isDefault!==true&&d2.isOpen===false;
-      if(closed)_adClosedDatesSet.add(days[i]);else _adClosedDatesSet.delete(days[i]);
+      const ds=days[i]; const d2=snap.data()||{};
+      let closed=false;
+      if(snap.exists()&&d2.isDefault!==true){
+        closed=(d2.isOpen===false);
+      } else {
+        // no override: check weekly default — if no items for this weekday → no menu
+        const def=buildDefaultMenu(ds);
+        closed=!def;
+      }
+      if(closed)_adClosedDatesSet.add(ds);else _adClosedDatesSet.delete(ds);
     });
     renderOrdDateChips();
     renderMenuDayChips();
