@@ -346,20 +346,11 @@ const _delClosedDatesSet=new Set();
 async function preloadDeliveryClosedDates(){
   try{
     const days=next7Days().map(function(d){return d.date;});
-    // delivery me masterItems directly available hain (masterCfg loaded at start)
     const snaps=await Promise.all(days.map(function(ds){return getDoc(doc(db,'dailyMenu',ds));}));
     snaps.forEach(function(snap,i){
-      const ds=days[i]; const d2=snap.data()||{};
-      let closed=false;
-      if(snap.exists()&&d2.isDefault!==true){
-        closed=(d2.isOpen===false);
-      } else {
-        // check weekly default: koi item is weekday pe serve hota hai?
-        const wd=['sun','mon','tue','wed','thu','fri','sat'][new Date(ds+'T00:00:00').getDay()];
-        const hasItems=(masterItems||[]).some(function(m){return m.name&&m.price>0&&m.weekdays&&m.weekdays[wd];});
-        closed=!hasItems;
-      }
-      if(closed)_delClosedDatesSet.add(ds);else _delClosedDatesSet.delete(ds);
+      const d2=snap.data()||{};
+      const closed=snap.exists()&&d2.isDefault!==true&&d2.isOpen===false;
+      if(closed)_delClosedDatesSet.add(days[i]);else _delClosedDatesSet.delete(days[i]);
     });
     renderDelDayChips();
   }catch(e){}
