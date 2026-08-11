@@ -1799,6 +1799,8 @@ async function loadMenu() {
   const timeout=setTimeout(()=>{hide('loadingScreen');document.getElementById('closedBox').style.display='block';},8000);
   try{
     selectedDate=today;
+    // Session 36b: closed-dates pehle load karo taaki chips sahi colour se render hon
+    try{ await preloadClosedDates(); }catch(e){}
     renderOrderDayChips();
     let data=await getTodayMenu();
     // BUGFIX (closed-date): buildDefaultMenuC() hardcodes isOpen:true. A date the
@@ -2988,7 +2990,6 @@ function showSuccess(){
   document.getElementById('succDetails').innerHTML=s;
   show('successScreen');
   if(currentProfile?.phone) loadMyOrders(currentProfile.phone);
-  try{ preloadClosedDates(); }catch(e){}   // Session 36: eager closed-dates pre-load
   // Session 34: naya order dete hi pichle delivered order ka feedback maango
   setTimeout(function(){ try{ maybeShowPrevFeedback(); }catch(e){} },1000);
 }
