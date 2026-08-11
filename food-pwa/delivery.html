@@ -331,9 +331,9 @@ function renderDelDayChips(){
     const sel=delViewDate===d.date;
     const hasOrders=_delDaysWithOrders.has(d.date);
     const dot=hasOrders?'<div style="width:7px;height:7px;border-radius:50%;background:var(--g);margin:3px auto 0;box-shadow:0 0 0 2px rgba(34,197,94,.2)"></div>':'<div style="width:7px;height:7px;margin:3px auto 0"></div>';
-    return '<button onclick="setDelDate(\''+d.date+'\')" style="flex-shrink:0;min-width:60px;padding:7px 9px;border-radius:10px;border:2px solid '+(sel?'var(--o)':'#e5e5e5')+';background:'+(sel?'#fff7ed':'white')+';cursor:pointer;font-family:inherit">'+
+    return '<button onclick="setDelDate(\''+d.date+'\')" style="flex-shrink:0;min-width:60px;padding:7px 9px;border-radius:10px;border:2px solid '+(sel?'var(--o)':'#22c55e')+';background:'+(sel?'#fff7ed':'white')+';cursor:pointer;font-family:inherit">'+
       '<div style="font-size:.56rem;opacity:.85;color:var(--muted);font-weight:700">'+lbl+'</div>'+
-      '<div style="font-weight:800;font-size:.8rem;color:'+(sel?'var(--o)':'#333')+'">'+d.wd+' '+d.dayNum+'</div>'+dot+'</button>';
+      '<div style="font-weight:800;font-size:.8rem;color:'+(sel?'var(--o)':'#15803d')+'">'+d.wd+' '+d.dayNum+'</div>'+dot+'</button>';
   }).join('');
 }
 // A13: track which of the next 7 days have delivery orders, so chips can show a green dot.
@@ -1117,7 +1117,7 @@ function renderEarnPeriodChips(){
   ];
   wrap.innerHTML=chips.map(ch=>{
     const sel=_earnPeriod.type===ch.t;
-    return '<button onclick="'+((ch.t==='pickday')?"document.getElementById('earnDatePick').showPicker?document.getElementById('earnDatePick').showPicker():document.getElementById('earnDatePick').focus()":(ch.t==='pickmonth')?"document.getElementById('earnMonthPick').showPicker?document.getElementById('earnMonthPick').showPicker():document.getElementById('earnMonthPick').focus()":"setEarnPeriod('"+ch.t+"')")+'" style="flex-shrink:0;padding:6px 11px;border-radius:9px;border:2px solid '+(sel?'var(--o)':'#e5e5e5')+';background:'+(sel?'#fff7ed':'white')+';color:'+(sel?'var(--o)':'#555')+';font-weight:700;font-size:.72rem;cursor:pointer;font-family:inherit">'+ch.label+'</button>';
+    return '<button onclick="'+((ch.t==='pickday')?"document.getElementById('earnDatePick').showPicker?document.getElementById('earnDatePick').showPicker():document.getElementById('earnDatePick').focus()":(ch.t==='pickmonth')?"document.getElementById('earnMonthPick').showPicker?document.getElementById('earnMonthPick').showPicker():document.getElementById('earnMonthPick').focus()":"setEarnPeriod('"+ch.t+"')")+'" style="flex-shrink:0;padding:6px 11px;border-radius:9px;border:2px solid '+(sel?'var(--o)':'#22c55e')+';background:'+(sel?'#fff7ed':'white')+';color:'+(sel?'var(--o)':'#555')+';font-weight:700;font-size:.72rem;cursor:pointer;font-family:inherit">'+ch.label+'</button>';
   }).join('');
 }
 

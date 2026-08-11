@@ -161,7 +161,7 @@ input:checked+.slider:before{transform:translateX(20px);}
 
 /* DATE NAV */
 .dn{display:flex;gap:7px;margin-bottom:11px;align-items:center;}
-.dn-btn{padding:8px 12px;border-radius:var(--radius);border:2px solid #eee;background:white;font-size:.8rem;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s;}
+/* Session 35: normal chip green border */ .dn-btn{padding:8px 12px;border-radius:var(--radius);border:2px solid #22c55e;background:white;font-size:.8rem;font-weight:600;cursor:pointer;color:#15803d;transition:all .2s;}
 .dn-btn.sel{background:var(--o);color:white;border-color:var(--o);}
 .date-pick{flex:1;padding:8px 10px;border:2px solid #eee;border-radius:var(--radius);font-size:.8rem;outline:none;}
 .date-tag{display:inline-block;padding:4px 11px;border-radius:20px;font-size:.73rem;font-weight:700;margin-bottom:8px;}
@@ -227,7 +227,7 @@ input:checked+.slider:before{transform:translateX(20px);}
 #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:9px 18px;border-radius:50px;font-size:.78rem;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;pointer-events:none;}
 
 @media print{body *{visibility:hidden;}#printArea,#printArea *{visibility:visible;}#printArea{position:fixed;inset:0;background:white;padding:16px;font-size:12px;}}
-.dbtn{flex:1;padding:9px;border:2px solid #eee;border-radius:10px;background:white;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;}
+/* Session 35 */ .dbtn{flex:1;padding:9px;border:2px solid #22c55e;border-radius:10px;background:white;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;color:#15803d;}
 .dbtn.active{border-color:var(--o);background:#fff7ed;color:var(--o);}
 .aw-item{display:flex;align-items:center;gap:10px;padding:10px;border:2px solid #f3f3f3;border-radius:11px;margin-bottom:8px;}
 .aw-img{width:46px;height:46px;border-radius:9px;object-fit:cover;background:#fff8f0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
