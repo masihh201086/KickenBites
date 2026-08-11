@@ -352,7 +352,7 @@ async function preloadDeliveryClosedDates(){
       const closed=snap.exists()&&d2.isDefault!==true&&d2.isOpen===false;
       if(closed)_delClosedDatesSet.add(days[i]);else _delClosedDatesSet.delete(days[i]);
     });
-    renderDelDateChips();
+    renderDelDayChips();
   }catch(e){}
 }
 // A13: track which of the next 7 days have delivery orders, so chips can show a green dot.

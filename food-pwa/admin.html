@@ -1211,6 +1211,7 @@ async function preloadAdminClosedDates(){
       if(closed)_adClosedDatesSet.add(days[i]);else _adClosedDatesSet.delete(days[i]);
     });
     renderOrdDateChips();
+    renderMenuDayChips();
   }catch(e){}
 }
 function updateOrdDateUI(){
@@ -2196,9 +2197,13 @@ function renderMenuDayChips(){
   wrap.innerHTML=next7Days().map(d=>{
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
     const sel=selMenuDate===d.date;
-    return '<button class="dn-btn'+(sel?' sel':'')+'" style="flex-shrink:0;min-width:64px;padding:8px 10px" onclick="loadMenuDate(\''+d.date+'\')">'+
+    const mClosed=_adClosedDatesSet.has(d.date);
+    const mCls='dn-btn'+(sel?' sel':mClosed?' closed':'');
+    return '<button class="'+mCls+'" style="flex-shrink:0;min-width:64px;padding:8px 10px" onclick="loadMenuDate(\''+d.date+'\')">'+
       (lbl?'<div style="font-size:.6rem;opacity:.8">'+lbl+'</div>':'')+
-      '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div></button>';
+      '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
+      (mClosed?'<div style="font-size:.48rem;font-weight:800;color:#ef4444;margin-top:1px">🚫 Band</div>':'')+
+      '</button>';
   }).join('');
 }
 window.setMenuDate=function(){renderMenuDayChips();loadMenuDate(getTodayDate());};
