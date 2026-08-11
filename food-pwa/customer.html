@@ -2168,7 +2168,7 @@ function renderOrderDayChips(){
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':WDFULL[dObj.getDay()];
     const sel=selectedDate===d.date;
     const hasOrder=myOrderDateSet.has(d.date);
-    const isClosed=_chipClosedCache[d.date]===true;
+    const isClosed=_closedDatesSet.has(d.date);
     const chipCls='dbtn'+(sel?' active':isClosed?' closed':'');
     return '<button class="'+chipCls+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
       '<div style="font-size:.58rem;opacity:.85;font-weight:700">'+lbl+'</div>'+
@@ -2179,7 +2179,21 @@ function renderOrderDayChips(){
   }).join('');
 }
 // Session 35: per-date closed cache — filled when selectDate runs
-const _chipClosedCache={};
+// Session 36: eagerly pre-load closed status for all 7 days so chips show
+// red WITHOUT a tap. 7 parallel getDoc calls (Spark plan reads are free).
+const _closedDatesSet=new Set();
+async function preloadClosedDates(){
+  try{
+    const days=next7Days().map(function(d){return d.date;});
+    const snaps=await Promise.all(days.map(function(ds){return getDoc(doc(db,'dailyMenu',ds));}));
+    snaps.forEach(function(snap,i){
+      const d2=snap.data()||{};
+      const closed=snap.exists()&&d2.isDefault!==true&&d2.isOpen===false;
+      if(closed)_closedDatesSet.add(days[i]);else _closedDatesSet.delete(days[i]);
+    });
+    renderOrderDayChips();   // re-render chips with freshly-loaded closed info
+  }catch(e){}
+}
 window.selectDate=async function(which,val){
   const d=new Date();
   let ds;
@@ -2199,7 +2213,7 @@ window.selectDate=async function(which,val){
   // BUGFIX (closed-date): same as loadMenu — keep the admin's close flag from being
   // wiped out by the weekly-template rebuild below.
   const adminClosed = !!(data && data.isDefault!==true && data.isOpen===false);
-  _chipClosedCache[selectedDate]=adminClosed;   // Session 35: chip colour cache
+  if(adminClosed)_closedDatesSet.add(selectedDate);else _closedDatesSet.delete(selectedDate);
   // No override (or a stale auto-default doc) → build from weekly default
   if(!data||data.isDefault||!(data.items||[]).length){
     const mcfg=await getMasterCfg();
@@ -2964,6 +2978,7 @@ function showSuccess(){
   document.getElementById('succDetails').innerHTML=s;
   show('successScreen');
   if(currentProfile?.phone) loadMyOrders(currentProfile.phone);
+  try{ preloadClosedDates(); }catch(e){}   // Session 36: eager closed-dates pre-load
   // Session 34: naya order dete hi pichle delivered order ka feedback maango
   setTimeout(function(){ try{ maybeShowPrevFeedback(); }catch(e){} },1000);
 }

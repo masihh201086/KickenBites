@@ -330,11 +330,30 @@ function renderDelDayChips(){
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':WDFULL[dObj.getDay()];
     const sel=delViewDate===d.date;
     const hasOrders=_delDaysWithOrders.has(d.date);
+    const delClosed=_delClosedDatesSet.has(d.date);
     const dot=hasOrders?'<div style="width:7px;height:7px;border-radius:50%;background:var(--g);margin:3px auto 0;box-shadow:0 0 0 2px rgba(34,197,94,.2)"></div>':'<div style="width:7px;height:7px;margin:3px auto 0"></div>';
-    return '<button onclick="setDelDate(\''+d.date+'\')" style="flex-shrink:0;min-width:60px;padding:7px 9px;border-radius:10px;border:2px solid '+(sel?'var(--o)':'#22c55e')+';background:'+(sel?'#fff7ed':'white')+';cursor:pointer;font-family:inherit">'+
+    const delBorder=sel?'var(--o)':delClosed?'#ef4444':'#22c55e';
+    const delBg=sel?'#fff7ed':delClosed?'#fff5f5':'white';
+    const delTxt=sel?'var(--o)':delClosed?'#b91c1c':'#15803d';
+    const delClosedLbl=delClosed?'<div style="font-size:.48rem;font-weight:800;color:#ef4444;margin-top:1px">🚫 Band</div>':'';
+    return '<button onclick="setDelDate(\''+d.date+'\')" style="flex-shrink:0;min-width:60px;padding:7px 9px;border-radius:10px;border:2px solid '+delBorder+';background:'+delBg+';cursor:pointer;font-family:inherit;opacity:'+(delClosed?'.85':'1')+'">'+
       '<div style="font-size:.56rem;opacity:.85;color:var(--muted);font-weight:700">'+lbl+'</div>'+
-      '<div style="font-weight:800;font-size:.8rem;color:'+(sel?'var(--o)':'#15803d')+'">'+d.wd+' '+d.dayNum+'</div>'+dot+'</button>';
+      '<div style="font-weight:800;font-size:.8rem;color:'+delTxt+'">'+d.wd+' '+d.dayNum+'</div>'+delClosedLbl+dot+'</button>';
   }).join('');
+}
+// Session 36: delivery — eagerly pre-load closed dates
+const _delClosedDatesSet=new Set();
+async function preloadDeliveryClosedDates(){
+  try{
+    const days=next7Days().map(function(d){return d.date;});
+    const snaps=await Promise.all(days.map(function(ds){return getDoc(doc(db,'dailyMenu',ds));}));
+    snaps.forEach(function(snap,i){
+      const d2=snap.data()||{};
+      const closed=snap.exists()&&d2.isDefault!==true&&d2.isOpen===false;
+      if(closed)_delClosedDatesSet.add(days[i]);else _delClosedDatesSet.delete(days[i]);
+    });
+    renderDelDateChips();
+  }catch(e){}
 }
 // A13: track which of the next 7 days have delivery orders, so chips can show a green dot.
 // One lightweight listener per day; refreshed whenever the boy's order view loads.
@@ -570,6 +589,7 @@ async function startApp() {
   // nahi hota); permission pehle se di ho to seedhe chalu ho jata hai. Agar deny ho
   // to button se manually start kar sakte hain (wo waise hi kaam karta hai).
   try{ autoStartGPS(); }catch(e){ console.error('autoGps',e); }
+  try{ preloadDeliveryClosedDates(); }catch(e){}   // Session 36
   // Safety net: if orders haven't loaded within 6s, stop showing "Loading…"
   setTimeout(function(){
     var a=document.getElementById('tab-active');

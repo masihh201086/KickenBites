@@ -161,7 +161,9 @@ input:checked+.slider:before{transform:translateX(20px);}
 
 /* DATE NAV */
 .dn{display:flex;gap:7px;margin-bottom:11px;align-items:center;}
-/* Session 35: normal chip green border */ .dn-btn{padding:8px 12px;border-radius:var(--radius);border:2px solid #22c55e;background:white;font-size:.8rem;font-weight:600;cursor:pointer;color:#15803d;transition:all .2s;}
+/* Session 35+36: normal chip green, selected orange, closed red */
+.dn-btn{padding:8px 12px;border-radius:var(--radius);border:2px solid #22c55e;background:white;font-size:.8rem;font-weight:600;cursor:pointer;color:#15803d;transition:all .2s;}
+.dn-btn.closed{border-color:#ef4444!important;background:#fff5f5;color:#b91c1c;opacity:.85;}
 .dn-btn.sel{background:var(--o);color:white;border-color:var(--o);}
 .date-pick{flex:1;padding:8px 10px;border:2px solid #eee;border-radius:var(--radius);font-size:.8rem;outline:none;}
 .date-tag{display:inline-block;padding:4px 11px;border-radius:20px;font-size:.73rem;font-weight:700;margin-bottom:8px;}
@@ -1032,6 +1034,7 @@ async function initDash(){
   try{ if(new Date().getDate()<=5 && !duesMonthDone()) setTimeout(()=>{ try{loadDues();}catch(e){} }, 2500); }catch(e){}
   listenPinResetRequests();
   listenCustomerRequests();   // Session 27
+  try{ preloadAdminClosedDates(); }catch(e){}   // Session 36
   listenPartyBookings();
   // BUG-04: har minute check — page khula ho to bina refresh ke bhi stock chhoot jaaye
   try{ setInterval(function(){ try{ sweepStaleUnpaid(allOrders); }catch(e){} }, 60000); }catch(e){}
@@ -1185,14 +1188,31 @@ function renderOrdDayChips(){
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':WDFULL[dObj.getDay()];
     const sel=ordViewDate===d.date;
     const dot=ordDatesWithOrders.has(d.date);
-    return '<button class="dn-btn'+(sel?' sel':'')+'" style="flex-shrink:0;min-width:64px;padding:8px 10px;position:relative" onclick="setOrdersDate(\''+d.date+'\')">'+
+    const adClosed=_adClosedDatesSet.has(d.date);
+    const adChipCls='dn-btn'+(sel?' sel':adClosed?' closed':'');
+    return '<button class="'+adChipCls+'" style="flex-shrink:0;min-width:64px;padding:8px 10px;position:relative" onclick="setOrdersDate(\''+d.date+'\')">'+
       '<div style="font-size:.6rem;opacity:.85;font-weight:700">'+lbl+'</div>'+
       '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
+      (adClosed?'<div style="font-size:.48rem;font-weight:800;color:#ef4444;margin-top:1px">🚫 Band</div>':'')+
       (dot?'<div style="position:absolute;top:3px;right:4px;width:10px;height:10px;border-radius:50%;background:var(--g);border:2px solid white;box-shadow:0 0 0 1px var(--g)"></div>':'')+
       '</button>';
   }).join('');
 }
 
+// Session 36: admin — eagerly pre-load closed dates so chips show red at-a-glance
+const _adClosedDatesSet=new Set();
+async function preloadAdminClosedDates(){
+  try{
+    const days=next7Days().map(function(d){return d.date;});
+    const snaps=await Promise.all(days.map(function(ds){return getDoc(doc(db,'dailyMenu',ds));}));
+    snaps.forEach(function(snap,i){
+      const d2=snap.data()||{};
+      const closed=snap.exists()&&d2.isDefault!==true&&d2.isOpen===false;
+      if(closed)_adClosedDatesSet.add(days[i]);else _adClosedDatesSet.delete(days[i]);
+    });
+    renderOrdDateChips();
+  }catch(e){}
+}
 function updateOrdDateUI(){
   const today=getTodayDate();
   const d2=new Date(today+'T00:00:00'); d2.setDate(d2.getDate()+1);
