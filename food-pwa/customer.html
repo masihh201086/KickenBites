@@ -78,11 +78,15 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
    Fill ke baad bhi text/date/No-Menu/dot sab saaf dikhein (white contrast). */
 .dbtn.active{border-color:var(--orange);background:var(--orange);color:#fff;}
 .dbtn.active.has-order{border-color:#15803d;background:#15803d;color:#fff;}
+/* My Orders chips: amber border (Order tab ke green se alag) */
+.dbtn.mo{border-color:#f59e0b;color:#b45309;}
 .dbtn.closed{border-color:#ef4444;background:#fff5f5;color:#b91c1c;opacity:.85;}
+.dbtn.active.closed{background:var(--orange);border-color:var(--orange);color:#fff;opacity:1;}
+.dbtn.active.closed.has-order{background:#15803d;border-color:#15803d;}
 .dbtn-closed-lbl{display:none;font-size:.5rem;font-weight:800;color:#ef4444;margin-top:1px;}
 .dbtn.closed .dbtn-closed-lbl{display:block;}
 /* filled chip par sab kuch dikhe */
-.dbtn.active .dbtn-closed-lbl{color:#fff;display:block;}
+.dbtn.active.closed .dbtn-closed-lbl{color:#fff;}
 .dbtn.active .kb-dot{background:#fff!important;border-color:rgba(255,255,255,.9)!important;box-shadow:0 0 0 1px rgba(255,255,255,.55)!important;}
 .date-inp{flex:1;padding:9px 6px;border:2px solid #ddd;border-radius:var(--r);font-size:.75rem;outline:none;color:var(--text);}
 .date-lbl{font-size:.73rem;color:var(--orange);font-weight:700;margin-bottom:8px;}
@@ -376,7 +380,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 #toast{position:fixed;bottom:75px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:9px 18px;border-radius:50px;font-size:.78rem;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center;pointer-events:none;}
 @media(min-width:600px){#mainApp,#payScreen,#successScreen{max-width:600px;margin:0 auto;}
   #payScreen{left:50%;right:auto;transform:translateX(-50%);}}
-.wchip{flex:1;padding:9px;border:2px solid #eee;border-radius:10px;background:white;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;}
+.wchip{flex:1;padding:9px;border:2px solid #f59e0b;border-radius:10px;background:white;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;color:#b45309;}
 /* Selected: dark green fill agar us din wish hai, warna orange fill */
 .wchip.active{border-color:var(--orange);background:var(--orange);color:#fff;}
 .wchip.active.has-order{border-color:#15803d;background:#15803d;color:#fff;}
@@ -1438,12 +1442,12 @@ function renderMyOrdDayChips(){
   const wrap=document.getElementById('myOrdDayChips');
   if(!wrap)return;
   const dateSet=new Set(_allMyOrders.filter(o=>o.status!=='cancelled').map(o=>o.date));
-  let html='<button class="dbtn'+(myOrdFilter==='all'?' active':'')+'" style="flex-shrink:0;min-width:58px" onclick="setMyOrdFilter(\'all\')"><div style="font-weight:800">📋 All</div></button>';
+  let html='<button class="dbtn mo'+(myOrdFilter==='all'?' active':'')+'" style="flex-shrink:0;min-width:58px" onclick="setMyOrdFilter(\'all\')"><div style="font-weight:800">📋 All</div></button>';
   html+=next7Days().map(d=>{
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
     const sel=myOrdFilter===d.date;
     const dot=dateSet.has(d.date);
-    return '<button class="dbtn'+(sel?' active':'')+(dot?' has-order':'')+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="setMyOrdFilter(\''+d.date+'\')">'+
+    return '<button class="dbtn mo'+(sel?' active':'')+(dot?' has-order':'')+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="setMyOrdFilter(\''+d.date+'\')">'+
       (lbl?'<div style="font-size:.58rem;opacity:.85">'+lbl+'</div>':'')+
       '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
       (dot?'<div class="kb-dot" style="position:absolute;top:3px;right:4px;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid white;box-shadow:0 0 0 1px var(--green)"></div>':'')+
@@ -2180,7 +2184,7 @@ function renderOrderDayChips(){
     const sel=selectedDate===d.date;
     const hasOrder=myOrderDateSet.has(d.date);
     const isClosed=_closedDatesSet.has(d.date);
-    const chipCls='dbtn'+(sel?' active':isClosed?' closed':'')+(hasOrder?' has-order':'');
+    const chipCls='dbtn'+(sel?' active':'')+(isClosed?' closed':'')+(hasOrder?' has-order':'');
     return '<button class="'+chipCls+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
       '<div style="font-size:.58rem;opacity:.85;font-weight:700">'+lbl+'</div>'+
       '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
