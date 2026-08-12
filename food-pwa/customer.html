@@ -220,9 +220,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
    Dono options ek saath dikhne se page bahut lamba ho jaata tha — ab ek time
    par sirf chuna hua method render hota hai, aur wahi order par save hota hai. */
 /* Session 14: QR / UPI ID / Pay Later — teeno ek hi row me (3 chips). */
-.pay-meth-lbl{font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#b58963;margin:2px 2px 7px}
+.pay-meth-lbl{font-size:.64rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#b58963;margin:1px 2px 5px}
 .pay-sub-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
-.pay-sub-btn{padding:9px 4px;border-radius:11px;border:2px solid #f3d5bd;background:#fff;color:#9a6b45;font-weight:800;font-size:.8rem;cursor:pointer;line-height:1.15;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:2px}
+.pay-sub-btn{padding:7px 4px;border-radius:11px;border:2px solid #f3d5bd;background:#fff;color:#9a6b45;font-weight:800;font-size:.8rem;cursor:pointer;line-height:1.15;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:2px}
 .pay-sub-btn .pm-ico{font-size:1.05rem;line-height:1}
 .pay-sub-btn.active{background:#e65c00;border-color:#e65c00;color:#fff;box-shadow:0 2px 8px rgba(230,92,0,.28)}
 .pay-sub-btn.pl.active{background:#f59e0b;border-color:#f59e0b}
@@ -233,28 +233,30 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* Session 14: procedure ab numbering ke bajaye arrow-steps, ek compact row */
 
 #payScreen{display:none;position:fixed;inset:0;min-height:100dvh;z-index:200;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:linear-gradient(160deg,var(--dark),#0f3460);background-attachment:fixed;}
-.pay-bar{padding:7px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;background:linear-gradient(160deg,var(--dark),#16213e);}
-.pay-logo{color:white;font-weight:800;font-size:.82rem;}
-.pay-x{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:white;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.pay-bar{padding:5px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;background:linear-gradient(160deg,var(--dark),#16213e);}
+.pay-logo{color:white;font-weight:800;font-size:.76rem;}
+.pay-x{width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:white;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 /* Session 16: hero aur bhi compact — amount + total + payee sab ek row me */
-.pay-hero{display:flex;align-items:baseline;justify-content:center;gap:8px;text-align:center;padding:1px 15px 8px;flex-wrap:wrap;}
+.pay-hero{display:flex;align-items:baseline;justify-content:center;gap:7px;text-align:center;padding:0 15px 5px;flex-wrap:wrap;}
 .pay-lbl{color:rgba(255,255,255,.55);font-size:.64rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
-.pay-amt{color:white;font-size:1.7rem;font-weight:900;line-height:1;}
+.pay-amt{color:white;font-size:1.5rem;font-weight:900;line-height:1;}
 .pay-name{width:100%;color:rgba(255,255,255,.6);font-size:.68rem;margin-top:0;}
-.pay-card{background:white;border-radius:18px 18px 0 0;padding:12px 13px 26px;}
-.pay-opt-title{font-size:.88rem;font-weight:800;color:var(--dark);margin:0 0 8px;text-align:center;}
-.qr-wrap-big{text-align:center;margin-bottom:8px;}
+/* Bug fix: date line ka colour set nahi tha — dark bg par dark text invisible tha */
+.pay-date{color:rgba(255,255,255,.82)!important;}
+.pay-card{background:white;border-radius:18px 18px 0 0;padding:10px 13px 20px;}
+.pay-opt-title{font-size:.84rem;font-weight:800;color:var(--dark);margin:0 0 6px;text-align:center;}
+.qr-wrap-big{text-align:center;margin-bottom:6px;}
 /* Session 15: QR ab box ki poori chaudai leta hai — bagal ki khali jagah khatam.
    Box khud page ki width par sizes karta hai (max 300px), image uske andar 100%. */
-.qr-box-big{display:block;width:100%;max-width:260px;margin:0 auto;padding:9px;background:white;border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.14);border:3px solid var(--op);position:relative;aspect-ratio:1/1;}
+.qr-box-big{display:block;width:100%;max-width:234px;margin:0 auto;padding:7px;background:white;border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.14);border:3px solid var(--op);position:relative;aspect-ratio:1/1;}
 .qr-box-big img{width:100%;height:100%;object-fit:contain;display:block;border-radius:6px;}
 /* fallback ab overlay hai: QR aa jaaye to ye apne aap dikhna band, jagah nahi ghere */
 .qr-fallback-msg{margin-top:8px;background:#fff7ed;border:1px solid #fcd34d;border-radius:10px;font-size:.78rem;color:#92400e;line-height:1.5;text-align:center;padding:9px 11px;}
 #qrCanvas{width:100%;height:auto;display:block;border-radius:6px;image-rendering:pixelated;}
-.qr-dl-btn{width:100%;padding:11px;background:var(--dark);color:white;border:none;border-radius:11px;font-size:.86rem;font-weight:800;cursor:pointer;margin-bottom:9px;}
+.qr-dl-btn{width:100%;padding:9px;background:var(--dark);color:white;border:none;border-radius:11px;font-size:.82rem;font-weight:800;cursor:pointer;margin-bottom:7px;}
 .upi-apps-lbl{font-size:.72rem;font-weight:700;color:var(--muted);margin:0 0 5px;text-align:center;}
-.upi-apps-row{display:flex;gap:6px;margin-bottom:9px;}
-.upi-app-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 3px;border:2px solid #e5e5e5;border-radius:11px;background:white;font-size:.74rem;font-weight:800;color:#222;cursor:pointer;}
+.upi-apps-row{display:flex;gap:5px;margin-bottom:7px;}
+.upi-app-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 3px;border:2px solid #e5e5e5;border-radius:11px;background:white;font-size:.74rem;font-weight:800;color:#222;cursor:pointer;}
 .upi-app-ico{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;font-weight:900;box-shadow:0 2px 5px rgba(0,0,0,.18);}
 .upi-app-btn.gpay .upi-app-ico{background:#4285f4;}
 .upi-app-btn.phonepe .upi-app-ico{background:#5f259f;}
@@ -284,12 +286,12 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* Session 28: warn-note ab light-RED + zyada dhyaan-kheenchne wala — kyunki payment
    ke baad agar green button na dabaya to order CANCEL ho jaata hai. */
 .warn-note{background:#fef2f2;border:1.5px solid #fecaca;border-left:5px solid #ef4444;
-  border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.82rem;color:#991b1b;
+  border-radius:10px;padding:8px 11px;margin-bottom:8px;font-size:.8rem;color:#991b1b;
   line-height:1.45;font-weight:600;box-shadow:0 2px 8px rgba(239,68,68,.12);}
 .warn-note b{color:#dc2626;}
 @keyframes kbWarnPulse{0%,100%{box-shadow:0 2px 8px rgba(239,68,68,.12);}50%{box-shadow:0 2px 14px rgba(239,68,68,.28);}}
 .warn-note{animation:kbWarnPulse 2s ease-in-out infinite;}
-.confirm-btn{width:100%;padding:15px;background:linear-gradient(135deg,var(--green),#16a34a);color:white;border:none;border-radius:var(--r);font-size:.97rem;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(34,197,94,.35);display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px;}
+.confirm-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--green),#16a34a);color:white;border:none;border-radius:var(--r);font-size:.97rem;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(34,197,94,.35);display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px;}
 .back-lnk{display:block;text-align:center;color:var(--muted);font-size:.78rem;cursor:pointer;padding:7px;}
 
 /* SUCCESS */
