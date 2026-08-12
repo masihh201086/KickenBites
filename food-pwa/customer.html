@@ -74,10 +74,16 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .date-row{display:flex;gap:7px;margin-bottom:10px;}
 /* Session 35: date chip visual states — green=open, orange=selected, red=closed */
 .dbtn{flex:1;padding:9px 6px;border-radius:var(--r);border:2px solid #22c55e;background:white;font-size:.8rem;font-weight:600;cursor:pointer;color:#15803d;transition:all .2s;}
-.dbtn.active{border-color:var(--orange);background:var(--op);color:var(--orange);}
+/* Selected: DARK GREEN fill jab us din order/wish hai, warna ORANGE fill.
+   Fill ke baad bhi text/date/No-Menu/dot sab saaf dikhein (white contrast). */
+.dbtn.active{border-color:var(--orange);background:var(--orange);color:#fff;}
+.dbtn.active.has-order{border-color:#15803d;background:#15803d;color:#fff;}
 .dbtn.closed{border-color:#ef4444;background:#fff5f5;color:#b91c1c;opacity:.85;}
 .dbtn-closed-lbl{display:none;font-size:.5rem;font-weight:800;color:#ef4444;margin-top:1px;}
 .dbtn.closed .dbtn-closed-lbl{display:block;}
+/* filled chip par sab kuch dikhe */
+.dbtn.active .dbtn-closed-lbl{color:#fff;display:block;}
+.dbtn.active .kb-dot{background:#fff!important;border-color:rgba(255,255,255,.9)!important;box-shadow:0 0 0 1px rgba(255,255,255,.55)!important;}
 .date-inp{flex:1;padding:9px 6px;border:2px solid #ddd;border-radius:var(--r);font-size:.75rem;outline:none;color:var(--text);}
 .date-lbl{font-size:.73rem;color:var(--orange);font-weight:700;margin-bottom:8px;}
 
@@ -371,7 +377,10 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 @media(min-width:600px){#mainApp,#payScreen,#successScreen{max-width:600px;margin:0 auto;}
   #payScreen{left:50%;right:auto;transform:translateX(-50%);}}
 .wchip{flex:1;padding:9px;border:2px solid #eee;border-radius:10px;background:white;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;}
-.wchip.active{border-color:#f59e0b;background:#fffbeb;color:#d97706;}
+/* Selected: dark green fill agar us din wish hai, warna orange fill */
+.wchip.active{border-color:var(--orange);background:var(--orange);color:#fff;}
+.wchip.active.has-order{border-color:#15803d;background:#15803d;color:#fff;}
+.wchip.active .kb-dot{background:#fff!important;border-color:rgba(255,255,255,.9)!important;box-shadow:0 0 0 1px rgba(255,255,255,.55)!important;}
 .wish-item{display:flex;align-items:center;gap:10px;padding:10px;border:2px solid #f3f3f3;border-radius:11px;margin-bottom:8px;cursor:pointer;transition:.15s;}
 .wish-item.voted{border-color:#f59e0b;background:#fffbeb;}
 .wish-img{width:46px;height:46px;border-radius:9px;object-fit:cover;background:#fff8f0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
@@ -1434,10 +1443,10 @@ function renderMyOrdDayChips(){
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
     const sel=myOrdFilter===d.date;
     const dot=dateSet.has(d.date);
-    return '<button class="dbtn'+(sel?' active':'')+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="setMyOrdFilter(\''+d.date+'\')">'+
+    return '<button class="dbtn'+(sel?' active':'')+(dot?' has-order':'')+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="setMyOrdFilter(\''+d.date+'\')">'+
       (lbl?'<div style="font-size:.58rem;opacity:.85">'+lbl+'</div>':'')+
       '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
-      (dot?'<div style="position:absolute;top:3px;right:4px;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid white;box-shadow:0 0 0 1px var(--green)"></div>':'')+
+      (dot?'<div class="kb-dot" style="position:absolute;top:3px;right:4px;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid white;box-shadow:0 0 0 1px var(--green)"></div>':'')+
       '</button>';
   }).join('');
   wrap.innerHTML=html;
@@ -2171,12 +2180,12 @@ function renderOrderDayChips(){
     const sel=selectedDate===d.date;
     const hasOrder=myOrderDateSet.has(d.date);
     const isClosed=_closedDatesSet.has(d.date);
-    const chipCls='dbtn'+(sel?' active':isClosed?' closed':'');
+    const chipCls='dbtn'+(sel?' active':isClosed?' closed':'')+(hasOrder?' has-order':'');
     return '<button class="'+chipCls+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
       '<div style="font-size:.58rem;opacity:.85;font-weight:700">'+lbl+'</div>'+
       '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
       '<div class="dbtn-closed-lbl">🚫 No Menu</div>'+
-      (hasOrder?'<div style="position:absolute;top:3px;right:4px;width:10px;height:10px;border-radius:50%;background:var(--green,#22c55e);border:2px solid white;box-shadow:0 0 0 1px var(--green,#22c55e)" title="You have an order this day"></div>':'')+
+      (hasOrder?'<div class="kb-dot" style="position:absolute;top:3px;right:4px;width:10px;height:10px;border-radius:50%;background:var(--green,#22c55e);border:2px solid white;box-shadow:0 0 0 1px var(--green,#22c55e)" title="You have an order this day"></div>':'')+
       '</button>';
   }).join('');
 }
@@ -3289,10 +3298,10 @@ function renderWishDayChips(){
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
     const sel=wishDate===d.date;
     const dot=myWishDates.has(d.date);
-    return '<button class="wchip'+(sel?' active':'')+'" style="flex-shrink:0;min-width:60px;position:relative" onclick="setWishDate(\''+d.date+'\')">'+
+    return '<button class="wchip'+(sel?' active':'')+(dot?' has-order':'')+'" style="flex-shrink:0;min-width:60px;position:relative" onclick="setWishDate(\''+d.date+'\')">'+
       (lbl?'<div style="font-size:.58rem;opacity:.85">'+lbl+'</div>':'')+
       '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
-      (dot?'<div style="position:absolute;top:3px;right:4px;width:9px;height:9px;border-radius:50%;background:#22c55e;border:2px solid white;box-shadow:0 0 0 1px #22c55e"></div>':'')+
+      (dot?'<div class="kb-dot" style="position:absolute;top:3px;right:4px;width:9px;height:9px;border-radius:50%;background:#22c55e;border:2px solid white;box-shadow:0 0 0 1px #22c55e"></div>':'')+
       '</button>';
   }).join('');
 }
