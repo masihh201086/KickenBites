@@ -243,24 +243,26 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .pay-name{width:100%;color:rgba(255,255,255,.6);font-size:.68rem;margin-top:0;}
 /* Bug fix: date line ka colour set nahi tha — dark bg par dark text invisible tha */
 .pay-date{color:rgba(255,255,255,.82)!important;}
-.pay-card{background:white;border-radius:18px 18px 0 0;padding:10px 13px 20px;}
-.pay-opt-title{font-size:.84rem;font-weight:800;color:var(--dark);margin:0 0 6px;text-align:center;}
-.qr-wrap-big{text-align:center;margin-bottom:6px;}
+.pay-card{background:white;border-radius:16px 16px 0 0;padding:9px 12px 16px;}
+.pay-opt-title{font-size:.8rem;font-weight:800;color:var(--dark);margin:0 0 5px;text-align:center;}
+.qr-wrap-big{text-align:center;margin-bottom:5px;}
 /* Session 15: QR ab box ki poori chaudai leta hai — bagal ki khali jagah khatam.
    Box khud page ki width par sizes karta hai (max 300px), image uske andar 100%. */
-.qr-box-big{display:block;width:100%;max-width:234px;margin:0 auto;padding:7px;background:white;border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.14);border:3px solid var(--op);position:relative;aspect-ratio:1/1;}
+.qr-box-big{display:block;width:100%;max-width:186px;margin:0 auto;padding:6px;background:white;border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.14);border:3px solid var(--op);position:relative;aspect-ratio:1/1;}
 .qr-box-big img{width:100%;height:100%;object-fit:contain;display:block;border-radius:6px;}
 /* fallback ab overlay hai: QR aa jaaye to ye apne aap dikhna band, jagah nahi ghere */
 .qr-fallback-msg{margin-top:8px;background:#fff7ed;border:1px solid #fcd34d;border-radius:10px;font-size:.78rem;color:#92400e;line-height:1.5;text-align:center;padding:9px 11px;}
 #qrCanvas{width:100%;height:auto;display:block;border-radius:6px;image-rendering:pixelated;}
-.qr-dl-btn{width:100%;padding:9px;background:var(--dark);color:white;border:none;border-radius:11px;font-size:.82rem;font-weight:800;cursor:pointer;margin-bottom:7px;}
+.qr-dl-btn{width:100%;padding:8px;background:var(--dark);color:white;border:none;border-radius:10px;font-size:.78rem;font-weight:800;cursor:pointer;margin-bottom:6px;}
 .upi-apps-lbl{font-size:.72rem;font-weight:700;color:var(--muted);margin:0 0 5px;text-align:center;}
-.upi-apps-row{display:flex;gap:5px;margin-bottom:7px;}
-.upi-app-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 3px;border:2px solid #e5e5e5;border-radius:11px;background:white;font-size:.74rem;font-weight:800;color:#222;cursor:pointer;}
-.upi-app-ico{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;font-weight:900;box-shadow:0 2px 5px rgba(0,0,0,.18);}
-.upi-app-btn.gpay .upi-app-ico{background:#4285f4;}
-.upi-app-btn.phonepe .upi-app-ico{background:#5f259f;}
-.upi-app-btn.paytm .upi-app-ico{background:#00baf2;}
+.upi-apps-row{display:flex;gap:5px;margin-bottom:6px;}
+.upi-app-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 3px;border:2px solid #e5e5e5;border-radius:11px;background:white;font-size:.74rem;font-weight:800;color:#222;cursor:pointer;}
+/* Real app marks: SVG khud brand-coloured hai, isliye circle bg nahi */
+.upi-app-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.16);}
+.upi-app-ico svg{width:100%;height:100%;display:block;}
+.upi-app-btn.gpay .upi-app-ico{background:#fff;}
+.upi-app-btn.phonepe .upi-app-ico{background:#fff;}
+.upi-app-btn.paytm .upi-app-ico{background:#fff;}
 .upi-app-btn.bhim .upi-app-ico{background:#00796b;}
 .upi-app-btn:active{transform:scale(.96);}
 .upi-box-big{background:linear-gradient(135deg,#fff8f0,#ffe8d0);border:2px solid var(--op);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;align-items:stretch;margin-bottom:11px;}
@@ -286,12 +288,12 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* Session 28: warn-note ab light-RED + zyada dhyaan-kheenchne wala — kyunki payment
    ke baad agar green button na dabaya to order CANCEL ho jaata hai. */
 .warn-note{background:#fef2f2;border:1.5px solid #fecaca;border-left:5px solid #ef4444;
-  border-radius:10px;padding:8px 11px;margin-bottom:8px;font-size:.8rem;color:#991b1b;
+  border-radius:9px;padding:7px 10px;margin-bottom:7px;font-size:.76rem;color:#991b1b;
   line-height:1.45;font-weight:600;box-shadow:0 2px 8px rgba(239,68,68,.12);}
 .warn-note b{color:#dc2626;}
 @keyframes kbWarnPulse{0%,100%{box-shadow:0 2px 8px rgba(239,68,68,.12);}50%{box-shadow:0 2px 14px rgba(239,68,68,.28);}}
 .warn-note{animation:kbWarnPulse 2s ease-in-out infinite;}
-.confirm-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--green),#16a34a);color:white;border:none;border-radius:var(--r);font-size:.97rem;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(34,197,94,.35);display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px;}
+.confirm-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--green),#16a34a);color:white;border:none;border-radius:var(--r);font-size:.97rem;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(34,197,94,.35);display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px;}
 .back-lnk{display:block;text-align:center;color:var(--muted);font-size:.78rem;cursor:pointer;padding:7px;}
 
 /* SUCCESS */
@@ -713,10 +715,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       <button class="qr-dl-btn" onclick="downloadQR()">⬇️ QR Download / Save to Gallery</button>
       <div class="upi-apps-lbl">⚡ UPI app kholein → Gallery se QR → pay</div>
 <div class="upi-apps-row">
-        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
-        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
-        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
-        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
+        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2 5-4.4 6.6v5.5h7.1c4.1-3.8 6.6-9.4 6.6-16.1z"/><path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.6-3.9-12.4-9.1H4.3v5.7C7.9 41.1 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.6 28.1c-.4-1.3-.7-2.7-.7-4.1s.3-2.8.7-4.1v-5.7H4.3C2.8 17.2 2 20.5 2 24s.8 6.8 2.3 9.8l7.3-5.7z"/><path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C35 4.1 30 2 24 2 15.4 2 7.9 6.9 4.3 14.2l7.3 5.7c1.8-5.2 6.6-9.1 12.4-9.1z"/></svg></span>GPay</button>
+        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#5F259F"/><path fill="#fff" d="M33.6 18.2c0-.8-.7-1.5-1.5-1.5h-2.7l-6.2-7.1c-.6-.7-1.5-.9-2.4-.7l-2.2.7c-.3.1-.5.5-.2.8l6.7 6.3h-10c-.4 0-.7.3-.7.7v1.4c0 .8.7 1.5 1.5 1.5h1.6v5.4c0 4.1 2.1 6.5 5.7 6.5 1.1 0 2-.1 3.1-.6v3.6c0 1 .8 1.8 1.8 1.8h1.6c.4 0 .7-.3.7-.7V21.3h2.5c.4 0 .7-.3.7-.7v-2.4zm-6.4 11.4c-.6.3-1.4.4-2 .4-1.6 0-2.4-.8-2.4-2.6v-5.1h4.4v7.3z"/></svg></span>PhonePe</button>
+        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="10" fill="#fff"/><path fill="#00BAF2" d="M6 17h5.6c3 0 4.9 1.8 4.9 4.6s-1.9 4.6-4.9 4.6H9.2V33H6V17zm3.2 2.7v3.9h2.1c1.3 0 2-.7 2-1.9s-.7-2-2-2H9.2z"/><path fill="#20336B" d="M18.4 21.6h3v1.5c.6-1.1 1.7-1.7 3-1.7 1.4 0 2.4.6 2.9 1.8.7-1.2 1.9-1.8 3.3-1.8 2.2 0 3.6 1.4 3.6 3.9V33h-3.1v-7c0-1.2-.6-1.9-1.6-1.9s-1.8.8-1.8 2.1V33h-3.1v-7c0-1.2-.6-1.9-1.6-1.9s-1.8.8-1.8 2.1V33h-3v-11.4zM37 21.6h3.1v2.2h2.6v2.6h-2.6v4.1c0 .8.4 1.1 1.1 1.1.5 0 1-.1 1.5-.3v2.6c-.7.3-1.5.4-2.3.4-2.3 0-3.4-1.2-3.4-3.5v-4.4h-1.4v-2.6H37v-2.2z"/></svg></span>Paytm</button>
+        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="10" fill="#fff"/><path fill="#FF9933" d="M4 12h40v8H4z"/><path fill="#138808" d="M4 28h40v8H4z"/><circle cx="24" cy="24" r="6.5" fill="none" stroke="#0F3D91" stroke-width="2.2"/><path fill="#0F3D91" d="M22.6 18.5h2.8l-1.8 4.4h2.6l-4.4 6.9 1-4.6h-2.4z"/></svg></span>BHIM</button>
       </div>
 
       </div>
@@ -730,10 +732,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       </div>
       <div class="upi-apps-lbl">⚡ UPI app kholein → Gallery se QR → pay</div>
 <div class="upi-apps-row">
-        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
-        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
-        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
-        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
+        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.7-2 5-4.4 6.6v5.5h7.1c4.1-3.8 6.6-9.4 6.6-16.1z"/><path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.5c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.6-3.9-12.4-9.1H4.3v5.7C7.9 41.1 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.6 28.1c-.4-1.3-.7-2.7-.7-4.1s.3-2.8.7-4.1v-5.7H4.3C2.8 17.2 2 20.5 2 24s.8 6.8 2.3 9.8l7.3-5.7z"/><path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C35 4.1 30 2 24 2 15.4 2 7.9 6.9 4.3 14.2l7.3 5.7c1.8-5.2 6.6-9.1 12.4-9.1z"/></svg></span>GPay</button>
+        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#5F259F"/><path fill="#fff" d="M33.6 18.2c0-.8-.7-1.5-1.5-1.5h-2.7l-6.2-7.1c-.6-.7-1.5-.9-2.4-.7l-2.2.7c-.3.1-.5.5-.2.8l6.7 6.3h-10c-.4 0-.7.3-.7.7v1.4c0 .8.7 1.5 1.5 1.5h1.6v5.4c0 4.1 2.1 6.5 5.7 6.5 1.1 0 2-.1 3.1-.6v3.6c0 1 .8 1.8 1.8 1.8h1.6c.4 0 .7-.3.7-.7V21.3h2.5c.4 0 .7-.3.7-.7v-2.4zm-6.4 11.4c-.6.3-1.4.4-2 .4-1.6 0-2.4-.8-2.4-2.6v-5.1h4.4v7.3z"/></svg></span>PhonePe</button>
+        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="10" fill="#fff"/><path fill="#00BAF2" d="M6 17h5.6c3 0 4.9 1.8 4.9 4.6s-1.9 4.6-4.9 4.6H9.2V33H6V17zm3.2 2.7v3.9h2.1c1.3 0 2-.7 2-1.9s-.7-2-2-2H9.2z"/><path fill="#20336B" d="M18.4 21.6h3v1.5c.6-1.1 1.7-1.7 3-1.7 1.4 0 2.4.6 2.9 1.8.7-1.2 1.9-1.8 3.3-1.8 2.2 0 3.6 1.4 3.6 3.9V33h-3.1v-7c0-1.2-.6-1.9-1.6-1.9s-1.8.8-1.8 2.1V33h-3.1v-7c0-1.2-.6-1.9-1.6-1.9s-1.8.8-1.8 2.1V33h-3v-11.4zM37 21.6h3.1v2.2h2.6v2.6h-2.6v4.1c0 .8.4 1.1 1.1 1.1.5 0 1-.1 1.5-.3v2.6c-.7.3-1.5.4-2.3.4-2.3 0-3.4-1.2-3.4-3.5v-4.4h-1.4v-2.6H37v-2.2z"/></svg></span>Paytm</button>
+        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect width="48" height="48" rx="10" fill="#fff"/><path fill="#FF9933" d="M4 12h40v8H4z"/><path fill="#138808" d="M4 28h40v8H4z"/><circle cx="24" cy="24" r="6.5" fill="none" stroke="#0F3D91" stroke-width="2.2"/><path fill="#0F3D91" d="M22.6 18.5h2.8l-1.8 4.4h2.6l-4.4 6.9 1-4.6h-2.4z"/></svg></span>BHIM</button>
       </div>
       </div>
 
