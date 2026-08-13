@@ -125,6 +125,22 @@ input:checked+.slider:before{transform:translateX(20px);}
 .oc-assign{font-size:.74rem;color:var(--b);margin:3px 0;font-weight:600;}
 .sr{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
 .sb2{padding:5px 10px;border-radius:20px;border:none;font-size:.7rem;font-weight:600;cursor:pointer;}
+/* Session 38: SMS verify card */
+.sms-card{border:1.5px solid #a78bfa;border-radius:13px;background:#faf5ff;padding:12px;margin-bottom:10px}
+.sms-card .sct{font-weight:800;font-size:.85rem;color:#5b21b6;margin-bottom:6px}
+.sms-ta{width:100%;min-height:70px;border:1.5px solid #c4b5fd;border-radius:9px;padding:8px;
+  font-size:.8rem;font-family:monospace;resize:vertical;outline:none;background:#fff;
+  color:var(--dark);box-sizing:border-box}
+.sms-ta:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.15)}
+.sms-res{margin-top:8px;font-size:.78rem;line-height:1.6}
+.sms-match{background:#dcfce7;color:#166534;border-radius:8px;padding:5px 9px;margin-bottom:5px;font-weight:700}
+.sms-mismatch{background:#fef2f2;color:#991b1b;border-radius:8px;padding:5px 9px;margin-bottom:5px;font-weight:700}
+.sms-noref{background:#fef3c7;color:#92400e;border-radius:8px;padding:5px 9px;margin-bottom:5px;font-weight:700}
+.sms-btn{width:100%;margin-top:8px;padding:10px;background:#7c3aed;color:#fff;border:none;
+  border-radius:10px;font-weight:800;font-size:.84rem;cursor:pointer}
+.sms-btn:active{opacity:.85}
+.sms-clear{width:100%;margin-top:6px;padding:8px;background:#eee;color:var(--dark);border:none;
+  border-radius:10px;font-weight:700;font-size:.78rem;cursor:pointer}
 .sb-conf{background:var(--gp);color:var(--g);}
 .sb-prep{background:#f5f3ff;color:var(--pu);}
 .sb-ready{background:var(--bp);color:var(--b);}
@@ -311,6 +327,19 @@ input:checked+.slider:before{transform:translateX(20px);}
 
   <!-- ORDERS -->
   <div class="panel active" id="tab-orders">
+    <!-- Session 38: SMS / bank message paste-and-verify card -->
+    <div class="card sms-card" id="smsVerifyCard">
+      <div class="sct">📋 UPI Payment Verify — SMS Paste karein</div>
+      <div style="font-size:.74rem;color:#6d28d9;margin-bottom:7px;line-height:1.5">
+        Apna bank / UPI SMS yahan paste karein — app khud ref no. + amount match karega
+        aur pending payments auto-verify kar dega.
+      </div>
+      <textarea class="sms-ta" id="smsPasteBox"
+        placeholder="Yahan bank/UPI SMS paste karein…&#10;E.g.: Rs.340.00 debited from a/c …UPI Ref 4821…"></textarea>
+      <div class="sms-res" id="smsResult"></div>
+      <button class="sms-btn" onclick="runSmsVerify()">🔍 Match karo &amp; Verify</button>
+      <button class="sms-clear" onclick="clearSmsVerify()">✕ Saaf karo</button>
+    </div>
     <!-- PIN RESET REQUESTS — hidden until there is at least one pending -->
     <div class="card" id="pinReqCard" style="display:none;padding:11px;border:2px solid #fb923c;background:#fff7ed;margin-bottom:9px">
       <div class="ct" style="margin:0 0 7px 0;color:#9a3412">🔑 PIN Reset Requests <span id="pinReqCount" style="background:#dc2626;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span></div>
@@ -1908,7 +1937,8 @@ function renderOrders(){
       <div class="sr">
         ${o.status==='pending_payment'?`<button class="sb2 sb-conf" onclick="verifyPayment('${o.id}')">✅ Confirm Pay</button>`:''}
         ${claimPaid&&!payVerified?`<button class="sb2" onclick="verifyPayment('${o.id}')" style="background:#16a34a;color:white">✅ Confirm Payment</button>`:''}
-        ${claimPaid&&!payVerified?`<button class="sb2" onclick="declinePayment('${o.id}')" style="background:#dc2626;color:white">✖ Decline — Cancel Order</button>`:''}
+        ${claimPaid&&!payVerified?`<button class="sb2" onclick="showManualVerify('${o.id}')" style="background:#7c3aed;color:white">✏️ Ref fix + Confirm</button>`:''}
+        ${claimPaid&&!payVerified?`<button class="sb2" onclick="declinePayment('${o.id}')" style="background:#dc2626;color:white">✖ Decline — Cancel</button>`:''}
         ${o.status==='confirmed'?`<button class="sb2 sb-prep" onclick="chgStatus('${o.id}','preparing')">👨‍🍳 Preparing</button>`:''}
         ${o.status==='preparing'?`<button class="sb2 sb-ready" onclick="chgStatus('${o.id}','ready')">📦 Ready</button>`:''}
         ${o.status==='ready'&&o.orderType==='delivery'?`<button class="sb2 sb-out" onclick="startDelivery('${o.id}')">🛵 Start Delivery</button>`:''}
@@ -2087,21 +2117,166 @@ window.ackCancel=async function(orderId){
 // ---- SESSION 12: payment verification ----
 // Customer sirf CLAIM karta hai ki usne pay kiya. Paisa bank/UPI me aaya ya nahi,
 // wo sirf admin dekh sakta hai — isliye paymentConfirmed yahin se set hota hai.
-window.verifyPayment=async function(orderId){
+// ===== Session 38: SMS PASTE VERIFY =====
+//
+// 1. PARSER: SMS se amount + last-4 ref nikalo.
+//    Har bank/UPI app ka SMS alag format hota hai — RegEx broad hain taaki
+//    SBI, ICICI, GPay, PhonePe, Paytm, BHIM, HDFC sab chalein.
+//    Return: [{amount:Number, ref4:String}, ...]
+function parseSmsPayments(text){
+  const out=[];
+  if(!text||!text.trim()) return out;
+  const refPats=[
+    /UPI[\s]*Ref(?:erence)?(?:[\s]*No\.?)?[\s:#]*([A-Za-z0-9]{4,20})/gi,
+    /UPI[^A-Za-z\d]*[A-Z0-9]{1,5}[^A-Za-z\d]*([0-9]{6,20})[^A-Za-z\d]/gi,
+    /Txn[\s]*(?:Id|No|Ref)[\s:#]*([A-Za-z0-9]{4,20})/gi,
+    /Transaction[\s]*(?:Id|No)?[\s:#]*([A-Za-z0-9]{4,20})/gi,
+    /Ref(?:erence)?(?:[\s]*No\.?)?[\s:#]*([A-Za-z0-9]{4,20})/gi,
+    /UTR[\s:#]*([A-Za-z0-9]{4,20})/gi,
+  ];
+  const refs=[],refSpans=[];
+  for(const re of refPats){
+    re.lastIndex=0; let m;
+    while((m=re.exec(text))!==null){
+      const r=m[1].replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+      if(r.length>=4){const r4=r.slice(-4);if(!refs.includes(r4))refs.push(r4);refSpans.push([m.index,m.index+m[0].length]);}
+    }
+  }
+  let clean=text
+    .replace(/(?:a\/c|account)[\s#*X]*[\dX]{4}/gi,'XXXACCT')
+    .replace(/(?:available|closing|opening)[\s\w]*bal(?:ance)?[^\n]*/gi,'BALANCELINE');
+  const sorted=[...refSpans].sort((a,b)=>b[0]-a[0]);
+  for(const[s,e]of sorted)clean=clean.slice(0,s)+' '.repeat(e-s)+clean.slice(e);
+  const amounts=[];
+  let m;
+  const dp=/(?:debit(?:ed)?|paid|sent|transferred)[^0-9]{0,5}([\d,]+(?:\.\d{1,2})?)/gi;
+  dp.lastIndex=0;
+  while((m=dp.exec(clean))!==null){const v=parseFloat(m[1].replace(/,/g,''));if(v>0&&v<1000000)amounts.push(v);}
+  if(!amounts.length){
+    const rp=/(?:Rs|INR|₹)[.\s]*([\d,]+(?:\.\d{1,2})?)/gi;
+    rp.lastIndex=0;
+    while((m=rp.exec(clean))!==null){const v=parseFloat(m[1].replace(/,/g,''));if(v>0&&v<1000000)amounts.push(v);}
+  }
+  if(!amounts.length||!refs.length)return out;
+  for(let i=0;i<refs.length;i++){
+    const ref4=refs[i],a=amounts[Math.min(i,amounts.length-1)];
+    if(!out.find(x=>x.ref4===ref4&&x.amount===a))out.push({amount:a,ref4});
+  }
+  return out;
+}
+
+window.runSmsVerify=async function(){
+  const box=document.getElementById('smsPasteBox');
+  const res=document.getElementById('smsResult');
+  const txt=box?box.value.trim():'';
+  if(!txt){ if(res)res.innerHTML='<div class="sms-mismatch">⚠️ Pehle SMS paste karein.</div>'; return; }
+  if(res) res.innerHTML='<div style="color:#6d28d9;font-size:.78rem">🔍 Match kar raha hai…</div>';
+
+  const parsed=parseSmsPayments(txt);
+  if(!parsed.length){
+    if(res) res.innerHTML='<div class="sms-mismatch">⚠️ Is SMS mein amount ya UPI Ref nahi mila. Doosra SMS try karein ya manually verify karein.</div>';
+    return;
+  }
+
+  // allOrders has today's visible orders; also check todayOrders for any extras
+  const pool=[...allOrders,...(todayOrders||[])].filter((o,i,a)=>a.findIndex(x=>x.id===o.id)===i);
+  // Pending = customer has claimed payment, admin not yet confirmed
+  const pending=pool.filter(o=>o.payLater!==true&&o.customerPaid===true&&o.paymentConfirmed!==true&&o.status!=='cancelled');
+
+  let html='';
+  let autoVerified=0;
+
+  for(const {amount,ref4} of parsed){
+    // Try to match: ref4 last-4 must match AND amount must match (±1 rupee for float)
+    const matched=pending.filter(o=>{
+      const r=String(o.upiRef4||'').toUpperCase().slice(-4);
+      const diff=Math.abs(Number(o.total||0)-amount);
+      return r===ref4 && diff<=1;
+    });
+    // ref match but amount differs
+    const refOnly=pending.filter(o=>{
+      const r=String(o.upiRef4||'').toUpperCase().slice(-4);
+      return r===ref4 && !matched.find(m=>m.id===o.id);
+    });
+    // amount match but ref differs or is 0000
+    const amtOnly=pending.filter(o=>{
+      const diff=Math.abs(Number(o.total||0)-amount);
+      return diff<=1 && !matched.find(m=>m.id===o.id);
+    });
+
+    if(matched.length){
+      for(const o of matched){
+        try{
+          await window.verifyPayment(o.id, true);   // force=true skips the confirm dialog
+          autoVerified++;
+          html+=`<div class="sms-match">✅ Auto-verified — ${esc(o.name)} ₹${o.total} · Ref ****${ref4}</div>`;
+        }catch(e){
+          html+=`<div class="sms-mismatch">⚠️ ${esc(o.name)} ₹${o.total} verify karne mein error: ${esc(e.message||'')}</div>`;
+        }
+      }
+    } else if(refOnly.length){
+      html+=`<div class="sms-noref">🔺 Ref ****${ref4} mila par amount ₹${amount} alag hai — `+
+        refOnly.map(o=>`${esc(o.name)} ne ₹${o.total} claim kiya`).join('; ')+`. Manually check karein.</div>`;
+    } else if(amtOnly.length){
+      html+=`<div class="sms-noref">🔺 ₹${amount} match karta hai par ref nahi mila — `+
+        amtOnly.map(o=>`${esc(o.name)} (Ref: ${o.upiRef4||'?'})`).join('; ')+`. Manually check karein.</div>`;
+    } else {
+      html+=`<div class="sms-mismatch">❌ Ref ****${ref4} · ₹${amount} — koi pending order nahi mila. Paisa kisi aur ne bheja ya already verified ho chuka hai.</div>`;
+    }
+  }
+  if(autoVerified>0) html=`<div style="font-weight:900;color:#166534;font-size:.82rem;margin-bottom:5px">🎉 ${autoVerified} payment auto-verify ho gayi!</div>`+html;
+  if(res) res.innerHTML=html;
+};
+
+window.clearSmsVerify=function(){
+  const b=document.getElementById('smsPasteBox'); if(b) b.value='';
+  const r=document.getElementById('smsResult'); if(r) r.innerHTML='';
+};
+
+// ─── Per-order manual verify with OPTIONAL ref override ───────────────────
+// Admin can fix a 0000 / wrong ref here before confirming.
+window.showManualVerify=function(orderId){
+  const o=allOrders.find(x=>x.id===orderId)||(todayOrders||[]).find(x=>x.id===orderId);
+  if(!o) return;
+  const existing=String(o.upiRef4||'');
+  const newRef=window.prompt(
+    `Order: ${o.name} — ₹${o.total}
+
+UPI Ref ke last 4 (ya full) daalein.
+Abhi: ${existing||'khaali'}
+
+(Sirf confirm karna hai to Cancel dabayein — wahi ref save rahegi)`,
+    existing==='0000'?'':existing
+  );
+  if(newRef===null) return;   // admin cancelled the prompt — still verify below
+  const ref4=String(newRef||existing||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(-4)||existing.slice(-4);
+  window.verifyPayment(orderId, true, ref4);
+};
+
+window.verifyPayment=async function(orderId, force, overrideRef4){
   try{
     const snap=await getDoc(doc(db,'orders',orderId));
     if(!snap.exists()){alert('Order not found');return;}
     const o=snap.data();
     if(o.paymentConfirmed===true){showToast('Payment already verified');return;}
-    await updateOrderStatus(orderId,'confirmed',{
+    // If caller passed an override ref (manual verify with corrected ref) — save it.
+    const updateFields={
       paymentConfirmed:true,
       paymentVerifiedAt:new Date().toISOString(),
       paymentVerifiedBy:'admin',
       customerPaid:true,
       paymentDeclined:false
-    });
+    };
+    if(overrideRef4){
+      const r=String(overrideRef4).replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(-4);
+      if(r&&r!==String(o.upiRef4||'').toUpperCase().slice(-4)){
+        updateFields.upiRef4=r; updateFields.refNoProof=(r==='0000');
+      }
+    }
+    if(!force&&!confirm(`Payment confirm karein?\n\n${o.name} — ₹${o.total}\nRef: ${o.upiRef4||'?'}`)) return;
+    await updateOrderStatus(orderId,'confirmed',updateFields);
     showToast('✅ Payment verified — customer ko green dikhega');
-    // Session 37: verify ke baad hold khulta hai — dono assign raaste force se chalao
+    // Session 37: verify ke baad hold khulta hai
     autoAssignIfSingleBoy(orderId, true);
     try{ autoAssignDefaultBoy({...o, id:orderId, paymentConfirmed:true}, true); }catch(e){}
     if(ordViewDate&&ordViewDate!==getTodayDate()) setOrdersDate(ordViewDate);
@@ -3074,6 +3249,7 @@ window.sw=function(t){
   // close the More dropdown after any pick
   const md=document.getElementById('moreMenu'); if(md) md.style.display='none';
   const mt=document.getElementById('moreTab'); if(mt) mt.classList.toggle('active',(t==='print'||t==='ai'));
+  if(t==='orders') try{ clearSmsVerify(); }catch(e){}
   if(t==='setup'){loadDeliveryBoys();}
   if(t==='dues'){loadDues();}
   if(t==='ratings')loadRatings();
