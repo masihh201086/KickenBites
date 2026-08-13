@@ -257,20 +257,21 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .or-div{display:flex;align-items:center;gap:8px;margin:4px 0 6px;color:#bbb;font-size:.68rem;font-weight:700}
 .or-div:before,.or-div:after{content:'';flex:1;height:1px;background:#eee}
 .pstep{display:flex;align-items:flex-start;gap:7px;margin-bottom:6px}
+/* numbering sirf QR method par (UPI ID page par nahi) */
+.pay-card:not(.qr-mode) .pnum{display:none}
+.pay-card:not(.qr-mode) .pstep{gap:0}
 .pnum{flex-shrink:0;width:17px;height:17px;border-radius:50%;background:var(--dark);color:#fff;font-size:.62rem;font-weight:900;display:flex;align-items:center;justify-content:center;margin-top:3px}
 .pstep-txt{font-size:.73rem;color:#555;line-height:1.4;font-weight:600}
 .pstep .qr-dl-btn,.pstep .i-paid-btn,.pstep .warn-note{margin-bottom:0;flex:1}
-.upi-app-btn.anyapp{border-color:#c7d2fe}
 .qr-dl-btn{width:100%;padding:8px;background:var(--dark);color:white;border:none;border-radius:10px;font-size:.78rem;font-weight:800;cursor:pointer;margin-bottom:6px;}
 .upi-apps-lbl{font-size:.72rem;font-weight:700;color:var(--muted);margin:0 0 5px;text-align:center;}
 .upi-apps-row{display:flex;gap:5px;margin-bottom:6px;}
 .upi-app-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 3px;border:2px solid #e5e5e5;border-radius:11px;background:white;font-size:.74rem;font-weight:800;color:#222;cursor:pointer;}
 /* Real app marks: SVG khud brand-coloured hai, isliye circle bg nahi */
-.upi-app-ico{width:100%;max-width:54px;height:21px;border-radius:5px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;}
-.upi-app-ico svg{width:100%;height:100%;display:block;}
-.upi-app-btn.gpay .upi-app-ico{background:#fff;}
-.upi-app-btn.phonepe .upi-app-ico{background:#fff;}
-.upi-app-btn.paytm .upi-app-ico{background:#fff;}
+.upi-app-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1.05rem;font-weight:900;box-shadow:0 2px 5px rgba(0,0,0,.18);}
+.upi-app-btn.gpay .upi-app-ico{background:#4285f4;}
+.upi-app-btn.phonepe .upi-app-ico{background:#5f259f;}
+.upi-app-btn.paytm .upi-app-ico{background:#00baf2;}
 .upi-app-btn.bhim .upi-app-ico{background:#00796b;}
 .upi-app-btn:active{transform:scale(.96);}
 .upi-box-big{background:linear-gradient(135deg,#fff8f0,#ffe8d0);border:2px solid var(--op);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;align-items:stretch;margin-bottom:11px;}
@@ -711,7 +712,6 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       </div>
       <!-- ── METHOD 1: QR ── -->
       <div id="payMethQR">
-      <div class="pay-opt-title">📷 QR Code se pay karein</div>
       <div class="qr-wrap-big">
         <div class="qr-box-big" id="qrBox">
           <canvas id="qrCanvas" width="300" height="300"></canvas>
@@ -721,15 +721,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         </div>
       </div>
       <div class="scan-now">📷 Scan QR karke pay karein</div>
-      <div class="or-div"><span>ya</span></div>
+      <div class="or-div"><span>OR</span></div>
       <div class="pstep"><span class="pnum">1</span><button class="qr-dl-btn" onclick="downloadQR()">⬇️ QR Download / Save to Gallery</button></div>
       <div class="pstep"><span class="pnum">2</span><span class="pstep-txt">UPI app kholein → Gallery se ye QR chunein → pay karein</span></div>
 <div class="upi-apps-row">
-        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico"><svg viewBox="0 0 110 34" xmlns="http://www.w3.org/2000/svg"><text x="55" y="26" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="700" text-anchor="middle"><tspan fill="#4285F4">G</tspan><tspan fill="#EA4335">P</tspan><tspan fill="#FBBC05">a</tspan><tspan fill="#34A853">y</tspan></text></svg></span>GPay</button>
-        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico"><svg viewBox="0 0 110 34" xmlns="http://www.w3.org/2000/svg"><rect width="110" height="34" rx="6" fill="#5F259F"/><text x="55" y="24" font-family="Arial,Helvetica,sans-serif" font-size="19" font-weight="700" fill="#fff" text-anchor="middle">PhonePe</text></svg></span>PhonePe</button>
-        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico"><svg viewBox="0 0 110 34" xmlns="http://www.w3.org/2000/svg"><text x="55" y="26" font-family="Arial,Helvetica,sans-serif" font-size="24" font-weight="700" text-anchor="middle"><tspan fill="#002970">Pay</tspan><tspan fill="#00BAF2">tm</tspan></text></svg></span>Paytm</button>
-        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico"><svg viewBox="0 0 110 34" xmlns="http://www.w3.org/2000/svg"><rect y="1" width="110" height="4" fill="#FF9933"/><rect y="29" width="110" height="4" fill="#138808"/><text x="55" y="25" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700" fill="#0F3D91" text-anchor="middle">BHIM</text></svg></span>BHIM</button>
-        <button class="upi-app-btn anyapp" onclick="openAnyUpiApp()"><span class="upi-app-ico"><svg viewBox="0 0 110 34" xmlns="http://www.w3.org/2000/svg"><rect width="110" height="34" rx="6" fill="#eef2ff"/><text x="55" y="24" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="700" fill="#4338ca" text-anchor="middle">Any App</text></svg></span>Koi bhi</button>
+        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
+        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
+        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
+        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
       </div>
 
       </div>
@@ -743,11 +742,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       </div>
       <div class="upi-apps-lbl">⚡ UPI app kholein → Gallery se QR → pay</div>
 <div class="upi-apps-row">
-        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico"><svg viewBox="0 0 110 34" xmlns="http://www.w3.org/2000/svg"><text x="55" y="26" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="700" text-anchor="middle"><tspan fill="#4285F4">G</tspan><tspan fill="#EA4335">P</tspan><tspan fill="#FBBC05">a</tspan><tspan fill="#34A853">y</tspan></text></svg></span>GPay</button>
-        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico"><svg viewBox="0 0 110 34" xmlns="http://www.w3.org/2000/svg"><rect width="110" height="34" rx="6" fill="#5F259F"/><text x="55" y="24" font-family="Arial,Helvetica,sans-serif" font-size="19" font-weight="700" fill="#fff" text-anchor="middle">PhonePe</text></svg></span>PhonePe</button>
-        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico"><svg viewBox="0 0 110 34" xmlns="http://www.w3.org/2000/svg"><text x="55" y="26" font-family="Arial,Helvetica,sans-serif" font-size="24" font-weight="700" text-anchor="middle"><tspan fill="#002970">Pay</tspan><tspan fill="#00BAF2">tm</tspan></text></svg></span>Paytm</button>
-        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico"><svg viewBox="0 0 110 34" xmlns="http://www.w3.org/2000/svg"><rect y="1" width="110" height="4" fill="#FF9933"/><rect y="29" width="110" height="4" fill="#138808"/><text x="55" y="25" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700" fill="#0F3D91" text-anchor="middle">BHIM</text></svg></span>BHIM</button>
-        <button class="upi-app-btn anyapp" onclick="openAnyUpiApp()"><span class="upi-app-ico"><svg viewBox="0 0 110 34" xmlns="http://www.w3.org/2000/svg"><rect width="110" height="34" rx="6" fill="#eef2ff"/><text x="55" y="24" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="700" fill="#4338ca" text-anchor="middle">Any App</text></svg></span>Koi bhi</button>
+        <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
+        <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
+        <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
+        <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
       </div>
       </div>
 
@@ -2613,10 +2611,6 @@ function showPayScreen(total){
 // ki policy hai, code se theek nahi hoti. Sirf QR-scan (gallery se) bharosemand chalta
 // hai. Isliye ye buttons ab SIRF app kholte hain; customer QR download karke, app me
 // gallery/scan se wo QR chunkar payment karta hai. Koi amount deep-link nahi bhejte.
-window.openAnyUpiApp=function(){
-  showToast('Apne phone ka koi bhi UPI app kholein → Gallery/Scan se ye QR chunein → pay karein');
-  try{ window.location.href='upi://'; }catch(e){}
-};
 window.openUpiApp=function(app){
   const schemes={ gpay:'tez://upi/', phonepe:'phonepe://', paytm:'paytmmp://', bhim:'upi://' };
   const url=schemes[app]||'upi://';
@@ -2795,7 +2789,7 @@ window.switchPayMethod=function(m){
   const payCard=q?q.closest('.pay-card'):null;   // QR+UPI+I-paid sab isi card me hain
   if(q) q.style.display=(isQR&&!isLater)?'block':'none';
   if(u) u.style.display=(!isQR&&!isLater)?'block':'none';
-  if(payCard) payCard.style.display=isLater?'none':'block';
+  if(payCard){ payCard.style.display=isLater?'none':'block'; payCard.classList.toggle('qr-mode', isQR&&!isLater); }
   document.getElementById('tabMethQR')?.classList.toggle('active',isQR&&!isLater);
   document.getElementById('tabMethUPI')?.classList.toggle('active',!isQR&&!isLater);
   document.getElementById('tabMethLater')?.classList.toggle('active',isLater);
