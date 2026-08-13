@@ -1837,13 +1837,25 @@ function renderOrders(){
     // next most urgent thing after an un-handled cancellation.
     const _payPend=o=>o.customerPaid===true&&o.paymentConfirmed!==true&&o.payLater!==true
                       &&['confirmed','preparing','ready','out_for_delivery'].includes(o.status||'');
-    const aAlert=_needsAtt(a)?0:(_payPend(a)?1.5:(statusPriority[a.status]??9));
-    const bAlert=_needsAtt(b)?0:(_payPend(b)?1.5:(statusPriority[b.status]??9));
+    // SESSION 37: jis claim ka koi ref hi nahi (0000 ya khaali) wo baaki claims se
+    // zyada urgent hai — usi qatar me asli jhooth chhupta hai.
+    const _noProof=o=>_payPend(o)&&(o.refNoProof===true||!o.upiRef4||String(o.upiRef4)==='0000');
+    const _rank=o=>_needsAtt(o)?0:(_noProof(o)?1.4:(_payPend(o)?1.5:(statusPriority[o.status]??9)));
+    const aAlert=_rank(a);
+    const bAlert=_rank(b);
     if(aAlert!==bAlert) return aAlert-bAlert;
     return (b.createdAt||'').localeCompare(a.createdAt||''); // newest first within same group
   });
   if(!filtered.length){list.innerHTML='<div class="empty">📭 No orders</div>';return;}
   const sl={pending_payment:'Awaiting Pay',confirmed:'Confirmed',preparing:'Preparing',ready:'Ready',out_for_delivery:'Out for Delivery',delivered:'Delivered',cancelled:'Cancelled'};
+  // Session 37: ek hi UPI ref do orders par = ek payment ko do baar bhunane ki koshish.
+  // 0000 "pata nahi" ka code hai, isliye use duplicate nahi maana jaata.
+  const _refSeen={};
+  (allOrders||[]).forEach(o=>{
+    const r=o.upiRef4?String(o.upiRef4):'';
+    if(!r||r==='0000'||o.status==='cancelled')return;
+    _refSeen[r]=(_refSeen[r]||0)+1;
+  });
   list.innerHTML=filtered.map(o=>{
     const ocDate=o.createdAt?new Date(o.createdAt):null;
     const t=ocDate?ocDate.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
@@ -1856,10 +1868,19 @@ function renderOrders(){
     const payVerified=o.paymentConfirmed===true;
     const payMeth=o.payMethod==='upi'?'UPI ID':(o.payMethod==='qr'?'QR':'');
     const claimWhen=o.customerPaidAt?new Date(o.customerPaidAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    // Session 37: customer ka diya hua UPI ref last-4.
+    const ref4=o.upiRef4?String(o.upiRef4).replace(/[^A-Za-z0-9]/g,'').slice(0,4):'';
+    const noProof=o.refNoProof===true||ref4==='0000';
+    const dupRef=!!ref4&&!noProof&&(_refSeen[ref4]||0)>1;
+    const refLine = ref4
+      ? (noProof
+        ? `<br><span style="font-weight:900;color:#b45309">🔺 REF NAHI DIYA (0000) — khud check karein</span>`
+        : `<br><span style="font-weight:900;font-size:.95rem;letter-spacing:.06em">🔢 Ref: ****${esc(ref4)}</span>${dupRef?'<br><span style="font-weight:900;color:#b91c1c">⚠️ YEHI REF DOOSRE ORDER PAR BHI HAI</span>':''}`)
+      : `<br><span style="font-weight:900;color:#b45309">🔺 Ref number nahi (purana order)</span>`;
     const payBox = (claimPaid&&!payVerified)
-      ? `<div style="background:#fef3c7;color:#92400e;border:1.5px solid #fbbf24;border-radius:9px;padding:8px 10px;margin-top:7px;font-size:.76rem;font-weight:800;line-height:1.5">💰 CUSTOMER SAYS PAID — ₹${o.total}${payMeth?' · via '+payMeth:''}${claimWhen?'<br><span style="font-weight:600">'+claimWhen+'</span>':''}<br><span style="font-weight:600">Bank/UPI me check karke Confirm ya Decline karein.</span></div>`
+      ? `<div style="background:${noProof||dupRef?'#fffbeb':'#fef3c7'};color:#92400e;border:${noProof||dupRef?'2.5px solid #f59e0b':'1.5px solid #fbbf24'};border-radius:9px;padding:8px 10px;margin-top:7px;font-size:.76rem;font-weight:800;line-height:1.5">💰 CUSTOMER SAYS PAID — ₹${o.total}${payMeth?' · via '+payMeth:''}${refLine}${claimWhen?'<br><span style="font-weight:600">'+claimWhen+'</span>':''}<br><span style="font-weight:600">🛑 Verify hone tak delivery boy ko assign nahi hoga.</span></div>`
       : (payVerified&&o.status!=='cancelled'
-        ? `<div style="background:#dcfce7;color:#166534;border-radius:9px;padding:7px 10px;margin-top:7px;font-size:.75rem;font-weight:700">✅ Payment verified — ₹${o.total}${payMeth?' · '+payMeth:''}</div>`
+        ? `<div style="background:#dcfce7;color:#166534;border-radius:9px;padding:7px 10px;margin-top:7px;font-size:.75rem;font-weight:700">✅ Payment verified — ₹${o.total}${payMeth?' · '+payMeth:''}${ref4?' · Ref ****'+esc(ref4):''}</div>`
         : '');
     // SESSION 11 refund state. paidOnline = money actually came in (pay-later/cash never did).
     const paidOnline=(o.customerPaid===true||o.paymentConfirmed===true||o.paid===true)&&o.payLater!==true;
@@ -2080,7 +2101,9 @@ window.verifyPayment=async function(orderId){
       paymentDeclined:false
     });
     showToast('✅ Payment verified — customer ko green dikhega');
-    autoAssignIfSingleBoy(orderId);
+    // Session 37: verify ke baad hold khulta hai — dono assign raaste force se chalao
+    autoAssignIfSingleBoy(orderId, true);
+    try{ autoAssignDefaultBoy({...o, id:orderId, paymentConfirmed:true}, true); }catch(e){}
     if(ordViewDate&&ordViewDate!==getTodayDate()) setOrdersDate(ordViewDate);
   }catch(e){alert('Error: '+e.message);}
 };
@@ -2161,8 +2184,24 @@ window.waRefundDone=async function(orderId){
 // (old assignBoy removed - see async version below)
 
 
+// ===== Session 37: PAYMENT-HOLD =====
+// Jab tak online payment verify na ho, order kisi delivery boy ko assign nahi hoga.
+// Wajah: pehle customer ke "maine pay kar diya" par order turant assign ho jaata tha,
+// to jhootha order kitchen aur boy tak admin ke dekhne se PEHLE pahunch jaata tha —
+// ref number baad me match na ho to bhi nuksan ho chuka hota tha. Ab jaanch pehle.
+// Pay-later aur cash orders par ye lagu NAHI hota (wahan paisa aaya hi nahi hai).
+function payHoldsAssign(o){
+  return !!o && o.payLater!==true && o.customerPaid===true && o.paymentConfirmed!==true;
+}
+
 // Auto-assign to single boy when order is confirmed
-async function autoAssignIfSingleBoy(orderId){
+async function autoAssignIfSingleBoy(orderId, force){
+  if(!force){
+    try{
+      const os=await getDoc(doc(db,'orders',orderId));
+      if(os.exists() && payHoldsAssign(os.data())) return;   // payment verify hone tak ruko
+    }catch(e){}
+  }
   const active=deliveryBoys.filter(b=>b.isOnline||b.isActive);
   if(active.length===1){
     const boy=active[0];
@@ -3696,10 +3735,13 @@ window.loadAdminWishTotal=async function(){
 };
 
 // AUTO-ASSIGN DEFAULT DELIVERY BOY
-async function autoAssignDefaultBoy(order){
+async function autoAssignDefaultBoy(order, force){
   var defaultPhone = cfg.defaultBoyPhone||'';
   if(!defaultPhone) return; // No default set
   if(order.assignedBoyPhone) return; // Already assigned
+  // Session 37: ye function customerPaid===true hote hi chalta tha — yaani customer
+  // ke daave par hi. Ab bina verify hue assign nahi hoga.
+  if(!force && payHoldsAssign(order)) return;
   if(order.orderType!=='delivery') return; // Takeaway - no delivery needed
   try{
     var boy = deliveryBoys.find(function(b){return (b.phone||b.id)===defaultPhone;});

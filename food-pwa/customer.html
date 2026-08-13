@@ -300,6 +300,20 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
   border-radius:9px;padding:7px 10px;margin-bottom:7px;font-size:.76rem;color:#991b1b;
   line-height:1.45;font-weight:600;box-shadow:0 2px 8px rgba(239,68,68,.12);}
 .warn-note b{color:#dc2626;}
+/* Session 37: UPI Ref gate — laal warn-note ki jagah ab ye input box hai.
+   Button tab tak block hai jab tak last-4 na bhare. */
+.ref-box{background:#fff7ed;border:1.5px solid #fdba74;border-left:5px solid #f97316;
+  border-radius:11px;padding:11px 12px;margin-bottom:0;flex:1}
+.ref-box .ref-lbl{font-size:.82rem;font-weight:800;color:#9a3412;line-height:1.45}
+.ref-box .ref-sub{font-size:.72rem;font-weight:600;color:#9a3412;opacity:.9;margin-top:3px;line-height:1.45}
+.ref-in{width:100%;margin-top:8px;padding:12px 10px;border:2px solid #fdba74;border-radius:10px;
+  font-size:1.5rem;font-weight:900;letter-spacing:.42em;text-align:center;text-transform:uppercase;
+  font-family:inherit;outline:none;background:#fff;color:#7c2d12}
+.ref-in:focus{border-color:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.18)}
+.ref-in.bad{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.18)}
+.ref-err{display:none;font-size:.75rem;font-weight:800;color:#b91c1c;margin-top:6px}
+.ref-help{font-size:.71rem;font-weight:600;color:#7c2d12;opacity:.85;margin-top:7px;line-height:1.5}
+.ref-help u{cursor:pointer;font-weight:800}
 @keyframes kbWarnPulse{0%,100%{box-shadow:0 2px 8px rgba(239,68,68,.12);}50%{box-shadow:0 2px 14px rgba(239,68,68,.28);}}
 .warn-note{animation:kbWarnPulse 2s ease-in-out infinite;}
 .confirm-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--green),#16a34a);color:white;border:none;border-radius:var(--r);font-size:.97rem;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(34,197,94,.35);display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px;}
@@ -758,7 +772,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <button onclick="useWallet()" style="width:100%;padding:11px;background:var(--green);color:white;border:none;border-radius:10px;font-weight:700;font-size:.86rem;cursor:pointer">✅ Wallet se pay karein</button>
       </div>
 
-      <div class="pstep"><span class="pnum">3</span><div class="warn-note" id="payWarnNote">🔴 <b>ZAROORI:</b> Pay karne ke <b>turant baad</b> neeche button dabaiye — <b>warna order CANCEL ho jayega.</b></div></div>
+      <div class="pstep"><span class="pnum">3</span><div class="ref-box">
+        <div class="ref-lbl" id="payRefLbl">🔢 <b>UPI Ref No. / Transaction ID</b> ke <b>last 4</b> daaliye</div>
+        <div class="ref-sub" id="payRefSub">Ye aapke UPI app ki payment-success screen par likha hota hai. Iske bina order confirm nahi hoga.</div>
+        <input class="ref-in" id="payRef4" maxlength="4" autocomplete="off" autocapitalize="characters"
+               spellcheck="false" placeholder="____" oninput="onRefInput()">
+        <div class="ref-err" id="payRefErr"></div>
+        <div class="ref-help">Nahi mil raha? <u onclick="fillRefZeros()">0000 daal dein</u> — order chala jayega par shop khud check karegi (thoda time lagega).</div>
+      </div></div>
       <div class="pstep"><span class="pnum">4</span><button class="i-paid-btn" id="iPaidBtn" onclick="iHavePaid()">✅ Click to Confirm Payment and Order</button></div>
     </div>
 
@@ -1514,7 +1535,7 @@ function renderMyOrders(all) {
     const payStrip = claimedPaid
       ? (payVerified
         ? `<div style="background:#dcfce7;color:#166534;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">✅ Payment verified — ₹${o.total}${payMethodLbl?' · '+payMethodLbl:''}</div>`
-        : `<div style="background:#fef3c7;color:#92400e;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">💰 Payment done — ₹${o.total}${payMethodLbl?' · '+payMethodLbl:''}<br><span style="font-weight:600">⏳ Shop verify kar raha hai. Order confirm hai.</span></div>`)
+        : `<div style="background:#fef3c7;color:#92400e;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">💰 Payment done — ₹${o.total}${payMethodLbl?' · '+payMethodLbl:''}${o.upiRef4?'<br><span style="font-weight:600">Ref: ****'+esc(String(o.upiRef4))+'</span>':''}<br><span style="font-weight:600">${o.refNoProof===true?'🔺 Ref number nahi diya gaya — shop khud check karegi, thoda time lag sakta hai.':'⏳ Shop verify kar raha hai. Order confirm hai.'}</span></div>`)
       : '';
     const declStrip = o.paymentDeclined===true
       ? `<div style="background:#fef2f2;color:#991b1b;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">⚠️ Payment verify nahi ho paaya — order cancel kar diya gaya. Agar paisa kat gaya hai to shop se sampark karein.</div>`
@@ -2552,10 +2573,16 @@ function showPayScreen(total){
   if(ipb) ipb.textContent=isDues
     ? '✅ Click to Confirm Payment'
     : '✅ Click to Confirm Payment and Order';
-  const pwn=document.getElementById('payWarnNote');
-  if(pwn) pwn.innerHTML=isDues
-    ? '🔴 <b>ZAROORI:</b> Payment ke baad neeche <b>"Click to Confirm Payment"</b> button zaroor dabaiye — <b>warna dues clear nahi honge.</b>'
-    : '🔴 <b>ZAROORI:</b> Pay karne ke <b>turant baad</b> neeche <b>"Click to Confirm Payment and Order"</b> button dabaiye — <b>warna aapka order CANCEL ho jayega.</b>';
+  // Session 37: ref-gate. Har baar pay screen khulne par input khaali ho.
+  {
+    const ri=document.getElementById('payRef4');
+    if(ri){ ri.value=''; ri.classList.remove('bad'); }
+    const re=document.getElementById('payRefErr'); if(re){ re.style.display='none'; re.textContent=''; }
+    const rs=document.getElementById('payRefSub');
+    if(rs) rs.textContent=isDues
+      ? 'Ye aapke UPI app ki payment-success screen par likha hota hai. Iske bina dues clear nahi honge.'
+      : 'Ye aapke UPI app ki payment-success screen par likha hota hai. Iske bina order confirm nahi hoga.';
+  }
   {const el=document.getElementById('upiId');if(el)el.textContent=uid;}
   {const h1=document.getElementById('hintAmt');if(h1)h1.textContent=total;}
   {const h2=document.getElementById('hintAmt2');if(h2)h2.textContent=total;}
@@ -2876,18 +2903,49 @@ window.closePayScreen=function(){
   // Session 28: pay screen band → running-total bar wapas (updateBill khud dikhayega agar items hain)
   try{ if(typeof updateBill==='function') updateBill(); }catch(e){}
 };
+// ===== Session 37: UPI REF GATE =====
+// Sirf 4 akshar/anke, apne aap bade. Har app apna ID alag naam se dikhata hai
+// (GPay "UPI transaction ID", Paytm "UPI Ref No."), aur kuchh me letter bhi
+// aa sakta hai — isliye alphanumeric liya, sirf digits nahi.
+window.onRefInput=function(){
+  const ri=document.getElementById('payRef4'); if(!ri)return;
+  ri.value=String(ri.value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4);
+  ri.classList.remove('bad');
+  const re=document.getElementById('payRefErr'); if(re) re.style.display='none';
+};
+window.fillRefZeros=function(){
+  const ri=document.getElementById('payRef4'); if(!ri)return;
+  ri.value='0000'; ri.classList.remove('bad');
+  const re=document.getElementById('payRefErr'); if(re) re.style.display='none';
+  showToast('0000 bhara — shop khud check karegi');
+};
+// Returns the 4-char ref, or '' if invalid (and shows the error inline).
+function readPayRef(){
+  const ri=document.getElementById('payRef4');
+  const re=document.getElementById('payRefErr');
+  const v=ri?String(ri.value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase():'';
+  if(v.length!==4){
+    if(ri){ ri.classList.add('bad'); try{ri.focus();}catch(e){} try{ri.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){} }
+    if(re){ re.textContent='⚠️ UPI Ref ke last 4 daaliye (nahi mil raha to 0000).'; re.style.display='block'; }
+    return '';
+  }
+  return v;
+}
+
 window.iHavePaid=async function(){
   // DUES MODE: mark all pending pay-later orders as customer-claimed-paid (admin still confirms)
   if(window._payMode==='dues'){
     const ids=window._myDuesOrders||[];
     if(!ids.length){hide('payScreen');window._payMode='order';showToast('No dues found');return;}
     const claimAmt=window._myDuesTotal||0;
+    const ref4d=readPayRef(); if(!ref4d) return;   // Session 37: gate
     try{
       // Item 8: ek hi baar ke saare dues ko ek batch maante hain, taaki baad me
       // archive me ek line ke roop me dikh sakein
       const stamp=new Date().toISOString();
       await Promise.all(ids.map(id=>setDoc(doc(db,'orders',id),{
-        customerClaimedPaid:true, customerClaimedPaidAt:stamp, duesBatch:stamp.slice(0,16)
+        customerClaimedPaid:true, customerClaimedPaidAt:stamp, duesBatch:stamp.slice(0,16),
+        upiRef4:ref4d, refNoProof:(ref4d==='0000')
       },{merge:true})));
       hide('payScreen');
       window._payMode='order';
@@ -2899,6 +2957,8 @@ window.iHavePaid=async function(){
   }
   // ORDER MODE (normal)
   if(!currentOrderId)return;
+  // Session 37: bina UPI ref ke order confirm hoga hi nahi.
+  const ref4=readPayRef(); if(!ref4) return;
   try{
     // Session 12: customer ka "maine pay kar diya" ab sirf a CLAIM hai.
     // Order confirm ho jaata hai (customer ko wait nahi karna padta) par payment
@@ -2909,6 +2969,10 @@ window.iHavePaid=async function(){
       customerPaid:true,
       paymentConfirmed:false,
       payMethod:(window._payMethod==='upi'?'upi':'qr'),
+      // Session 37: customer ka diya hua UPI ref ka last-4. 0000 = "mujhe mila
+      // nahi" — us case me refNoProof true hota hai aur admin ko 🔺 dikhta hai.
+      upiRef4:ref4,
+      refNoProof:(ref4==='0000'),
       customerPaidAt:new Date().toISOString(),
       confirmedAt:new Date().toISOString()
     },{merge:true});
