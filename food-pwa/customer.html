@@ -73,17 +73,16 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* DATE SELECTOR */
 .date-row{display:flex;gap:7px;margin-bottom:10px;}
 /* Session 35: date chip visual states — green=open, orange=selected, red=closed */
-.dbtn{flex:1;padding:5px 3px;border-radius:var(--r);border:2px solid #22c55e;background:white;font-size:.74rem;font-weight:600;cursor:pointer;color:#15803d;transition:all .2s;}
+.dbtn{flex:1;padding:4px 2px;border-radius:10px;border:2px solid #22c55e;background:white;font-size:.72rem;font-weight:600;cursor:pointer;color:#15803d;transition:all .2s;min-width:0;}
 /* Selected: DARK GREEN fill jab us din order/wish hai, warna ORANGE fill.
    Fill ke baad bhi text/date/No-Menu/dot sab saaf dikhein (white contrast). */
-/* BUG5 fix: selecting ANY open chip stays green — orange was confusing.
-   has-order keeps same green; closed+active gets amber separately. */
-.dbtn.active{border-color:#15803d;background:#15803d;color:#fff;}
+/* BUG2: no-order selected chip = ORANGE (jaise pehle tha). Order-day selected = GREEN. */
+.dbtn.active{border-color:var(--orange);background:var(--orange);color:#fff;}
 .dbtn.active.has-order{border-color:#15803d;background:#15803d;color:#fff;}
 /* My Orders chips: amber border (Order tab ke green se alag) */
 .dbtn.mo:not(.active){border-color:#f59e0b;color:#b45309;}
 .dbtn.closed{border-color:#ef4444;background:#fff5f5;color:#b91c1c;opacity:.85;}
-.dbtn.active.closed{background:#b45309;border-color:#b45309;color:#fff;opacity:1;}
+.dbtn.active.closed{background:var(--orange);border-color:var(--orange);color:#fff;opacity:1;}
 .dbtn.active.closed.has-order{background:#15803d;border-color:#15803d;}
 .dbtn-closed-lbl{display:none;font-size:.5rem;font-weight:800;color:#ef4444;margin-top:1px;}
 .dbtn.closed .dbtn-closed-lbl{display:block;}
@@ -502,7 +501,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <div id="menuSec" style="display:none">
       <div class="sec">
         <div class="stt">Select Order Date</div>
-        <div id="orderDayChips" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-ms-overflow-style:none"></div>
+        <div id="orderDayChips" style="display:flex;gap:3px;overflow-x:hidden;padding-bottom:2px;scrollbar-width:none;-ms-overflow-style:none"></div>
         <div class="date-lbl" id="dateLbl"></div>
         <div class="stt" style="margin-top:4px">Menu</div>
         <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px">
@@ -1856,16 +1855,20 @@ async function loadMenu() {
     let data=await getTodayMenu();
     // BUGFIX (closed-date): buildDefaultMenuC() hardcodes isOpen:true. A date the
     // admin had CLOSED but whose items array was empty fell into the rebuild below,
-    // so its whole data object was replaced by an open default menu — silently
-    // re-opening the day and letting customers order. Capture the admin's real
-    // close flag BEFORE the rebuild and re-apply it after.
+    // so its whole data object was replaced by an open default menu.
     const adminClosed = !!(data && data.isDefault!==true && data.isOpen===false);
-    if(!data||data.isDefault||!(data.items||[]).length){
+    // BUG4 fix: preloadClosedDates already decided if today has NO menu (no override
+    // doc AND weekly default is empty). If today is in the closed set, do NOT rebuild
+    // a default menu — show "no menu" instead. Earlier the weekly-template rebuild ran
+    // regardless, so a closed today still showed items after refresh.
+    const todayClosedNoMenu=_closedDatesSet.has(today);
+    if(!todayClosedNoMenu && (!data||data.isDefault||!(data.items||[]).length)){
       const mcfg=await getMasterCfg();
       const def=buildDefaultMenuC(today,mcfg);
       if(def)data=def;
     }
-    if(adminClosed && data) data={...data,isOpen:false};
+    if((adminClosed||todayClosedNoMenu) && data) data={...data,isOpen:false};
+    if(todayClosedNoMenu) data={date:today,isOpen:false,items:[]};
     clearTimeout(timeout);
     data=await mergeMasterPrices(data);
     applyMenu(data);
@@ -2228,15 +2231,15 @@ function renderOrderDayChips(){
     const hasOrder=myOrderDateSet.has(d.date);
     const isClosed=_closedDatesSet.has(d.date);
     const chipCls='dbtn'+(sel?' active':'')+(isClosed?' closed':'')+(hasOrder?' has-order':'');
-    // BUG3+4: sirf 'SUN 16' dikhao (Today/Tomorrow ke liye ek chhoti top line).
-    // min-width chhota kiya taaki 7 chips ek screen mein aa jayein.
-    const topLine=d.idx<2?('<div style="font-size:.52rem;font-weight:800;opacity:.9">'+lbl+'</div>'):
-      '<div style="font-size:.52rem;opacity:0">·</div>'; // spacer to keep alignment
-    return '<button class="'+chipCls+'" style="flex-shrink:0;min-width:46px;position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
-      topLine+
-      '<div style="font-weight:800;font-size:.74rem">'+d.wd.toUpperCase()+' '+d.dayNum+'</div>'+
+    // BUG1: ek hi line — 'SAT 15'. Today/Tomorrow ke liye chhota prefix uski line me.
+    // Koi doosri (khaali) line nahi, taaki chip ki lambai kam rahe.
+    const prefix=d.idx===0?'<span style="font-size:.5rem;opacity:.85;display:block;line-height:1">Today</span>':
+      d.idx===1?'<span style="font-size:.5rem;opacity:.85;display:block;line-height:1">Tmrw</span>':'';
+    return '<button class="'+chipCls+'" style="flex-shrink:0;min-width:44px;position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
+      prefix+
+      '<div style="font-weight:800;font-size:.72rem;line-height:1.15">'+d.wd.toUpperCase()+' '+d.dayNum+'</div>'+
       '<div class="dbtn-closed-lbl">🚫</div>'+
-      (hasOrder?'<div class="kb-dot" style="position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--green,#22c55e);border:2px solid white;box-shadow:0 0 0 1px var(--green,#22c55e)" title="You have an order this day"></div>':'')+
+      (hasOrder?'<div class="kb-dot" style="position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--green,#22c55e);border:2px solid white;box-shadow:0 0 0 1px var(--green,#22c55e)" title="Order"></div>':'')+
       '</button>';
   }).join('');
 }
@@ -2286,13 +2289,17 @@ window.selectDate=async function(which,val){
   // wiped out by the weekly-template rebuild below.
   const adminClosed = !!(data && data.isDefault!==true && data.isOpen===false);
   if(adminClosed)_closedDatesSet.add(selectedDate);else _closedDatesSet.delete(selectedDate);
-  // No override (or a stale auto-default doc) → build from weekly default
-  if(!data||data.isDefault||!(data.items||[]).length){
+  // BUG5 fix: if this date is already known-closed (no override doc AND empty weekly
+  // default), skip the default rebuild entirely — otherwise items flash in and then
+  // get wiped by the "no menu" branch ("jhank ke chala jaana").
+  const dateClosedNoMenu=_closedDatesSet.has(ds);
+  if(!dateClosedNoMenu && (!data||data.isDefault||!(data.items||[]).length)){
     const mcfg=await getMasterCfg();
     const def=buildDefaultMenuC(ds,mcfg);
     if(def)data=def;
   }
-  if(adminClosed && data) data={...data,isOpen:false};
+  if((adminClosed||dateClosedNoMenu) && data) data={...data,isOpen:false};
+  if(dateClosedNoMenu) data={date:ds,isOpen:false,items:[]};
   if(!data||!data.isOpen||!(data.items||[]).length){
     document.getElementById('menuList').innerHTML=`<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>Is din ka menu nahi aaya (${disp})</p></div>`;
     quantities={};menuConfig={};updateBill();
