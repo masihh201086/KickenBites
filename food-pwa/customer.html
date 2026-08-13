@@ -73,15 +73,17 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* DATE SELECTOR */
 .date-row{display:flex;gap:7px;margin-bottom:10px;}
 /* Session 35: date chip visual states — green=open, orange=selected, red=closed */
-.dbtn{flex:1;padding:9px 6px;border-radius:var(--r);border:2px solid #22c55e;background:white;font-size:.8rem;font-weight:600;cursor:pointer;color:#15803d;transition:all .2s;}
+.dbtn{flex:1;padding:5px 3px;border-radius:var(--r);border:2px solid #22c55e;background:white;font-size:.74rem;font-weight:600;cursor:pointer;color:#15803d;transition:all .2s;}
 /* Selected: DARK GREEN fill jab us din order/wish hai, warna ORANGE fill.
    Fill ke baad bhi text/date/No-Menu/dot sab saaf dikhein (white contrast). */
-.dbtn.active{border-color:var(--orange);background:var(--orange);color:#fff;}
+/* BUG5 fix: selecting ANY open chip stays green — orange was confusing.
+   has-order keeps same green; closed+active gets amber separately. */
+.dbtn.active{border-color:#15803d;background:#15803d;color:#fff;}
 .dbtn.active.has-order{border-color:#15803d;background:#15803d;color:#fff;}
 /* My Orders chips: amber border (Order tab ke green se alag) */
 .dbtn.mo:not(.active){border-color:#f59e0b;color:#b45309;}
 .dbtn.closed{border-color:#ef4444;background:#fff5f5;color:#b91c1c;opacity:.85;}
-.dbtn.active.closed{background:var(--orange);border-color:var(--orange);color:#fff;opacity:1;}
+.dbtn.active.closed{background:#b45309;border-color:#b45309;color:#fff;opacity:1;}
 .dbtn.active.closed.has-order{background:#15803d;border-color:#15803d;}
 .dbtn-closed-lbl{display:none;font-size:.5rem;font-weight:800;color:#ef4444;margin-top:1px;}
 .dbtn.closed .dbtn-closed-lbl{display:block;}
@@ -500,7 +502,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <div id="menuSec" style="display:none">
       <div class="sec">
         <div class="stt">Select Order Date</div>
-        <div id="orderDayChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px"></div>
+        <div id="orderDayChips" style="display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-ms-overflow-style:none"></div>
         <div class="date-lbl" id="dateLbl"></div>
         <div class="stt" style="margin-top:4px">Menu</div>
         <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px">
@@ -1893,7 +1895,8 @@ async function loadMenu() {
           : {date:viewing, isOpen:true, items:[]};
         base.date=viewing;
         const merged=await mergeMasterPrices(base);
-        if(merged&&(merged.items||[]).length){
+        // BUG2 fix: only re-render if customer is still viewing this date.
+        if(merged&&(merged.items||[]).length&&selectedDate===viewing){
           menuConfig=merged; renderMenu(merged.items||[]); updateBill();
         }
       }catch(e){console.error('master live merge',e);}
@@ -1902,7 +1905,11 @@ async function loadMenu() {
     // upcoming date (never a stale past date). selectDate handles showing that day's menu.
     try{
       const sv=localStorage.getItem('kb_cust_date');
-      if(sv&&sv!==today){ const valid=next7Days().map(d=>d.date); if(valid.includes(sv)) await selectDate('custom',sv); }
+      // BUG1 fix: if saved date IS today, loadMenu already loaded it — no second call.
+      if(sv&&sv!==today){
+        const valid=next7Days().map(d=>d.date);
+        if(valid.includes(sv)) await selectDate('custom',sv);
+      }
     }catch(e){}
   }catch(e){clearTimeout(timeout);hide('loadingScreen');document.getElementById('closedBox').style.display='block';console.error('loadMenu error',e);}
 }
@@ -2221,11 +2228,15 @@ function renderOrderDayChips(){
     const hasOrder=myOrderDateSet.has(d.date);
     const isClosed=_closedDatesSet.has(d.date);
     const chipCls='dbtn'+(sel?' active':'')+(isClosed?' closed':'')+(hasOrder?' has-order':'');
-    return '<button class="'+chipCls+'" style="flex-shrink:0;min-width:62px;position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
-      '<div style="font-size:.58rem;opacity:.85;font-weight:700">'+lbl+'</div>'+
-      '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div>'+
-      '<div class="dbtn-closed-lbl">🚫 No Menu</div>'+
-      (hasOrder?'<div class="kb-dot" style="position:absolute;top:3px;right:4px;width:10px;height:10px;border-radius:50%;background:var(--green,#22c55e);border:2px solid white;box-shadow:0 0 0 1px var(--green,#22c55e)" title="You have an order this day"></div>':'')+
+    // BUG3+4: sirf 'SUN 16' dikhao (Today/Tomorrow ke liye ek chhoti top line).
+    // min-width chhota kiya taaki 7 chips ek screen mein aa jayein.
+    const topLine=d.idx<2?('<div style="font-size:.52rem;font-weight:800;opacity:.9">'+lbl+'</div>'):
+      '<div style="font-size:.52rem;opacity:0">·</div>'; // spacer to keep alignment
+    return '<button class="'+chipCls+'" style="flex-shrink:0;min-width:46px;position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
+      topLine+
+      '<div style="font-weight:800;font-size:.74rem">'+d.wd.toUpperCase()+' '+d.dayNum+'</div>'+
+      '<div class="dbtn-closed-lbl">🚫</div>'+
+      (hasOrder?'<div class="kb-dot" style="position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--green,#22c55e);border:2px solid white;box-shadow:0 0 0 1px var(--green,#22c55e)" title="You have an order this day"></div>':'')+
       '</button>';
   }).join('');
 }
