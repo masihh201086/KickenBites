@@ -2178,10 +2178,22 @@ window.runSmsVerify=async function(){
     return;
   }
 
-  // allOrders has today's visible orders; also check todayOrders for any extras
-  const pool=[...allOrders,...(todayOrders||[])].filter((o,i,a)=>a.findIndex(x=>x.id===o.id)===i);
-  // Pending = customer has claimed payment, admin not yet confirmed
-  const pending=pool.filter(o=>o.payLater!==true&&o.customerPaid===true&&o.paymentConfirmed!==true&&o.status!=='cancelled');
+  // Session 38b: sirf aaj ka view nahi — pichle 7 din ke SAARE unverified orders Firestore se fetch karo.
+  // Admin kisi bhi chip par baitha ho, dono SMS match sahi tarah hoga.
+  if(res) res.innerHTML='<div style="color:#6d28d9;font-size:.78rem">📅 7 din ke orders check kar raha hai…</div>';
+  let pending=[];
+  try{
+    const dates=next7Days().map(d=>d.date);
+    const snaps=await Promise.all(dates.map(ds=>getDocs(query(collection(db,'orders'),where('date','==',ds)))));
+    const all7=[];
+    snaps.forEach(snap=>snap.docs.forEach(d=>all7.push({id:d.id,...d.data()})));
+    // Dedupe (today might already be in allOrders but that's fine — Set by id)
+    const seen=new Set();
+    all7.forEach(o=>{ if(!seen.has(o.id)){seen.add(o.id);pending.push(o);} });
+    pending=pending.filter(o=>o.payLater!==true&&o.customerPaid===true&&o.paymentConfirmed!==true&&o.status!=='cancelled');
+  }catch(e){
+    if(res) res.innerHTML='<div class="sms-mismatch">⚠️ Orders load nahi hue: '+esc(e.message||'')+'</div>'; return;
+  }
 
   let html='';
   let autoVerified=0;
