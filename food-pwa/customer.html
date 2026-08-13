@@ -77,12 +77,13 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* Selected: DARK GREEN fill jab us din order/wish hai, warna ORANGE fill.
    Fill ke baad bhi text/date/No-Menu/dot sab saaf dikhein (white contrast). */
 /* BUG2: no-order selected chip = ORANGE (jaise pehle tha). Order-day selected = GREEN. */
-.dbtn.active{border-color:var(--orange);background:var(--orange);color:#fff;}
+/* BUG2 (S40): OPEN chip select = GREEN (pehle orange ho jaati thi). */
+.dbtn.active{border-color:#15803d;background:#15803d;color:#fff;}
 .dbtn.active.has-order{border-color:#15803d;background:#15803d;color:#fff;}
 /* My Orders chips: amber border (Order tab ke green se alag) */
 .dbtn.mo:not(.active){border-color:#f59e0b;color:#b45309;}
 .dbtn.closed{border-color:#ef4444;background:#fff5f5;color:#b91c1c;opacity:.85;}
-.dbtn.active.closed{background:var(--orange);border-color:var(--orange);color:#fff;opacity:1;}
+.dbtn.active.closed{background:#d97706;border-color:#d97706;color:#fff;opacity:1;}
 .dbtn.active.closed.has-order{background:#15803d;border-color:#15803d;}
 .dbtn-closed-lbl{display:none;font-size:.5rem;font-weight:800;color:#ef4444;margin-top:1px;}
 .dbtn.closed .dbtn-closed-lbl{display:block;}
@@ -1853,31 +1854,35 @@ async function loadMenu() {
     try{ await preloadClosedDates(); }catch(e){}
     renderOrderDayChips();
     let data=await getTodayMenu();
-    // BUGFIX (closed-date): buildDefaultMenuC() hardcodes isOpen:true. A date the
-    // admin had CLOSED but whose items array was empty fell into the rebuild below,
-    // so its whole data object was replaced by an open default menu.
-    const adminClosed = !!(data && data.isDefault!==true && data.isOpen===false);
-    // BUG4 fix: preloadClosedDates already decided if today has NO menu (no override
-    // doc AND weekly default is empty). If today is in the closed set, do NOT rebuild
-    // a default menu — show "no menu" instead. Earlier the weekly-template rebuild ran
-    // regardless, so a closed today still showed items after refresh.
-    const todayClosedNoMenu=_closedDatesSet.has(today);
-    if(!todayClosedNoMenu && (!data||data.isDefault||!(data.items||[]).length)){
-      const mcfg=await getMasterCfg();
-      const def=buildDefaultMenuC(today,mcfg);
-      if(def)data=def;
-    }
-    if((adminClosed||todayClosedNoMenu) && data) data={...data,isOpen:false};
-    if(todayClosedNoMenu) data={date:today,isOpen:false,items:[]};
     clearTimeout(timeout);
-    data=await mergeMasterPrices(data);
-    applyMenu(data);
+    // Session 40: admin ka exact rule. Override doc closed = pakka band (template fallback
+    // NAHI). Override doc open+items = dikhao. Koi override nahi = weekly template try karo.
+    const adminClosedToday = !!(data && data.isDefault!==true && data.isOpen===false);
+    if(adminClosedToday){
+      applyMenu({date:today,isOpen:false,items:[]});
+    }else{
+      if(!menuIsOpen(data)){
+        // no usable override → try weekly template
+        const mcfg=await getMasterCfg();
+        const def=buildDefaultMenuC(today,mcfg);   // null when template empty
+        data = def || {date:today,isOpen:false,items:[]};
+      }
+      if((data.items||[]).length){
+        data=await mergeMasterPrices(data);
+        applyMenu(data);
+      }else{
+        applyMenu({date:today,isOpen:false,items:[]});
+      }
+    }
     menuUnsub=listenToTodayMenu(async d=>{
-      if(d&&!d.isDefault&&(d.items||[]).length&&selectedDate===today){
-        // BUGFIX (closed-date): if the admin toggles today's "Accept orders" OFF
-        // while the customer page is open, close it LIVE instead of re-rendering
-        // the item cards as if the shop were still taking orders.
-        if(d.isOpen===false){ await applyMenu({...d,isOpen:false}); return; }
+      if(selectedDate!==today) return;
+      // Session 40: admin closed live → turant band. Override open+items → dikhao.
+      // Sirf default-template marker (isDefault) aaye to loadMenu ka template pehle hi
+      // laga chuka hai — use mat chhedo.
+      if(d && d.isDefault===true) return;
+      const adminClosed = !!(d && d.isDefault!==true && d.isOpen===false);
+      if(adminClosed){ await applyMenu({date:today,isOpen:false,items:[]}); return; }
+      if(menuIsOpen(d)){
         d=await mergeMasterPrices(d);
         menuConfig=d;renderMenu(d.items||[]);updateBill();
       }
@@ -1893,14 +1898,15 @@ async function loadMenu() {
       _masterCfg=snap.data(); // keep cache fresh for mergeMasterPrices
       try{
         const viewing=selectedDate||today;
-        const base=(menuConfig&&Array.isArray(menuConfig.items))
-          ? {...menuConfig}
-          : {date:viewing, isOpen:true, items:[]};
-        base.date=viewing;
-        const merged=await mergeMasterPrices(base);
-        // BUG2 fix: only re-render if customer is still viewing this date.
-        if(merged&&(merged.items||[]).length&&selectedDate===viewing){
-          menuConfig=merged; renderMenu(merged.items||[]); updateBill();
+        // Session 40: master price/name edit ko live reflect karo — LEKIN sirf tab jab
+        // is din ka menu pehle se khula hua ho (menuConfig me items hon). Agar din band
+        // hai (menuConfig khaali) to master change use kholna nahi chahiye.
+        if(menuConfig && Array.isArray(menuConfig.items) && menuConfig.items.length){
+          const base={...menuConfig, date:viewing};
+          const merged=await mergeMasterPrices(base);
+          if(merged&&(merged.items||[]).length&&selectedDate===viewing){
+            menuConfig=merged; renderMenu(merged.items||[]); updateBill();
+          }
         }
       }catch(e){console.error('master live merge',e);}
     });
@@ -2183,6 +2189,23 @@ async function getMasterCfg(force){
 // This is why a Master price change now appears for every day instead of staying frozen
 // at whatever value got baked into a saved dailyMenu override, and why newly-enabled
 // items appear without needing to re-save that day.
+// Session 40 (CORRECTED): mirror ADMIN's exact open/closed rule so customer and admin
+// never disagree. A day is OPEN when:
+//   • admin made a real override doc (isDefault!==true) that is NOT closed AND has items
+//   • OR there is no override and the weekly template has items for that weekday
+// A day is CLOSED (no menu) when the override doc says isOpen===false, OR when there is
+// neither an override nor any template items. The earlier BUG was: an admin override
+// with isOpen===false still fell through to the weekly-template fallback, so a day the
+// admin had explicitly CLOSED leaked the template's items back onto the customer page.
+// `data` here is what getDailyMenu/getTodayMenu returned (override doc or null).
+function menuIsOpen(data){
+  // Real override doc present
+  if(data && data.isDefault!==true){
+    if(data.isOpen===false) return false;          // admin explicitly closed → NO menu
+    return (data.items||[]).length>0;              // open only if it actually has items
+  }
+  return false; // no override doc — caller must try the weekly template separately
+}
 async function mergeMasterPrices(menuObj){
   if(!menuObj||!Array.isArray(menuObj.items))return menuObj;
   const ds=menuObj.date||selectedDate||getTodayDate();
@@ -2233,11 +2256,14 @@ function renderOrderDayChips(){
     const chipCls='dbtn'+(sel?' active':'')+(isClosed?' closed':'')+(hasOrder?' has-order':'');
     // BUG1: ek hi line — 'SAT 15'. Today/Tomorrow ke liye chhota prefix uski line me.
     // Koi doosri (khaali) line nahi, taaki chip ki lambai kam rahe.
-    const prefix=d.idx===0?'<span style="font-size:.5rem;opacity:.85;display:block;line-height:1">Today</span>':
-      d.idx===1?'<span style="font-size:.5rem;opacity:.85;display:block;line-height:1">Tmrw</span>':'';
-    return '<button class="'+chipCls+'" style="flex-shrink:0;min-width:44px;position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
+    // BUG1+3: har chip ek hi line — 'SAT 15'. Today/Tomorrow ke liye ek chhoti top line
+    // (poora 'Tomorrow' likha, chip thodi chaudi). Baaki dino par sirf 'SAT 15'.
+    const prefix=d.idx===0?'<div style="font-size:.5rem;opacity:.9;line-height:1;font-weight:800">Today</div>':
+      d.idx===1?'<div style="font-size:.5rem;opacity:.9;line-height:1;font-weight:800">Tomorrow</div>':'';
+    const wide=d.idx<2?'min-width:52px':'min-width:44px';
+    return '<button class="'+chipCls+'" style="flex-shrink:0;'+wide+';position:relative;white-space:nowrap" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
       prefix+
-      '<div style="font-weight:800;font-size:.72rem;line-height:1.15">'+d.wd.toUpperCase()+' '+d.dayNum+'</div>'+
+      '<div style="font-weight:800;font-size:.72rem;line-height:1.2;white-space:nowrap">'+d.wd.toUpperCase()+' '+d.dayNum+'</div>'+
       '<div class="dbtn-closed-lbl">🚫</div>'+
       (hasOrder?'<div class="kb-dot" style="position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--green,#22c55e);border:2px solid white;box-shadow:0 0 0 1px var(--green,#22c55e)" title="Order"></div>':'')+
       '</button>';
@@ -2254,15 +2280,14 @@ async function preloadClosedDates(){
     const snaps=await Promise.all(days.map(function(ds){return getDoc(doc(db,'dailyMenu',ds));}));
     snaps.forEach(function(snap,i){
       const ds=days[i]; const d2=snap.data()||{};
+      // Session 40: EXACT admin rule so chips match. Override doc → closed iff isOpen===false.
+      // No override → open iff the weekly template has items for that weekday.
       let closed=false;
-      if(snap.exists()&&d2.isDefault!==true){
-        // explicit override doc: trust its isOpen flag
+      if(snap.exists() && d2.isDefault!==true){
         closed=(d2.isOpen===false);
-      } else {
-        // no override: check if weekly default has any items for this weekday
-        // buildDefaultMenuC returns null when no items → that day has no menu → closed
+      }else{
         const def=mcfg?buildDefaultMenuC(ds,mcfg):null;
-        closed=!def;   // null = no menu = closed/no-menu
+        closed=!def;
       }
       if(closed)_closedDatesSet.add(ds);else _closedDatesSet.delete(ds);
     });
@@ -2285,22 +2310,19 @@ window.selectDate=async function(which,val){
   const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('dateLbl').textContent='📅 Ordering for: '+disp;
   let data=await getDailyMenu(ds);
-  // BUGFIX (closed-date): same as loadMenu — keep the admin's close flag from being
-  // wiped out by the weekly-template rebuild below.
-  const adminClosed = !!(data && data.isDefault!==true && data.isOpen===false);
-  if(adminClosed)_closedDatesSet.add(selectedDate);else _closedDatesSet.delete(selectedDate);
-  // BUG5 fix: if this date is already known-closed (no override doc AND empty weekly
-  // default), skip the default rebuild entirely — otherwise items flash in and then
-  // get wiped by the "no menu" branch ("jhank ke chala jaana").
-  const dateClosedNoMenu=_closedDatesSet.has(ds);
-  if(!dateClosedNoMenu && (!data||data.isDefault||!(data.items||[]).length)){
+  // Session 40: admin ka exact rule. Override closed = band (no template fallback).
+  // Override open+items = dikhao. Koi override nahi = weekly template try karo.
+  const adminClosedDay = !!(data && data.isDefault!==true && data.isOpen===false);
+  if(adminClosedDay){
+    data={date:ds,isOpen:false,items:[]};
+  }else if(!menuIsOpen(data)){
     const mcfg=await getMasterCfg();
     const def=buildDefaultMenuC(ds,mcfg);
-    if(def)data=def;
+    data = def || {date:ds,isOpen:false,items:[]};
   }
-  if((adminClosed||dateClosedNoMenu) && data) data={...data,isOpen:false};
-  if(dateClosedNoMenu) data={date:ds,isOpen:false,items:[]};
-  if(!data||!data.isOpen||!(data.items||[]).length){
+  const dayOpen=(data.items||[]).length>0 && data.isOpen!==false;
+  if(dayOpen) _closedDatesSet.delete(ds); else _closedDatesSet.add(ds);
+  if(!dayOpen){
     document.getElementById('menuList').innerHTML=`<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:2rem">😴</div><p>Is din ka menu nahi aaya (${disp})</p></div>`;
     quantities={};menuConfig={};updateBill();
   }else{
