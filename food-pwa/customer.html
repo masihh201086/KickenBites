@@ -73,7 +73,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* DATE SELECTOR */
 .date-row{display:flex;gap:7px;margin-bottom:10px;}
 /* Session 35: date chip visual states — green=open, orange=selected, red=closed */
-.dbtn{flex:1;padding:4px 1px;border-radius:10px;border:2px solid #22c55e;background:white;font-size:.68rem;font-weight:600;cursor:pointer;color:#15803d;transition:all .2s;min-width:0;overflow:hidden;box-sizing:border-box;}
+.dbtn{flex:1;height:46px;padding:2px 4px;border-radius:10px;border:2px solid #22c55e;background:white;font-size:.68rem;font-weight:600;cursor:pointer;color:#15803d;transition:all .2s;min-width:0;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.15;}
 /* Selected: DARK GREEN fill jab us din order/wish hai, warna ORANGE fill.
    Fill ke baad bhi text/date/No-Menu/dot sab saaf dikhein (white contrast). */
 /* BUG2: no-order selected chip = ORANGE (jaise pehle tha). Order-day selected = GREEN. */
@@ -85,9 +85,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .dbtn.closed{border-color:#ef4444;background:#fff5f5;color:#b91c1c;opacity:.85;}
 .dbtn.active.closed{background:#ea580c;border-color:#ea580c;color:#fff;opacity:1;}
 .dbtn.active.closed.has-order{background:#15803d;border-color:#15803d;}
-.dbtn-pfx{font-size:.48rem;line-height:1;font-weight:900;color:#15803d;}
+.dbtn-pfx{position:absolute;top:2px;left:0;right:0;font-size:.46rem;line-height:1;font-weight:900;color:#15803d;}
 .dbtn.active .dbtn-pfx,.dbtn.closed .dbtn-pfx{color:inherit;opacity:.92;}
-.dbtn-closed-lbl{display:none;font-size:.5rem;font-weight:800;color:#ef4444;margin-top:1px;}
+.dbtn-closed-lbl{display:none;position:absolute;bottom:1px;left:0;right:0;font-size:.5rem;font-weight:800;color:#ef4444;}
 .dbtn.closed .dbtn-closed-lbl{display:block;}
 /* filled chip par sab kuch dikhe */
 .dbtn.active.closed .dbtn-closed-lbl{color:#fff;}
@@ -1935,7 +1935,7 @@ async function applyMenu(cfg){
     const dispToday=new Date(today+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
     document.getElementById('dateLbl').textContent='📅 Ordering for: '+dispToday;
     const ml=document.getElementById('menuList');
-    if(ml) ml.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:44px 22px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Aaj menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.5;max-width:230px">Aaj ke liye abhi koi menu nahi aaya.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
+    if(ml) ml.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:44px 22px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Aaj menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.5;max-width:300px;padding:0 6px">Aaj ke liye abhi koi menu nahi aaya.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
     quantities={};menuConfig={};updateBill();
     return;
   }
@@ -2258,14 +2258,14 @@ function renderOrderDayChips(){
     const chipCls='dbtn'+(sel?' active':'')+(isClosed?' closed':'')+(hasOrder?' has-order':'');
     // BUG1: ek hi line — 'SAT 15'. Today/Tomorrow ke liye chhota prefix uski line me.
     // Koi doosri (khaali) line nahi, taaki chip ki lambai kam rahe.
-    // BUG1+2+3: har chip ek line 'SAT 15'. Today/Tomorrow ka prefix DARK GREEN BOLD.
-    // Font thoda chhota taaki text border ke andar rahe, chip clip na ho.
+    // BUG1: saari chip barabar height (green cell jaisa) — CSS me height fix hai.
+    // BUG2: text center + font chhota, 'MON 17' border ke andar. Prefix/🚫 absolute
+    // hain isliye height nahi badhti.
     const prefix=d.idx===0?'<div class="dbtn-pfx">Today</div>':
       d.idx===1?'<div class="dbtn-pfx">Tomorrow</div>':'';
-    const wide=d.idx<2?'min-width:50px':'min-width:40px';
-    return '<button class="'+chipCls+'" style="'+wide+';position:relative;white-space:nowrap" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
+    return '<button class="'+chipCls+'" style="position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
       prefix+
-      '<div style="font-weight:800;font-size:.68rem;line-height:1.2;white-space:nowrap">'+d.wd.toUpperCase()+' '+d.dayNum+'</div>'+
+      '<div style="font-weight:800;font-size:.66rem;white-space:nowrap">'+d.wd.toUpperCase()+' '+d.dayNum+'</div>'+
       '<div class="dbtn-closed-lbl">🚫</div>'+
       (hasOrder?'<div class="kb-dot" style="position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--green,#22c55e);border:2px solid white;box-shadow:0 0 0 1px var(--green,#22c55e)" title="Order"></div>':'')+
       '</button>';
@@ -2325,7 +2325,7 @@ window.selectDate=async function(which,val){
   const dayOpen=(data.items||[]).length>0 && data.isOpen!==false;
   if(dayOpen) _closedDatesSet.delete(ds); else _closedDatesSet.add(ds);
   if(!dayOpen){
-    document.getElementById('menuList').innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:44px 22px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Is din menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.5;max-width:230px">'+disp+' ke liye abhi koi menu nahi aaya.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
+    document.getElementById('menuList').innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:44px 22px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Is din menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.5;max-width:300px;padding:0 6px">'+disp+' ke liye abhi koi menu nahi aaya.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
     quantities={};menuConfig={};updateBill();
   }else{
     data=await mergeMasterPrices(data);
@@ -2350,7 +2350,7 @@ window.selectDate=async function(which,val){
     if(d.isOpen===false){
       const dispC=new Date(listenDs+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
       const mlC=document.getElementById('menuList');
-      if(mlC) mlC.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:44px 22px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Is din menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.5;max-width:230px">'+dispC+' ke liye abhi koi menu nahi aaya.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
+      if(mlC) mlC.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:44px 22px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Is din menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.5;max-width:300px;padding:0 6px">'+dispC+' ke liye abhi koi menu nahi aaya.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
       quantities={};menuConfig={};updateBill();
       return;
     }
