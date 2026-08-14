@@ -119,7 +119,10 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .mc-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px;margin-top:2px;}
 /* Session 24: price ab card ka sabse prominent element — bada, bold, apni line par */
 .mc-price{font-weight:900;color:var(--orange);font-size:1.42rem;letter-spacing:-.02em;line-height:1;}
-.mc-stars{display:flex;align-items:center;flex-wrap:nowrap;white-space:nowrap;gap:2px;flex:1 1 auto;min-width:0;overflow:hidden;}
+.mc-stars{display:flex;align-items:center;flex-wrap:nowrap;white-space:nowrap;gap:2px;min-width:0;overflow:hidden;}
+/* taare + neeche 'reviews' link. max-width ADD button ki jagah chhodta hai */
+.mc-foot-l{display:flex;flex-direction:column;align-items:flex-start;gap:0;flex:1 1 auto;min-width:0;max-width:calc(100% - 66px);overflow:hidden;}
+.mc-revlink{font-size:.6rem;font-weight:800;color:var(--orange);white-space:nowrap;line-height:1.2;}
 /* bahut chhoti screens (<=345px): review count chhupa do taaki taare+ADD ek hi line me rahein */
 @media(max-width:345px){.mc-stars .rev-n{display:none;}}
 .mc-price .rs{font-size:.9rem;font-weight:800;vertical-align:2px;margin-right:1px;}
@@ -134,10 +137,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .stockbar-wrap{margin:7px 0 2px;}
 .stockbar-track{height:9px;border-radius:20px;background:#ffe6d2;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.05);}
 .stockbar-fill{height:100%;border-radius:20px;transition:width .4s ease,background .3s ease;}
-.stockbar-info{display:flex;justify-content:space-between;align-items:center;gap:4px;font-size:.8rem;margin-top:5px;font-weight:800;}
+.stockbar-info{display:flex;justify-content:space-between;align-items:center;gap:4px;font-size:.78rem;margin-top:5px;font-weight:800;}
 .stockbar-info .booked{color:#1a1a1a;font-weight:900;white-space:nowrap;}
-.stockbar-info .fast{color:#e65c00;font-weight:800;font-size:.7rem;white-space:nowrap;}
-@media(min-width:580px){.stockbar-info{font-size:.9rem;}.stockbar-info .fast{font-size:.8rem;}}
+@media(min-width:580px){.stockbar-info{font-size:.9rem;}}
 .qok{background:#dcfce7;color:#15803d;}
 .qlow{background:#fee2e2;color:#b91c1c;}
 .rating-badge{font-size:.68rem;color:#f59e0b;font-weight:700;}
@@ -1943,7 +1945,7 @@ async function applyMenu(cfg){
     const dispToday=new Date(today+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
     document.getElementById('dateLbl').textContent='📅 Ordering for: '+dispToday;
     const ml=document.getElementById('menuList');
-    if(ml) ml.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:44px 22px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Aaj menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.5;max-width:300px;padding:0 6px">Aaj ke liye abhi koi menu nahi aaya.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
+    if(ml) ml.innerHTML='<div style="grid-column:1/-1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:38px 16px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Aaj menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.55;max-width:330px;padding:0 4px">Aaj ke liye menu nahi hai.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
     quantities={};menuConfig={};updateBill();
     return;
   }
@@ -2038,12 +2040,14 @@ function buildCard(item){
     const barColor=remainPct>50?'#22c55e':remainPct>20?'#f59e0b':'#ef4444';
     // Track ab grey nahi — usi colour ka halka tint, taaki bar saaf dikhe
     const trackColor=remainPct>50?'#d7f5e0':remainPct>20?'#fdecc8':'#fddede';
-    const fastFilling=bookedPct>=50 && remaining>0;              // 50%+ booked
+    // 'Fast filling' label hata diya (S45): bar ka rang khud bata deta hai —
+    // hara = kaafi hai, amber = kam ho raha, laal = bahut kam. Do jagah likhne
+    // ki zaroorat nahi thi, aur 2-column card me wo text kat bhi raha tha.
     stockBar=`<div class="stockbar-wrap">
       <div class="stockbar-track" style="background:${trackColor}"><div class="stockbar-fill" style="width:${bookedPct}%;background:${barColor}"></div></div>
       <div class="stockbar-info">
         <span class="booked">${booked} booked · ${remaining} left</span>
-        ${soldOut?'<span style="color:#ef4444;font-weight:800">SOLD OUT</span>':(fastFilling?'<span class="fast">🔥 Fast filling!</span>':'')}
+        ${soldOut?'<span style="color:#ef4444;font-weight:800">SOLD OUT</span>':''}
       </div>
     </div>`;
   }
@@ -2054,11 +2058,13 @@ function buildCard(item){
   if(avgRating>0){ (window._itemReviews=window._itemReviews||{})[item.id]={name:item.name, avg:avgRating, count:rCount, reviews:(itemR.reviews||[])}; }
   const hasComments=(itemR.reviews||[]).length>0;
   const reviewsHtml = avgRating>0
-    ? `<div class="mc-stars" ${hasComments?`onclick="openReviews('${item.id}')" style="cursor:pointer"`:''} title="${hasComments?'Reviews padhein':''}">
-         <span style="color:#f59e0b;font-size:.62rem;letter-spacing:0;line-height:1">${starsHtml}</span>
-         <span style="color:#333;font-weight:800;font-size:.7rem;margin-left:2px">${avgRating.toFixed(1)}</span>
-         <span class="rev-n" style="color:#999;font-size:.6rem">(${rCount})</span>
-         ${hasComments?'<span style="color:#f59e0b;font-size:.8rem;font-weight:800;margin-left:1px;line-height:1">›</span>':''}
+    ? `<div class="mc-foot-l" ${hasComments?`onclick="openReviews('${item.id}')" style="cursor:pointer"`:''} title="${hasComments?'Reviews padhein':''}">
+         <div class="mc-stars">
+           <span style="color:#f59e0b;font-size:.55rem;letter-spacing:0;line-height:1">${starsHtml}</span>
+           <span style="color:#333;font-weight:800;font-size:.64rem;margin-left:2px">${avgRating.toFixed(1)}</span>
+           <span class="rev-n" style="color:#999;font-size:.55rem">(${rCount})</span>
+         </div>
+         ${hasComments?'<div class="mc-revlink">reviews ›</div>':''}
        </div>`
     : '';
   div.innerHTML=imgHtml+`
@@ -2336,7 +2342,7 @@ window.selectDate=async function(which,val){
   const dayOpen=(data.items||[]).length>0 && data.isOpen!==false;
   if(dayOpen) _closedDatesSet.delete(ds); else _closedDatesSet.add(ds);
   if(!dayOpen){
-    document.getElementById('menuList').innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:44px 22px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Is din menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.5;max-width:300px;padding:0 6px">'+disp+' ke liye abhi koi menu nahi aaya.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
+    document.getElementById('menuList').innerHTML='<div style="grid-column:1/-1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:38px 16px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Is din menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.55;max-width:330px;padding:0 4px">'+disp+' ke liye menu nahi hai.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
     quantities={};menuConfig={};updateBill();
   }else{
     data=await mergeMasterPrices(data);
@@ -2361,7 +2367,7 @@ window.selectDate=async function(which,val){
     if(d.isOpen===false){
       const dispC=new Date(listenDs+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
       const mlC=document.getElementById('menuList');
-      if(mlC) mlC.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:44px 22px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Is din menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.5;max-width:300px;padding:0 6px">'+dispC+' ke liye abhi koi menu nahi aaya.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
+      if(mlC) mlC.innerHTML='<div style="grid-column:1/-1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:38px 16px;min-height:230px"><div style="font-size:3.2rem;line-height:1;margin-bottom:6px">🚫</div><div style="font-size:1.15rem;font-weight:900;color:#b45309;margin-bottom:6px">Is din menu band hai</div><div style="font-size:.86rem;color:var(--muted);line-height:1.55;max-width:330px;padding:0 4px">'+dispC+' ke liye menu nahi hai.<br>Upar 👆 se koi <b>hara</b> din chunein.</div></div>';
       quantities={};menuConfig={};updateBill();
       return;
     }
