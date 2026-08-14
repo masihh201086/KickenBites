@@ -635,6 +635,21 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="sg2"><label>Shop Name</label><input class="si" id="sName" placeholder="Kicken Bites"></div>
       <div class="sg2"><label>UPI ID</label><input class="si" id="sUpi" placeholder="e.g. q797038315@ybl"></div>
       <div class="sg2"><label>UPI Display Name</label><input class="si" id="sUpiName" placeholder="e.g. Kicken Bites Pvt Ltd"></div>
+      <!-- S46: Meal label. Customer ke menu ke upar "Menu for Dinner" dikhta hai.
+           Dropdown rakha (free text nahi) taaki spelling ki galti na ho.
+           Value seedhi config/menu.mealLabel me jaati hai; customer.html wahi padhta hai. -->
+      <div class="sg2">
+        <label>Menu kis waqt ka hai</label>
+        <select class="si" id="sMealLabel">
+          <option value="Dinner">Dinner</option>
+          <option value="Lunch">Lunch</option>
+          <option value="Breakfast">Breakfast</option>
+          <option value="">— kuch nahi, sirf "Menu" —</option>
+        </select>
+        <div id="mealLblHint" style="font-size:.7rem;color:var(--muted);margin-top:4px;line-height:1.5">
+          Customer ko dikhega: Menu for Dinner
+        </div>
+      </div>
       <!-- Session 13: Pay Later ke do control. Dono customer.html padhta hai. -->
       <div class="sg2"><label>Pay Later — max dues per customer (₹)</label><input class="si" id="sDuesLimit" type="number" min="0" placeholder="2000"></div>
       <div class="sg2"><label>Pay Later — kitne paid order ke baad khule</label><input class="si" id="sPayLaterMin" type="number" min="0" placeholder="2"></div>
@@ -3149,10 +3164,34 @@ window.removeBoy=async function(phone){
 };
 
 // ---- SETUP ----
+// S46: dropdown badalte hi neeche dikhe customer par kya chhapega.
+function updateMealLblPreview(){
+  const ml=document.getElementById('sMealLabel'), hint=document.getElementById('mealLblHint');
+  if(!ml||!hint) return;
+  const v=(ml.value||'').trim();
+  // textContent — innerHTML kabhi nahi
+  hint.textContent = v ? ('Customer ko dikhega: Menu for '+v)
+                       : 'Customer ko dikhega sirf: Menu';
+}
 function loadSetupFields(){
   document.getElementById('sName').value=cfg.shopName||'';
   document.getElementById('sUpi').value=cfg.upiId||'';
   document.getElementById('sUpiName').value=cfg.upiName||'';
+  // S46: field bani hi na ho (purana config) to Dinner — aaj ka dhandha wahi hai.
+  // Admin ne jaan-boojh kar khaali chuna ho to khaali hi rahe, isliye ==null test
+  // (||'Dinner' NAHI, warna "sirf Menu" kabhi set hi nahi ho paata).
+  {const ml=document.getElementById('sMealLabel');
+   if(ml){
+     const cur=(cfg.mealLabel!=null?String(cfg.mealLabel):'Dinner');
+     // koi purana/alag label pehle se saved ho to use kho mat do — list me jod do
+     if(cur && ![...ml.options].some(o=>o.value===cur)){
+       const op=document.createElement('option'); op.value=cur; op.textContent=cur;
+       ml.insertBefore(op, ml.firstChild);
+     }
+     ml.value=cur;
+     ml.onchange=updateMealLblPreview;
+     updateMealLblPreview();
+   }}
   {const e1=document.getElementById('sDuesLimit'); if(e1)e1.value=(cfg.duesLimit!=null?cfg.duesLimit:2000);}
   {const e2=document.getElementById('sPayLaterMin'); if(e2)e2.value=(cfg.payLaterMinOrders!=null?cfg.payLaterMinOrders:2);}
   document.getElementById('sImgbb').value=cfg.imgbbKey||localStorage.getItem('imgbbKey')||'';
@@ -3189,7 +3228,9 @@ window.saveSetup=async function(){
   const pmRaw=(document.getElementById('sPayLaterMin')?.value||'').trim();
   const duesLimit=dlRaw===''?2000:Math.max(0,Number(dlRaw)||0);
   const payLaterMinOrders=pmRaw===''?2:Math.max(0,Number(pmRaw)||0);
-  cfg={...cfg,shopName:document.getElementById('sName').value,upiId:document.getElementById('sUpi').value,upiName:document.getElementById('sUpiName').value,imgbbKey:imgbbKey||cfg.imgbbKey||'',adminPhone:adminPhone||cfg.adminPhone||'',defaultBoyPhone:defaultBoyPhone,duesLimit,payLaterMinOrders};
+  // S46: khaali value bhi valid hai (matlab "sirf Menu"), isliye koi ||fallback nahi
+  const mealLabel=((document.getElementById('sMealLabel')?.value)||'').trim().slice(0,24);
+  cfg={...cfg,shopName:document.getElementById('sName').value,upiId:document.getElementById('sUpi').value,upiName:document.getElementById('sUpiName').value,imgbbKey:imgbbKey||cfg.imgbbKey||'',adminPhone:adminPhone||cfg.adminPhone||'',defaultBoyPhone:defaultBoyPhone,duesLimit,payLaterMinOrders,mealLabel};
   try{await saveConfig(cfg);showToast('✅ Settings saved!');}catch(e){alert('Error: '+e.message);}
 };
 

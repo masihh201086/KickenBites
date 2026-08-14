@@ -527,7 +527,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <!-- S44: All / Top Rated / Popular sort chips REMOVED (user ko zaroorat nahi).
              sortMenu() function neeche maujood hai (dead but harmless) taaki kal
              wapas chahiye to sirf 3 button markup dobara add karne padein. -->
-        <div class="stt" style="margin-top:4px">Menu</div>
+        <!-- S46: text JS set karta hai — "Menu for Dinner" / "Menu for Lunch" /
+             "Menu for Breakfast" / sirf "Menu". Source = config/menu.mealLabel
+             (Admin -> Setup -> "Menu kis waqt ka hai"). Yahan kuch hardcode nahi. -->
+        <div class="stt" style="margin-top:4px" id="menuHeadLbl">Menu</div>
         <div class="menu-grid" id="menuList" style="margin-top:2px"></div>
       </div>
       <div class="sec" style="margin-top:10px">
@@ -1914,6 +1917,9 @@ async function loadMenu() {
     masterUnsub=onSnapshot(doc(db,'config','menu'), async snap=>{
       if(!snap.exists())return;
       _masterCfg=snap.data(); // keep cache fresh for mergeMasterPrices
+      // S46: admin Setup me Save kare to heading turant badle — customer ko
+      // refresh na karna pade. Menu khula ho ya band, dono me chalta hai.
+      paintMenuHeading(_masterCfg);
       try{
         const viewing=selectedDate||today;
         // Session 40: master price/name edit ko live reflect karo — LEKIN sirf tab jab
@@ -1947,6 +1953,7 @@ async function applyMenu(cfg){
     // Today is closed or has no items — but KEEP the date chips visible so the
     // customer can still pick another day. Only the item area shows the notice.
     document.getElementById('menuSec').style.display='block';
+    refreshMenuHeading();   // S46: band din par bhi heading sahi rahe
     renderOrderDayChips();
     const dispToday=new Date(today+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
     document.getElementById('dateLbl').textContent='📅 Ordering for: '+dispToday;
@@ -1956,6 +1963,7 @@ async function applyMenu(cfg){
     return;
   }
   menuConfig=cfg;
+  refreshMenuHeading();   // S46: "Menu for Dinner"
   document.getElementById('shopName').textContent=(cfg.shopName||'Kicken Bites');
   document.getElementById('dateLbl').textContent='📅 Ordering for: '+new Date(today+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('menuSec').style.display='block';
@@ -2204,6 +2212,25 @@ async function getMasterCfg(force){
   if(_masterCfg&&!force)return _masterCfg;
   try{const s=await getDoc(doc(db,'config','menu'));_masterCfg=s.exists()?s.data():{};}catch(e){_masterCfg=_masterCfg||{};}
   return _masterCfg;
+}
+
+// ══════════ S46: menu heading ka meal label ══════════
+// Field bani hi na ho (purana config) to 'Dinner' maan lo — aaj ka dhandha wahi hai,
+// isliye upload ke turant baad hi sahi dikhega, admin ko kuch karna nahi padega.
+// Admin ne "sirf Menu" chuna ho to khaali — isliye ==null test, ||'Dinner' nahi.
+function mealLabelFrom(c){
+  const v=(c&&c.mealLabel!=null)?String(c.mealLabel).trim():'Dinner';
+  return v.slice(0,24);
+}
+function paintMenuHeading(c){
+  const el=document.getElementById('menuHeadLbl');
+  if(!el)return;
+  const lbl=mealLabelFrom(c);
+  // textContent — kabhi innerHTML nahi (admin ka text seedha DOM me ja raha hai)
+  el.textContent = lbl ? ('Menu for '+lbl) : 'Menu';
+}
+async function refreshMenuHeading(force){
+  try{ paintMenuHeading(await getMasterCfg(force)); }catch(e){}
 }
 
 // Reconcile a loaded menu doc against the LATEST master template for its weekday.
