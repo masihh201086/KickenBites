@@ -374,6 +374,24 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* Session fix: 100dvh + scroll-lock se overlay ke neeche background nahi jhaankta */
 #successScreen{display:none;position:fixed;inset:0;min-height:100dvh;background:var(--obg);z-index:300;flex-direction:column;align-items:center;justify-content:center;padding:22px 15px;text-align:center;overflow-y:auto;overscroll-behavior:contain;}
 .si{font-size:4rem;margin-bottom:10px;}
+/* S49: order confirm hone par hara tick — gol ghera pehle khinchta hai, phir
+   sahi ka nishaan. Sirf CSS/SVG hai, koi library nahi.
+   prefers-reduced-motion wale phone par seedha bana hua dikhta hai (jhatka nahi). */
+.okwrap{width:86px;height:86px;margin-bottom:10px;position:relative;}
+.okwrap svg{width:100%;height:100%;display:block;}
+.ok-ring{stroke:#16a34a;stroke-width:4;fill:#fff;stroke-dasharray:166;stroke-dashoffset:166;}
+.ok-tick{stroke:#16a34a;stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:48;stroke-dashoffset:48;}
+.okwrap.go .ok-ring{animation:okRing .5s cubic-bezier(.65,0,.45,1) forwards;}
+.okwrap.go .ok-tick{animation:okTick .32s cubic-bezier(.65,0,.45,1) .42s forwards;}
+.okwrap.go .ok-pulse{animation:okPulse .55s ease-out .5s;}
+.ok-pulse{transform-origin:50% 50%;fill:#16a34a;opacity:0;}
+@keyframes okRing{to{stroke-dashoffset:0;}}
+@keyframes okTick{to{stroke-dashoffset:0;}}
+@keyframes okPulse{0%{opacity:.28;transform:scale(.6);}100%{opacity:0;transform:scale(1.5);}}
+@media(prefers-reduced-motion:reduce){
+  .okwrap.go .ok-ring,.okwrap.go .ok-tick{animation:none;stroke-dashoffset:0;}
+  .okwrap.go .ok-pulse{animation:none;}
+}
 .st{font-size:1.25rem;font-weight:800;margin-bottom:4px;}
 .ss{color:var(--muted);font-size:.84rem;line-height:1.5;}
 .oid{background:white;border-radius:10px;padding:9px 16px;margin:11px 0;font-size:.79rem;}
@@ -900,7 +918,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
 <!-- SUCCESS SCREEN -->
 <div id="successScreen">
-  <img src="logo.webp" decoding="async" onerror="this.onerror=null;this.src='logo.png'" style="width:80px;height:80px;object-fit:contain;margin-bottom:8px" alt="Kicken Bites">
+  <!-- S49: animated hara tick. showSuccess par .go class lagti hai, isliye har
+       naye order par animation dobara chalti hai (ek hi baar nahi). -->
+  <div class="okwrap" id="okTick" role="img" aria-label="Order confirmed">
+    <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <circle class="ok-pulse" cx="30" cy="30" r="26"></circle>
+      <circle class="ok-ring" cx="30" cy="30" r="26"></circle>
+      <path class="ok-tick" d="M18 30.5 L26.5 39 L42 23"></path>
+    </svg>
+  </div>
   <div class="st">Order Confirmed!</div>
   <div class="ss">Your order has been received!<br>We'll prepare it fresh for you. 🍗</div>
   <div class="oid">Order ID: <strong id="succOrderId"></strong></div>
@@ -2001,7 +2027,7 @@ async function loadMenu() {
       // refresh na karna pade. Menu khula ho ya band, dono me chalta hai.
       paintMenuHeading(_masterCfg);
       // S47: pickup ka pata/time bhi live badle
-      try{ if(orderType==='takeaway') paintPickupCard(); }catch(e){}
+      try{ paintPickupCard(); }catch(e){}
       try{
         const viewing=selectedDate||today;
         // Session 40: master price/name edit ko live reflect karo — LEKIN sirf tab jab
@@ -2047,7 +2073,10 @@ async function applyMenu(cfg){
   menuConfig=cfg;
   refreshMenuHeading();   // S46: "Menu for Dinner"
   try{ ckPaint(); }catch(e){}          // S47: pattiyan
-  if(orderType==='takeaway') paintPickupCard();
+  // S49: hamesha paint karo. Card #taSec ke andar hai jo delivery par waise bhi
+  // chhupa rehta hai, isliye pehle se taiyar rehna hi behtar hai — Takeaway
+  // dabate hi bina ruke dikh jaata hai.
+  paintPickupCard();
   document.getElementById('shopName').textContent=(cfg.shopName||'Kicken Bites');
   document.getElementById('dateLbl').textContent='📅 Ordering for: '+new Date(today+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('menuSec').style.display='block';
@@ -2549,7 +2578,7 @@ window.selType=function(t){
 
 // ══════════ S47: CHECKOUT PATTIYAN ══════════
 // Patti 1 aur 2 tah hoti hain; patti 3 (Bill) hamesha khuli.
-let _ckOpen=1, _ckSeen=false;
+let _ckOpen=1;
 window.ckOpen=function(n){
   if(n===3) return;              // Bill patti tah nahi hoti
   _ckOpen=(_ckOpen===n)?0:n;     // dobara tap = band
@@ -2623,15 +2652,12 @@ window.ckPaint=ckPaint;
 // Neeche chipki patti ab akela button hai. Pehla tap = checkout tak le jao,
 // doosra tap = order lagao. Isliye customer bill dekhe bagair kabhi order nahi karta,
 // chahe uski details pehle se bhari hui hon.
+// S49: EK TAP. Pehle do tap lagte the (pehla sirf checkout tak le jaata tha) —
+// user ne kaha wo fazool hai. Ab details bhari hain to seedha order lagta hai:
+// button "Placing…" dikhata hai aur payment screen khul jaati hai.
+// Details adhoori hain tabhi patti 2 kholte hain — bina us par order nahi lag sakta.
 window.ckBarAction=function(){
   try{ if(typeof switchTab==='function') switchTab('order'); }catch(e){}
-  if(!_ckSeen){
-    _ckSeen=true;
-    if(!ckDetailsValid()) _ckOpen=2;
-    ckPaint(); updateBill();
-    setTimeout(function(){ document.getElementById('ck2')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
-    return;
-  }
   if(!ckDetailsValid()){
     _ckOpen=2; ckPaint(); updateBill();
     setTimeout(function(){ document.getElementById('ck2')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
@@ -2639,7 +2665,9 @@ window.ckBarAction=function(){
   }
   placeOrderClick();
 };
-window.ckResetSeen=function(){ _ckSeen=false; };
+// S49: two-tap hat gaya, isliye ye ab kuch nahi karta. Naam bacha rakha hai
+// kyunki placeOrderClick isko bulata hai.
+window.ckResetSeen=function(){};
 // Purana customer: autoFill ne details bhar di hain to dono pattiyan tah rakho —
 // use seedha Bill dikhe, na ki khula hua form.
 window.ckCollapseIfReady=function(){
@@ -2653,11 +2681,19 @@ async function paintPickupCard(){
     const c=await getMasterCfg();
     const card=document.getElementById('pickupCard');
     if(!card) return;
-    const who=[(c.pickupName||'').trim(),(c.pickupAddr||'').trim()].filter(Boolean).join(', ');
+    // S49 FIX: pehle sirf cfg par bharosa tha — Admin ne Setup me Save nahi dabaya
+    // to config/menu me ye field bane hi nahi the, who khaali reh jaata tha aur
+    // card KABHI nahi dikhta tha. Ab wahi tareeka jo mealLabel me hai: field
+    // maujood na ho to default lo (==null test), admin ne jaan-boojh kar khaali
+    // kiya ho to khaali hi rahe.
+    const dv=(k,d)=>(c[k]!=null?String(c[k]).trim():d);
+    const who=[dv('pickupName','Netaji Ji'),dv('pickupAddr','Kunj 2027')].filter(Boolean).join(', ');
     if(!who){ card.style.display='none'; return; }
     document.getElementById('pickupWho').textContent=who;
     const meal=mealLabelFrom(c);
-    const slot = meal==='Breakfast'?(c.slotBreakfast||'') : meal==='Lunch'?(c.slotLunch||'') : meal==='Dinner'?(c.slotDinner||'') : '';
+    const slot = meal==='Breakfast'?dv('slotBreakfast','7:00 AM - 8:30 AM')
+               : meal==='Lunch'    ?dv('slotLunch','12:30 PM - 2:30 PM')
+               : meal==='Dinner'   ?dv('slotDinner','7:30 PM - 10:30 PM') : '';
     const tEl=document.getElementById('pickupTime');
     if(tEl){
       const st=String(slot||'').trim();
@@ -2741,7 +2777,8 @@ function updateBill(){
     const go=document.getElementById('rtGoBtn');
     if(go && !go.dataset.busy){
       const ok=(typeof ckDetailsValid==='function')&&ckDetailsValid();
-      go.textContent = !_ckSeen ? 'Order Now →' : (ok ? ('Proceed to Pay ₹'+total+' →') : 'Fill Details →');
+      // S49: do halat hi bachi — bhari hui to seedha order, warna details bharo.
+      go.textContent = ok ? ('Place Order ₹'+total+' →') : 'Fill Details →';
     }
     try{ ckPaint(); }catch(e){}
   }
@@ -3463,6 +3500,12 @@ function showSuccess(){
   if(lastOrder.notes)s+=`<br>📝 ${esc(lastOrder.notes)}`;
   document.getElementById('succDetails').innerHTML=s;
   show('successScreen');
+  // S49: class hatao -> reflow -> dobara lagao, warna doosre order par
+  // animation chalti hi nahi (browser use pehle hi chali hui maanta hai).
+  try{
+    const ok=document.getElementById('okTick');
+    if(ok){ ok.classList.remove('go'); void ok.offsetWidth; ok.classList.add('go'); }
+  }catch(e){}
   if(currentProfile?.phone) loadMyOrders(currentProfile.phone);
   // Session 34: naya order dete hi pichle delivered order ka feedback maango
   setTimeout(function(){ try{ maybeShowPrevFeedback(); }catch(e){} },1000);
