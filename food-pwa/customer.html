@@ -208,6 +208,32 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .place-btn{width:calc(100% - 26px);margin:13px 13px 26px;padding:16px;border-radius:var(--r-lg);border:none;background:var(--ograd);color:white;font-family:var(--font-head);font-size:1.05rem;font-weight:700;letter-spacing:.01em;cursor:pointer;box-shadow:var(--sh-brand);transition:transform .12s,box-shadow .2s;}
 .place-btn:active:not(:disabled){transform:translateY(1px);box-shadow:0 3px 12px rgba(230,92,0,.3);}
 .place-btn:disabled{opacity:.4;cursor:not-allowed;}
+/* S47: CHECKOUT PATTIYAN. Teen patti — Order Type / Your Details / Bill.
+   Bill hamesha khuli rehti hai (user ka faisla): paise chhupane se customer rukta hai.
+   #placeBtn ab chhupa hua hai par DOM me maujood — updateBill/placeOrderClick usko
+   waise hi chhoote hain, isliye purana koi code toota nahi. Asli button neeche
+   chipki patti (#runTotalBar) hai — ab wahi akela CTA hai. */
+#placeBtn{display:none !important;}
+.ckwrap{padding:13px 13px 0;}
+.ckstrip{background:#fff;border:2px solid #eee;border-radius:var(--r-lg);margin-bottom:9px;overflow:hidden;}
+.ckstrip.on{border-color:var(--orange);}
+.ckhd{display:flex;align-items:center;gap:9px;padding:12px 12px;cursor:pointer;}
+.ckstrip.fix .ckhd{cursor:default;}
+.cknum{width:22px;height:22px;border-radius:50%;background:#e7e5e4;color:var(--muted);font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ckstrip.on .cknum{background:var(--orange);color:#fff;}
+.cknum.ok{background:#15803d;color:#fff;}
+.cktt{font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.ckstrip.on .cktt{color:var(--orange);}
+.cksub{font-size:.8rem;font-weight:600;color:var(--dark);margin-top:2px;line-height:1.35;word-break:break-word;}
+.ckchg{margin-left:auto;font-size:.72rem;font-weight:800;color:var(--orange);flex-shrink:0;}
+.ckbd{padding:0 12px 12px;}
+.ckerr{font-size:.78rem;font-weight:700;color:#b91c1c;background:#fef2f2;border-radius:9px;padding:8px 10px;margin-top:8px;display:none;}
+.cksave{width:100%;margin-top:11px;padding:12px;border:none;border-radius:var(--r);background:var(--ograd);color:#fff;font-weight:800;font-size:.88rem;cursor:pointer;font-family:inherit;}
+.cknote{font-size:.75rem;font-weight:800;color:var(--orange);cursor:pointer;padding:9px 0 2px;}
+.pickup{background:#fff7ed;border:2px solid #fed7aa;border-radius:var(--r);padding:11px 12px;margin-top:10px;}
+.pickup .pu-t{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#c2410c;margin-bottom:5px;}
+.pickup .pu-a{font-size:.92rem;font-weight:800;color:var(--dark);line-height:1.35;}
+.pickup .pu-time{font-size:.82rem;font-weight:800;color:#c2410c;margin-top:6px;}
 
 /* NOTES */
 .notes-inp{width:100%;padding:9px 11px;border:2px solid #e5e5e5;border-radius:var(--r);font-size:.85rem;font-family:inherit;outline:none;resize:none;height:55px;}
@@ -533,63 +559,98 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <div class="stt" style="margin-top:4px" id="menuHeadLbl">Menu</div>
         <div class="menu-grid" id="menuList" style="margin-top:2px"></div>
       </div>
-      <div class="sec" style="margin-top:10px">
-        <div class="stt">Order Type</div>
-        <div class="tr">
-          <button class="tb active" id="btnDel" onclick="selType('delivery')">🛵 Delivery</button>
-          <button class="tb" id="btnTA" onclick="selType('takeaway')">🏠 Takeaway</button>
-        </div>
-      </div>
-      <div class="sec" id="delSec">
-        <div class="stt" style="margin-top:11px">Your Details</div>
-        <div class="ig"><label>Name *</label><input type="text" id="cName" placeholder="Full name"></div>
-        <div class="ig"><label>Mobile *</label><input type="tel" id="cPhone" placeholder="10-digit mobile" maxlength="10" inputmode="numeric"></div>
-        <div class="ig">
-          <label>Location *</label>
-          <select id="cLoc" onchange="locChanged()">
-            <option value="">-- Select area --</option>
-            <option value="NTPC Township">NTPC Township</option>
-            <option value="GAIL Gaon">GAIL Gaon</option>
-            <option value="PATA Gate">PATA Gate</option>
-            <option value="GAIL Vihar">GAIL Vihar</option>
-            <option value="Others">Others</option>
-          </select>
-        </div>
-        <!-- Standard address -->
-        <div id="stdAddr">
-          <div class="ig"><label>House / Flat No. *</label><input type="text" id="cHouse" placeholder="e.g. B-204, Type-3"></div>
-        </div>
-        <!-- Others address — two lines -->
-        <div id="othersAddr" style="display:none">
-          <div class="addr-grid">
-            <div class="ig"><label>House No. *</label><input type="text" id="cHouseOther" placeholder="House / Flat No."></div>
-            <div class="ig"><label>Street *</label><input type="text" id="cStreet" placeholder="Street name"></div>
+      <div class="ckwrap">
+
+        <div class="ckstrip on" id="ck1">
+          <div class="ckhd" onclick="ckOpen(1)">
+            <div class="cknum" id="ckn1">1</div>
+            <div style="min-width:0">
+              <div class="cktt">Order Type</div>
+              <div class="cksub" id="cks1" style="display:none"></div>
+            </div>
+            <div class="ckchg" id="ckc1" style="display:none">Change</div>
           </div>
-          <div class="addr-grid">
-            <div class="ig"><label>Landmark</label><input type="text" id="cLandmark" placeholder="Near..."></div>
-            <div class="ig"><label>Area *</label><input type="text" id="cArea" placeholder="Colony / Area"></div>
+          <div class="ckbd" id="ckb1">
+            <div class="tr">
+              <button class="tb active" id="btnDel" onclick="selType('delivery')">🛵 Delivery</button>
+              <button class="tb" id="btnTA" onclick="selType('takeaway')">🏠 Takeaway</button>
+            </div>
           </div>
-          <div class="ig"><label>Pincode *</label><input type="tel" id="cPincode" placeholder="6-digit pincode" maxlength="6" inputmode="numeric"></div>
-          <div id="pincodeMsg" style="display:none;font-size:.78rem;font-weight:600;padding:9px 11px;border-radius:9px;margin-top:2px"></div>
         </div>
-      </div>
-      <div class="sec" id="taSec" style="display:none">
-        <div class="stt" style="margin-top:11px">Your Details</div>
-        <div class="ig"><label>Name *</label><input type="text" id="cNameTA" placeholder="Full name"></div>
-        <div class="ig"><label>Mobile *</label><input type="tel" id="cPhoneTA" placeholder="10-digit mobile" maxlength="10" inputmode="numeric"></div>
-      </div>
-      <div class="sec" style="margin-top:8px">
-        <div class="stt">Special Notes (Optional)</div>
-        <textarea class="notes-inp" id="orderNotes" placeholder="e.g. Less spicy, extra gravy, call before delivery…"></textarea>
-      </div>
-      <div class="sec" style="margin-top:8px">
-        <div class="stt">Bill Summary</div>
-        <div id="billDate" style="font-size:.8rem;font-weight:700;color:var(--orange);margin:-2px 0 7px"></div>
-        <div class="bill">
-          <div id="billItems"></div>
-          <div class="br" id="delRow" style="display:none"><span>Delivery Charge</span><span id="delAmt"></span></div>
-          <div class="br tot"><span>Total</span><span id="totAmt">₹0</span></div>
+
+        <div class="ckstrip" id="ck2">
+          <div class="ckhd" onclick="ckOpen(2)">
+            <div class="cknum" id="ckn2">2</div>
+            <div style="min-width:0">
+              <div class="cktt">Your Details</div>
+              <div class="cksub" id="cks2" style="display:none"></div>
+            </div>
+            <div class="ckchg" id="ckc2" style="display:none">Change</div>
+          </div>
+          <div class="ckbd" id="ckb2" style="display:none">
+            <div id="delSec">
+              <div class="ig"><label>Name *</label><input type="text" id="cName" placeholder="Full name"></div>
+              <div class="ig"><label>Mobile *</label><input type="tel" id="cPhone" placeholder="10-digit mobile" maxlength="10" inputmode="numeric"></div>
+              <div class="ig">
+                <label>Location *</label>
+                <select id="cLoc" onchange="locChanged()">
+                  <option value="">-- Select area --</option>
+                  <option value="NTPC Township">NTPC Township</option>
+                  <option value="GAIL Gaon">GAIL Gaon</option>
+                  <option value="PATA Gate">PATA Gate</option>
+                  <option value="GAIL Vihar">GAIL Vihar</option>
+                  <option value="Others">Others</option>
+                </select>
+              </div>
+              <div id="stdAddr">
+                <div class="ig"><label>House / Flat No. *</label><input type="text" id="cHouse" placeholder="e.g. B-204, Type-3"></div>
+              </div>
+              <div id="othersAddr" style="display:none">
+                <div class="addr-grid">
+                  <div class="ig"><label>House No. *</label><input type="text" id="cHouseOther" placeholder="House / Flat No."></div>
+                  <div class="ig"><label>Street *</label><input type="text" id="cStreet" placeholder="Street name"></div>
+                </div>
+                <div class="addr-grid">
+                  <div class="ig"><label>Landmark</label><input type="text" id="cLandmark" placeholder="Near..."></div>
+                  <div class="ig"><label>Area *</label><input type="text" id="cArea" placeholder="Colony / Area"></div>
+                </div>
+                <div class="ig"><label>Pincode *</label><input type="tel" id="cPincode" placeholder="6-digit pincode" maxlength="6" inputmode="numeric"></div>
+                <div id="pincodeMsg" style="display:none;font-size:.78rem;font-weight:600;padding:9px 11px;border-radius:9px;margin-top:2px"></div>
+              </div>
+            </div>
+            <div id="taSec" style="display:none">
+              <div class="ig"><label>Name *</label><input type="text" id="cNameTA" placeholder="Full name"></div>
+              <div class="ig"><label>Mobile *</label><input type="tel" id="cPhoneTA" placeholder="10-digit mobile" maxlength="10" inputmode="numeric"></div>
+              <div class="pickup" id="pickupCard" style="display:none">
+                <div class="pu-t">Collect your order from</div>
+                <div class="pu-a" id="pickupWho"></div>
+                <div class="pu-time" id="pickupTime" style="display:none"></div>
+              </div>
+            </div>
+            <div class="ckerr" id="ckErr2"></div>
+            <button class="cksave" onclick="ckSaveDetails()">Save &amp; continue</button>
+          </div>
         </div>
+
+        <div class="ckstrip on fix" id="ck3">
+          <div class="ckhd">
+            <div class="cknum" id="ckn3">3</div>
+            <div style="min-width:0"><div class="cktt">Bill</div></div>
+          </div>
+          <div class="ckbd" id="ckb3">
+            <div id="billDate" style="font-size:.8rem;font-weight:700;color:var(--orange);margin:-2px 0 7px"></div>
+            <div class="bill">
+              <div id="billItems"></div>
+              <div class="br" id="delRow" style="display:none"><span>Delivery Charge</span><span id="delAmt"></span></div>
+              <div class="br tot"><span>Total</span><span id="totAmt">₹0</span></div>
+            </div>
+            <div class="cknote" id="ckNoteLink" onclick="ckShowNote()">+ Add a note for the kitchen</div>
+            <div class="ig" id="ckNoteBox" style="display:none;margin-top:6px">
+              <textarea class="notes-inp" id="orderNotes" placeholder="e.g. Less spicy, extra gravy, call before delivery…"></textarea>
+            </div>
+          </div>
+        </div>
+
       </div>
       <button class="place-btn" id="placeBtn" onclick="placeOrderClick()" disabled>Select items to order</button>
     </div>
@@ -861,7 +922,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <div class="rt-count" id="rtCount">0 items</div>
     <div class="rt-amt" id="rtAmt">₹0</div>
   </div>
-  <button class="rt-go" onclick="rtGoToOrder()">Order Now →</button>
+  <button class="rt-go" id="rtGoBtn" onclick="ckBarAction()">Order Now →</button>
 </div>
 <!-- Session 27: Helpdesk / Invoice / Feedback modals -->
 <div class="kb-modal" id="helpdeskModal" onclick="kbModalBackdrop(event,'helpdeskModal')">
@@ -1139,6 +1200,17 @@ function autoFill(p) {
   if(phone){document.getElementById('cPhone').value=phone;document.getElementById('cPhoneTA').value=phone;}
   if(loc){document.getElementById('cLoc').value=loc;locChanged();}
   if(house) document.getElementById('cHouse').value=house;
+  // S47: Others ka poora pata wapas bharo (ab ye save hota hai).
+  if(loc==='Others'&&p){
+    const set=(id,v)=>{const el=document.getElementById(id); if(el&&v) el.value=v;};
+    set('cHouseOther',p.houseNo||'');
+    set('cStreet',p.street||'');
+    set('cLandmark',p.landmark||'');
+    set('cArea',p.area||'');
+    set('cPincode',p.pincode||'');
+  }
+  // details bhari mili to pattiyan apne aap tah ho jaayein
+  try{ if(typeof ckCollapseIfReady==='function') ckCollapseIfReady(); }catch(e){}
 }
 
 window.saveProfile = async function() {
@@ -1920,6 +1992,8 @@ async function loadMenu() {
       // S46: admin Setup me Save kare to heading turant badle — customer ko
       // refresh na karna pade. Menu khula ho ya band, dono me chalta hai.
       paintMenuHeading(_masterCfg);
+      // S47: pickup ka pata/time bhi live badle
+      try{ if(orderType==='takeaway') paintPickupCard(); }catch(e){}
       try{
         const viewing=selectedDate||today;
         // Session 40: master price/name edit ko live reflect karo — LEKIN sirf tab jab
@@ -1964,6 +2038,8 @@ async function applyMenu(cfg){
   }
   menuConfig=cfg;
   refreshMenuHeading();   // S46: "Menu for Dinner"
+  try{ ckPaint(); }catch(e){}          // S47: pattiyan
+  if(orderType==='takeaway') paintPickupCard();
   document.getElementById('shopName').textContent=(cfg.shopName||'Kicken Bites');
   document.getElementById('dateLbl').textContent='📅 Ordering for: '+new Date(today+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('menuSec').style.display='block';
@@ -2426,8 +2502,133 @@ window.selType=function(t){
   document.getElementById('btnTA').classList.toggle('active',t==='takeaway');
   document.getElementById('delSec').style.display=t==='delivery'?'block':'none';
   document.getElementById('taSec').style.display=t==='takeaway'?'block':'none';
+  // S47: type chunte hi patti 2 khul jaaye — customer ko dhoondhna na pade
+  if(t==='takeaway') paintPickupCard();
+  ckOpen(2);
   updateBill();
 };
+
+// ══════════ S47: CHECKOUT PATTIYAN ══════════
+// Patti 1 aur 2 tah hoti hain; patti 3 (Bill) hamesha khuli.
+let _ckOpen=1, _ckSeen=false;
+window.ckOpen=function(n){
+  if(n===3) return;              // Bill patti tah nahi hoti
+  _ckOpen=(_ckOpen===n)?0:n;     // dobara tap = band
+  ckPaint();
+};
+window.ckShowNote=function(){
+  const l=document.getElementById('ckNoteLink'), b=document.getElementById('ckNoteBox');
+  if(b) b.style.display='block';
+  if(l) l.style.display='none';
+  document.getElementById('orderNotes')?.focus();
+};
+
+// Sirf jaanch — koi alert nahi. placeOrderClick ki asli jaanch waise ki waisi hai;
+// ye uska chhota roop hai taaki button ka label sahi dikhe.
+function ckDetailsValid(){
+  const g=i=>(document.getElementById(i)?.value||'').trim();
+  if(orderType==='takeaway') return !!g('cNameTA') && /^\d{10}$/.test(g('cPhoneTA'));
+  if(!g('cName')||!/^\d{10}$/.test(g('cPhone'))) return false;
+  const loc=g('cLoc'); if(!loc) return false;
+  if(loc==='Others') return !!g('cHouseOther') && !!g('cArea') && /^\d{6}$/.test(g('cPincode'));
+  return !!g('cHouse');
+}
+function ckSummary(){
+  const g=i=>(document.getElementById(i)?.value||'').trim();
+  if(orderType==='takeaway') return [g('cNameTA'),g('cPhoneTA')].filter(Boolean).join(' · ');
+  const loc=g('cLoc');
+  const house=(loc==='Others')?g('cHouseOther'):g('cHouse');
+  return [g('cName'),g('cPhone'),[house,loc].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+}
+window.ckSaveDetails=function(){
+  const err=document.getElementById('ckErr2');
+  const g=i=>(document.getElementById(i)?.value||'').trim();
+  let msg='';
+  if(orderType==='takeaway'){
+    if(!g('cNameTA')) msg='Naam bharein';
+    else if(!/^\d{10}$/.test(g('cPhoneTA'))) msg='Mobile 10 ank ka hona chahiye';
+  }else{
+    if(!g('cName')) msg='Naam bharein';
+    else if(!/^\d{10}$/.test(g('cPhone'))) msg='Mobile 10 ank ka hona chahiye';
+    else if(!g('cLoc')) msg='Area chunein';
+    else if(g('cLoc')==='Others'){
+      if(!g('cHouseOther')||!g('cArea')) msg='House aur Area bharein';
+      else if(!/^\d{6}$/.test(g('cPincode'))) msg='Pincode 6 ank ka hona chahiye';
+    } else if(!g('cHouse')) msg='House / Flat number bharein';
+  }
+  if(msg){ if(err){err.textContent=msg;err.style.display='block';} return; }
+  if(err) err.style.display='none';
+  _ckOpen=0; ckPaint(); updateBill();
+};
+function ckPaint(){
+  const ok=ckDetailsValid();
+  [1,2].forEach(function(i){
+    const st=document.getElementById('ck'+i), bd=document.getElementById('ckb'+i);
+    if(!st||!bd) return;
+    const on=(_ckOpen===i);
+    st.classList.toggle('on',on);
+    bd.style.display=on?'block':'none';
+  });
+  const s1=document.getElementById('cks1'), c1=document.getElementById('ckc1'), n1=document.getElementById('ckn1');
+  if(s1){ s1.textContent=(orderType==='takeaway')?'🏠 Takeaway':'🛵 Delivery'; s1.style.display=(_ckOpen===1)?'none':'block'; }
+  if(c1) c1.style.display=(_ckOpen===1)?'none':'block';
+  if(n1) n1.className='cknum'+((_ckOpen===1)?'':' ok');
+  const s2=document.getElementById('cks2'), c2=document.getElementById('ckc2'), n2=document.getElementById('ckn2');
+  const show2=(ok && _ckOpen!==2);
+  if(s2){ s2.textContent=ckSummary(); s2.style.display=show2?'block':'none'; }
+  if(c2) c2.style.display=show2?'block':'none';
+  if(n2) n2.className='cknum'+(ok?' ok':'');
+}
+window.ckPaint=ckPaint;
+
+// Neeche chipki patti ab akela button hai. Pehla tap = checkout tak le jao,
+// doosra tap = order lagao. Isliye customer bill dekhe bagair kabhi order nahi karta,
+// chahe uski details pehle se bhari hui hon.
+window.ckBarAction=function(){
+  try{ if(typeof switchTab==='function') switchTab('order'); }catch(e){}
+  if(!_ckSeen){
+    _ckSeen=true;
+    if(!ckDetailsValid()) _ckOpen=2;
+    ckPaint(); updateBill();
+    setTimeout(function(){ document.getElementById('ck2')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
+    return;
+  }
+  if(!ckDetailsValid()){
+    _ckOpen=2; ckPaint(); updateBill();
+    setTimeout(function(){ document.getElementById('ck2')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
+    return;
+  }
+  placeOrderClick();
+};
+window.ckResetSeen=function(){ _ckSeen=false; };
+// Purana customer: autoFill ne details bhar di hain to dono pattiyan tah rakho —
+// use seedha Bill dikhe, na ki khula hua form.
+window.ckCollapseIfReady=function(){
+  try{ if(ckDetailsValid()){ _ckOpen=0; ckPaint(); } }catch(e){}
+};
+
+// Takeaway ka pickup box — pata aur time dono Admin -> Setup se aate hain,
+// time menu (mealLabel) ke hisaab se chunta hai. Naam/pata khaali ho to box hi nahi.
+async function paintPickupCard(){
+  try{
+    const c=await getMasterCfg();
+    const card=document.getElementById('pickupCard');
+    if(!card) return;
+    const who=[(c.pickupName||'').trim(),(c.pickupAddr||'').trim()].filter(Boolean).join(', ');
+    if(!who){ card.style.display='none'; return; }
+    document.getElementById('pickupWho').textContent=who;
+    const meal=mealLabelFrom(c);
+    const slot = meal==='Breakfast'?(c.slotBreakfast||'') : meal==='Lunch'?(c.slotLunch||'') : meal==='Dinner'?(c.slotDinner||'') : '';
+    const tEl=document.getElementById('pickupTime');
+    if(tEl){
+      const st=String(slot||'').trim();
+      tEl.textContent=st?('🕐 '+st):'';
+      tEl.style.display=st?'block':'none';
+    }
+    card.style.display='block';
+  }catch(e){}
+}
+window.paintPickupCard=paintPickupCard;
 
 window.locChanged=function(){
   const loc=document.getElementById('cLoc').value;
@@ -2493,11 +2694,23 @@ function updateBill(){
   const btn=document.getElementById('placeBtn');
   btn.disabled=sub===0;
   btn.textContent=sub>0?`Proceed to Pay ₹${total} →`:'Select items to order';
+  // S47: asli button ab neeche wali chipki patti hai. Label teen haalat batata hai:
+  //   pehla tap se pehle  -> "Order Now"   (checkout tak le jaata hai)
+  //   details adhoori     -> "Fill Details"
+  //   sab bhara           -> "Proceed to Pay ₹X"
+  {
+    const go=document.getElementById('rtGoBtn');
+    if(go && !go.dataset.busy){
+      const ok=(typeof ckDetailsValid==='function')&&ckDetailsValid();
+      go.textContent = !_ckSeen ? 'Order Now →' : (ok ? ('Proceed to Pay ₹'+total+' →') : 'Fill Details →');
+    }
+    try{ ckPaint(); }catch(e){}
+  }
 }
 
 // ---- PLACE ORDER ----
 window.placeOrderClick=async function(){
-  let name,phone,address,addrLine1='',addrLine2='';
+  let name,phone,address,addrLine1='',addrLine2='',othersParts=null;
   if(orderType==='delivery'){
     name=document.getElementById('cName').value.trim();
     phone=document.getElementById('cPhone').value.trim();
@@ -2523,6 +2736,12 @@ window.placeOrderClick=async function(){
       addrLine1=`${house}, ${street}`.trim();
       addrLine2=`${document.getElementById('cLandmark').value.trim()}, ${area}`.trim();
       address=`Others — ${addrLine1}, ${addrLine2} — PIN ${pincode}`;
+      // S47: street/landmark/area/pincode pehle KAHIN save nahi hote the — sirf is
+      // order ke address text me reh jaate the. Isliye Others wala customer har baar
+      // poora pata dobara bharta tha. Ab alag-alag field me jaate hain.
+      // houseNo me sirf ghar ka number (pehle "house, street" jud kar jaata tha,
+      // jisse wapas bharne par street do baar dikhta).
+      othersParts={houseNo:house,street,landmark:document.getElementById('cLandmark').value.trim(),area,pincode};
     }else{
       const house=document.getElementById('cHouse').value.trim();
       if(!house){alert('Please enter house/flat number');return;}
@@ -2534,7 +2753,9 @@ window.placeOrderClick=async function(){
     localStorage.setItem('custLoc',loc);localStorage.setItem('custHouse',addrLine1);
     if(currentProfile){currentProfile.name=name;currentProfile.location=loc;currentProfile.houseNo=addrLine1;}
     try{
-      await setDoc(doc(db,'customers',phone),{name,phone,location:loc,houseNo:addrLine1,addrLine2,updatedAt:new Date().toISOString()},{merge:true});
+      const custDoc={name,phone,location:loc,houseNo:addrLine1,addrLine2,updatedAt:new Date().toISOString()};
+      if(othersParts) Object.assign(custDoc,othersParts);   // S47: houseNo yahan sirf ghar ka number ho jaata hai
+      await setDoc(doc(db,'customers',phone),custDoc,{merge:true});
       // Create wallet account if not exists
       const ws=await getDoc(doc(db,'wallets',phone));
       if(!ws.exists()) await setDoc(doc(db,'wallets',phone),{phone,balance:0,due:0,createdAt:new Date().toISOString()});
@@ -2545,6 +2766,18 @@ window.placeOrderClick=async function(){
     if(!name){alert('Please enter name');return;}
     if(!/^\d{10}$/.test(phone)){alert('Please enter valid mobile');return;}
     address='TAKEAWAY';
+    // S47: takeaway wala customer pehle kahin darj hi nahi hota tha — Admin ki
+    // customer list me wo kabhi dikhta hi nahi. Ab darj hota hai.
+    // ⚠️ SIRF name/phone likhe ja rahe hain: agar isi number ka pata pehle se
+    // saved hai to blank bhej kar use MITANA nahi hai (merge sirf bheji hui keys
+    // badalta hai, isliye location/houseNo chhoote hi nahi).
+    localStorage.setItem('custName',name);localStorage.setItem('custPhone',phone);
+    if(currentProfile) currentProfile.name=name;
+    try{
+      await setDoc(doc(db,'customers',phone),{name,phone,updatedAt:new Date().toISOString()},{merge:true});
+      const ws=await getDoc(doc(db,'wallets',phone));
+      if(!ws.exists()) await setDoc(doc(db,'wallets',phone),{phone,balance:0,due:0,createdAt:new Date().toISOString()});
+    }catch(e){}
   }
   const notes=document.getElementById('orderNotes').value.trim();
   const{sub,delivery,total}=getTotal();
@@ -2555,6 +2788,10 @@ window.placeOrderClick=async function(){
     return {id:i.id,name:pname,qty:quantities[i.id],price:pp,subtotal:quantities[i.id]*pp,portion:(Number(i.halfPrice)>0?(isHalf?'half':'full'):'')};
   });
   const btn=document.getElementById('placeBtn');btn.disabled=true;btn.textContent='Placing…';
+  // S47: chipki patti hi customer ko dikhti hai — feedback wahan bhi chahiye.
+  // dataset.busy updateBill ko label wapas likhne se rokta hai.
+  const goB=document.getElementById('rtGoBtn');
+  if(goB){ goB.dataset.busy='1'; goB.disabled=true; goB.textContent='Placing…'; }
   try{
     const ds=selectedDate||today;
     const dailyRef=doc(db,'dailyMenu',ds);
@@ -2620,12 +2857,17 @@ window.placeOrderClick=async function(){
       tx.set(nr,{name,phone,address,addrLine1,addrLine2,orderType,items,subtotal:sub,deliveryCharge:delivery,total,notes,status:'pending_payment',createdAt:new Date().toISOString(),date:ds,scheduledFor:ds});
     });
     currentOrderId=newId;
+    try{ ckResetSeen(); }catch(e){}   // S47: agla order phir do-tap wala rahe
     lastOrder={name,phone,address,total,delivery,items,notes,orderType,payLater:false,date:ds};
     // Persist to localStorage so WA button works even after page interaction
     try{localStorage.setItem('kb_last_order',JSON.stringify(lastOrder));}catch(e){}
     showPayScreen(total);
   }catch(e){console.error('Order error:',e);alert('Error placing order: '+(e&&e.message?e.message:'Please try again.'));}
-  btn.disabled=false;updateBill();
+  btn.disabled=false;
+  // S47: chipki patti ko wapas chaalu karo — warna order fail hone par button
+  // hamesha "Placing…" par atka reh jaata aur customer dobara koshish hi na kar paata.
+  {const goB=document.getElementById('rtGoBtn'); if(goB){ delete goB.dataset.busy; goB.disabled=false; }}
+  updateBill();
 };
 
 // ---- PAYMENT ----
