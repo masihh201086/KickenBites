@@ -93,6 +93,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
    flex:0 0 basis = shrink band, isliye 6 aur 7 chip line se bahar scroll hoti hain. */
 #orderDayChips{gap:6px!important;scroll-behavior:smooth;scroll-snap-type:x proximity;}
 #orderDayChips::-webkit-scrollbar{display:none;}
+/* S48: scroll ki lakeer. Chip ki apni koi cheez nahi badli — ye alag element hai. */
+#chipScroll{height:3px;border-radius:3px;background:#f3e4d8;margin:1px 2px 0;overflow:hidden;display:none;}
+#chipThumb{height:100%;border-radius:3px;background:var(--orange);opacity:.55;width:30%;transform:translateX(0);transition:transform .06s linear;}
 #orderDayChips .dbtn{flex:0 0 calc((100% - 24px)/5);height:50px;border-radius:12px;scroll-snap-align:start;}
 #orderDayChips .dbtn .dbtn-dt{font-weight:800;font-size:.76rem;white-space:nowrap;}
 #orderDayChips .dbtn-pfx{font-size:.52rem;top:3px;}
@@ -549,6 +552,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       <div class="sec">
         <div class="stt">Select Order Date</div>
         <div id="orderDayChips" style="display:flex;gap:3px;overflow-x:auto;padding:0 2px 2px;scrollbar-width:none;-ms-overflow-style:none"></div>
+        <!-- S48: chips ke neeche scroll ki patli lakeer. Asli (native) scrollbar
+             mobile Chrome par sirf scroll karte waqt jhalak kar gayab ho jaata hai,
+             isliye customer ko pata hi nahi chalta ki side me aur din pade hain.
+             Ye apni banayi hui lakeer hamesha dikhti hai. -->
+        <div id="chipScroll"><div id="chipThumb"></div></div>
         <div class="date-lbl" id="dateLbl"></div>
         <!-- S44: All / Top Rated / Popular sort chips REMOVED (user ko zaroorat nahi).
              sortMenu() function neeche maujood hai (dead but harmless) taaki kal
@@ -2405,7 +2413,38 @@ function renderOrderDayChips(){
     const act=wrap.querySelector('.dbtn.active');
     if(act) wrap.scrollLeft=Math.max(0,act.offsetLeft-(wrap.clientWidth-act.offsetWidth)/2);
   }catch(e){}
+  paintChipScroll();
 }
+
+// S48: chips ke neeche wali lakeer. Thumb ki chaudai = kitna hissa dikh raha hai,
+// aur uski jagah = kitna scroll hua. Saat chip 5 ki jagah me hain to thumb ~71% ka
+// hoga aur customer ko saaf dikhega ki daayen aur din bache hain.
+// Overflow hai hi nahi (badi screen) to lakeer poori tarah gayab.
+function paintChipScroll(){
+  const wrap=document.getElementById('orderDayChips');
+  const bar=document.getElementById('chipScroll'), th=document.getElementById('chipThumb');
+  if(!wrap||!bar||!th) return;
+  const sw=wrap.scrollWidth, cw=wrap.clientWidth;
+  if(!sw || sw-cw<=2){ bar.style.display='none'; return; }
+  bar.style.display='block';
+  const ratio=Math.max(.12,Math.min(1,cw/sw));      // bahut patla thumb dikhta hi nahi
+  th.style.width=(ratio*100)+'%';
+  const maxScroll=sw-cw;
+  const pos=maxScroll>0?(wrap.scrollLeft/maxScroll):0;
+  // thumb apni hi chaudai ke hisaab se sarakta hai, isliye % of own width
+  th.style.transform='translateX('+(pos*(100/ratio-100))+'%)';
+}
+window.paintChipScroll=paintChipScroll;
+// scroll aur screen ghumne par lakeer sath chale. passive:true — scroll atkega nahi.
+(function(){
+  const bind=function(){
+    const w=document.getElementById('orderDayChips');
+    if(w && !w.dataset.sbound){ w.dataset.sbound='1'; w.addEventListener('scroll',paintChipScroll,{passive:true}); }
+    window.addEventListener('resize',paintChipScroll);
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind);
+  else bind();
+})();
 // Session 35: per-date closed cache — filled when selectDate runs
 // Session 36: eagerly pre-load closed status for all 7 days so chips show
 // red WITHOUT a tap. 7 parallel getDoc calls (Spark plan reads are free).
