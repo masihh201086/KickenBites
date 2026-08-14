@@ -88,6 +88,14 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .dbtn-pfx{position:absolute;top:2px;left:0;right:0;font-size:.46rem;line-height:1;font-weight:900;color:#15803d;}
 .dbtn.active .dbtn-pfx,.dbtn.closed .dbtn-pfx{color:inherit;opacity:.92;}
 .dbtn-closed-lbl{display:none;position:absolute;bottom:1px;left:0;right:0;font-size:.5rem;font-weight:800;color:#ef4444;}
+/* S44: ORDER-DATE chips ab CHAUDI — screen par theek 5 chip, baaki side-scroll.
+   Sirf #orderDayChips par scope hai, My Orders (#myOrdDayChips) waisi hi rahegi.
+   flex:0 0 basis = shrink band, isliye 6 aur 7 chip line se bahar scroll hoti hain. */
+#orderDayChips{gap:6px!important;scroll-behavior:smooth;scroll-snap-type:x proximity;}
+#orderDayChips::-webkit-scrollbar{display:none;}
+#orderDayChips .dbtn{flex:0 0 calc((100% - 24px)/5);height:50px;border-radius:12px;scroll-snap-align:start;}
+#orderDayChips .dbtn .dbtn-dt{font-weight:800;font-size:.76rem;white-space:nowrap;}
+#orderDayChips .dbtn-pfx{font-size:.52rem;top:3px;}
 .dbtn.closed .dbtn-closed-lbl{display:block;}
 /* filled chip par sab kuch dikhe */
 .dbtn.active.closed .dbtn-closed-lbl{color:#fff;}
@@ -516,13 +524,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <div class="stt">Select Order Date</div>
         <div id="orderDayChips" style="display:flex;gap:3px;overflow-x:auto;padding:0 2px 2px;scrollbar-width:none;-ms-overflow-style:none"></div>
         <div class="date-lbl" id="dateLbl"></div>
+        <!-- S44: All / Top Rated / Popular sort chips REMOVED (user ko zaroorat nahi).
+             sortMenu() function neeche maujood hai (dead but harmless) taaki kal
+             wapas chahiye to sirf 3 button markup dobara add karne padein. -->
         <div class="stt" style="margin-top:4px">Menu</div>
-        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px">
-          <button class="sort-btn active" id="sort-default" onclick="sortMenu('default')">🍛 All</button>
-          <button class="sort-btn" id="sort-rated" onclick="sortMenu('rated')">⭐ Top Rated</button>
-          <button class="sort-btn" id="sort-popular" onclick="sortMenu('popular')">🔥 Popular</button>
-        </div>
-        <div class="menu-grid" id="menuList"></div>
+        <div class="menu-grid" id="menuList" style="margin-top:2px"></div>
       </div>
       <div class="sec" style="margin-top:10px">
         <div class="stt">Order Type</div>
@@ -1958,9 +1964,9 @@ async function applyMenu(cfg){
   // Load ratings FIRST, then render menu with reviews
   await loadItemRatings();
   renderMenu(cfg.items||[]);
-  // Sold counts only matter when Popular is tapped — fetch in the background so
-  // it never holds up the menu.
-  loadSoldCounts();
+  // S44: Popular chip hat gaya, aur _soldCount sirf usi ke kaam aata tha —
+  // isliye 7 din ke dailyMenu docs ka background prefetch band kar diya
+  // (har menu load par 7 reads bachte hain). Function neeche maujood hai.
 }
 
 // A broken/blocked image used to leave a hole in the card. Put the item's emoji
@@ -2276,17 +2282,26 @@ function renderOrderDayChips(){
     // BUG1: ek hi line — 'SAT 15'. Today/Tomorrow ke liye chhota prefix uski line me.
     // Koi doosri (khaali) line nahi, taaki chip ki lambai kam rahe.
     // BUG1: saari chip barabar height (green cell jaisa) — CSS me height fix hai.
-    // BUG2: text center + font chhota, 'MON 17' border ke andar. Prefix/🚫 absolute
-    // hain isliye height nahi badhti.
+    // BUG2: text center, 'MON 17' border ke andar. Prefix absolute hai isliye
+    // chip ki height nahi badhti. (S44: 🚫 label hata diya gaya.)
     const prefix=d.idx===0?'<div class="dbtn-pfx">Today</div>':
       d.idx===1?'<div class="dbtn-pfx">Tomorrow</div>':'';
     return '<button class="'+chipCls+'" style="position:relative" onclick="selectDate(\'custom\',\''+d.date+'\')">'+
       prefix+
-      '<div style="font-weight:800;font-size:.66rem;white-space:nowrap">'+d.wd.toUpperCase()+' '+d.dayNum+'</div>'+
-      '<div class="dbtn-closed-lbl">🚫</div>'+
+      '<div class="dbtn-dt" style="font-weight:800;font-size:.66rem;white-space:nowrap">'+d.wd.toUpperCase()+' '+d.dayNum+'</div>'+
+      // S44: 🚫 badge hata diya — LAAL border/background hi bata deta hai ki
+      // us din order nahi le sakte. (CSS .dbtn-closed-lbl bacha hua hai.)
       (hasOrder?'<div class="kb-dot" style="position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--green,#22c55e);border:2px solid white;box-shadow:0 0 0 1px var(--green,#22c55e)" title="Order"></div>':'')+
       '</button>';
   }).join('');
+  // S44: ab ek line me 5 chip dikhti hain, isliye chuni hui tareekh (jaise THU 20)
+  // strip se bahar ho sakti hai. Use apne aap beech me le aao — sirf is strip ka
+  // horizontal scroll badalta hai, page kabhi nahi hilta (scrollIntoView jaan-boojh
+  // kar nahi use kiya).
+  try{
+    const act=wrap.querySelector('.dbtn.active');
+    if(act) wrap.scrollLeft=Math.max(0,act.offsetLeft-(wrap.clientWidth-act.offsetWidth)/2);
+  }catch(e){}
 }
 // Session 35: per-date closed cache — filled when selectDate runs
 // Session 36: eagerly pre-load closed status for all 7 days so chips show
