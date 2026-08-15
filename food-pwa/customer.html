@@ -420,6 +420,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .pm-referr.show{display:block}
 .pm-refhelp{font-size:.72rem;color:#78716c;margin-top:7px;line-height:1.5}
 .pm-refhelp u{color:#ea580c;font-weight:700;cursor:pointer}
+/* S54: har pay-tab ke upar "txn id note kar lo" reminder */
+.pm-remind{background:#fffbeb;border:1px solid #fde68a;border-radius:11px;padding:10px 12px;margin-bottom:9px;font-size:.75rem;color:#92400e;line-height:1.55}
+.pm-remind b{color:#78350f}
 .pm-confirm{width:100%;padding:15px;border:none;border-radius:13px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-size:.94rem;font-weight:800;cursor:pointer;margin:4px 0 14px;box-shadow:0 3px 12px rgba(22,163,74,.3);font-family:inherit}
 @media(prefers-reduced-motion:reduce){.pm-chev{transition:none}}
 
@@ -900,10 +903,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   </div>
 
   <div class="pm-panel on" id="pmP-qrdl">
+    <div class="pm-remind">💡 <b>Zaroori:</b> payment ke baad UPI app ki success screen par jo <b>Transaction ID</b> aaye, uske <b>last 4 digit note kar lein</b> — neeche Kadam me daalne honge.</div>
     <div class="pm-acc on" id="pmA-qrdl-1">
       <div class="pm-hd" onclick="pmAcc('qrdl',1)"><div class="pm-num" id="pmN-qrdl-1">1</div><div class="pm-tt">QR Gallery me save karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-qrdl" width="220" height="220"></canvas><div class="pm-qramt">Bilkul <b id="pmAmt-qrdl">₹0</b> hi bhejein</div></div>
+        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-qrdl" width="260" height="260"></canvas><div class="pm-qramt">Bilkul <b id="pmAmt-qrdl">₹0</b> hi bhejein</div></div>
         <button class="pm-dl" id="pmDlBtn" onclick="pmDownload()">📥 Download QR to Gallery</button>
       </div>
     </div>
@@ -932,10 +936,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   </div>
 
   <div class="pm-panel" id="pmP-showqr">
+    <div class="pm-remind">💡 <b>Zaroori:</b> payment ke baad UPI app ki success screen par jo <b>Transaction ID</b> aaye, uske <b>last 4 digit note kar lein</b> — neeche Kadam me daalne honge.</div>
     <div class="pm-acc on" id="pmA-showqr-1">
       <div class="pm-hd" onclick="pmAcc('showqr',1)"><div class="pm-num" id="pmN-showqr-1">1</div><div class="pm-tt">Doosre phone se scan karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-showqr" width="240" height="240"></canvas><div class="pm-qramt">Bilkul <b id="pmAmt-showqr">₹0</b> hi bhejein</div></div>
+        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-showqr" width="300" height="300"></canvas><div class="pm-qramt">Bilkul <b id="pmAmt-showqr">₹0</b> hi bhejein</div></div>
         <div class="pm-note ok">✅ Doosre phone ki kisi bhi UPI app se ye QR scan karein aur <b id="pmAmt2-showqr">₹0</b> bhejein</div>
       </div>
     </div>
@@ -952,6 +957,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   </div>
 
   <div class="pm-panel" id="pmP-upi">
+    <div class="pm-remind">💡 <b>Zaroori:</b> payment ke baad UPI app ki success screen par jo <b>Transaction ID</b> aaye, uske <b>last 4 digit note kar lein</b> — neeche Kadam me daalne honge.</div>
     <div class="pm-acc on" id="pmA-upi-1">
       <div class="pm-hd" onclick="pmAcc('upi',1)"><div class="pm-num" id="pmN-upi-1">1</div><div class="pm-tt">UPI ID copy karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
@@ -3395,6 +3401,7 @@ window.togglePayLater=function(){ switchPayMethod('later'); };
 // pmInit openPayScreen se call hota hai. 4 tabs + accordion. Order lagane ke liye
 // purani iHavePaid/payLater use hoti hain (hidden legacy elements se). Koi panel toggle nahi.
 window._pmTab='qrdl';
+let _pmWentBg=false, _pmReturned=false;   // S54: hoisted (pmInit resets, handlers set)
 function pmInit(total, isDues){
   const uid=(menuConfig.upiId||'').trim();
   const amt='₹'+total;
@@ -3404,8 +3411,8 @@ function pmInit(total, isDues){
   {const w=document.getElementById('pmUpiWarn'); if(w) w.style.display=uid?'none':'block';}
   {const e=document.getElementById('pmPlAmt'); if(e) e.textContent=amt;}
   if(window._payUpiStr){
-    pmDrawQr('qrCanvas-qrdl', window._payUpiStr, 220);
-    pmDrawQr('qrCanvas-showqr', window._payUpiStr, 240);
+    pmDrawQr('qrCanvas-qrdl', window._payUpiStr, 260);
+    pmDrawQr('qrCanvas-showqr', window._payUpiStr, 300);
   }
   ['qrdl','showqr','upi'].forEach(function(t){
     pmAcc(t,1);
@@ -3414,6 +3421,12 @@ function pmInit(total, isDues){
   });
   {const b=document.getElementById('pmDlBtn'); if(b){ b.textContent='📥 Download QR to Gallery'; b.classList.remove('done'); }}
   {const n1=document.getElementById('pmN-qrdl-1'); if(n1){ n1.textContent='1'; n1.classList.remove('done'); }}
+  // S54: har pay-tab ka Kadam 2 numbers reset (background-green wapas normal)
+  ['qrdl','upi'].forEach(function(t){
+    const n2=document.getElementById('pmN-'+t+'-2');
+    if(n2){ n2.textContent='2'; n2.classList.remove('done'); }
+  });
+  _pmWentBg=false; _pmReturned=false;   // S54: naya payScreen, background flags saaf
   {const c=document.getElementById('pmCopyBtn'); if(c){ c.textContent='📋 UPI ID Copy karein'; c.classList.remove('done'); }}
   const laterTab=document.getElementById('pmTabLater');
   if(laterTab) laterTab.style.display=isDues?'none':'';
@@ -3480,11 +3493,63 @@ window.pmCopy=function(){
 };
 window.pmConfirm=function(tab){
   const el=document.getElementById('pmRef-'+tab), er=document.getElementById('pmErr-'+tab);
-  if(!el || !/^\d{4}$/.test(el.value)){ if(el){ el.classList.add('bad'); el.focus(); } if(er) er.classList.add('show'); return; }
+  if(!el || !/^\d{4}$/.test(el.value)){
+    // S54: bina 4-ank Pay dabaya — ref wali (aakhri) patti khol do taaki dikhe kyun ruka
+    const last={qrdl:3,showqr:2,upi:3}[tab]||3;
+    pmAcc(tab,last);
+    if(el){ el.classList.add('bad'); el.focus(); }
+    if(er) er.classList.add('show');
+    try{ document.getElementById('pmA-'+tab+'-'+last)?.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
+    return;
+  }
   if(er) er.classList.remove('show');
   const leg=document.getElementById('payRef4'); if(leg) leg.value=el.value;
   if(typeof iHavePaid==='function') iHavePaid();
 };
+
+// ══════════ S54: BACKGROUND → wapas → Kadam 2 GREEN, Kadam 3 khulo ══════════
+// Jab customer UPI app kholta hai (ya kisi wajah se screen background me jaati hai)
+// aur wapas aata hai, to maan lete hain payment ki koshish ho gayi:
+//   - Kadam 2 (UPI App patti) ✅ green + band
+//   - Kadam 3 (ref) khud khule + field par focus (keyboard taiyar)
+// User ne kaha: HAR BAAR background jaane par (sirf app-button nahi).
+// Pay Later tab par kuch nahi (waha ref hai hi nahi). Ek payScreen-khulne me
+// sirf EK baar chale (warna baar-baar notification dekhne par bhi trigger ho).
+function pmMarkBackground(){
+  // sirf jab payScreen khula ho aur ek pay-tab (later nahi) active ho
+  const ps=document.getElementById('payScreen');
+  if(!ps || ps.style.display==='none') return;
+  if(window._pmTab==='later') return;
+  _pmWentBg=true;
+}
+function pmOnReturn(){
+  if(!_pmWentBg || _pmReturned) return;
+  const ps=document.getElementById('payScreen');
+  if(!ps || ps.style.display==='none') return;
+  const tab=window._pmTab;
+  if(tab==='later') return;
+  _pmReturned=true;
+  // Kadam 2 ko green+band (Show QR me kadam 2 hi ref hai — use mat chhuo)
+  if(tab!=='showqr'){
+    const n2=document.getElementById('pmN-'+tab+'-2');
+    if(n2){ n2.textContent='✓'; n2.classList.add('done'); }
+    const a2=document.getElementById('pmA-'+tab+'-2');
+    if(a2) a2.classList.remove('on');
+  }
+  // ref wali (aakhri) patti khol do + focus
+  const last={qrdl:3,showqr:2,upi:3}[tab]||3;
+  pmAcc(tab,last);
+  setTimeout(function(){
+    const r=document.getElementById('pmRef-'+tab);
+    if(r){ try{ r.focus(); }catch(e){} }
+    try{ document.getElementById('pmA-'+tab+'-'+last)?.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
+  },120);
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden) pmMarkBackground(); else setTimeout(pmOnReturn,60);
+});
+window.addEventListener('blur', pmMarkBackground);
+window.addEventListener('focus', function(){ setTimeout(pmOnReturn,60); });
 
 // Download the payment QR to the gallery so the customer can upload it in their UPI app
 // Open a specific UPI app (app only — NO amount prefill, since deep-linking the amount
