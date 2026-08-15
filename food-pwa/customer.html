@@ -58,6 +58,10 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .hdr .dt{font-size:.7rem;opacity:.9;margin-top:2px;font-weight:500;}
 .pbtn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.28);color:white;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s;}
 .pbtn:active{background:rgba(255,255,255,.38);}
+/* S50: photo lage to poore gole me bharo. overflow:hidden na ho to kone bahar nikalte hain. */
+.pbtn{overflow:hidden;padding:0;}
+.pbtn img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
+.pbtn .av-ltr{font-size:1.05rem;font-weight:800;line-height:1;}
 
 /* TABS */
 .tbar{background:white;display:flex;border-bottom:1px solid #ececec;position:sticky;top:var(--hdr-h);z-index:99;box-shadow:var(--sh-sm);}
@@ -125,6 +129,10 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .mc-body{padding:9px 10px;}
 /* 2-col me name thoda chhota taaki wrap na kare; price ab zyada prominent (neeche) */
 .mc-name{font-weight:800;font-size:1.02rem;line-height:1.2;margin-bottom:4px;letter-spacing:-.01em;}
+/* S50: "MENU FOR DINNER" ab bhaari. Item ke naam (1.02rem/800) se jaan-boojh kar
+   THODA CHHOTA rakha hai — barabar kar dete to aankh ko pata hi na chalta kaunsa
+   heading hai aur kaunsi dish. */
+#menuHeadLbl{font-size:.86rem;font-weight:900;letter-spacing:.045em;margin-bottom:9px;}
 @media(min-width:580px){.mc-name{font-size:1.2rem;}}
 .mc-desc{font-size:.76rem;color:var(--muted);margin-bottom:6px;line-height:1.45;}
 .mc-meta{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:5px;margin-top:2px;}
@@ -230,6 +238,11 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .cksub{font-size:.8rem;font-weight:600;color:var(--dark);margin-top:2px;line-height:1.35;word-break:break-word;}
 .ckchg{margin-left:auto;font-size:.72rem;font-weight:800;color:var(--orange);flex-shrink:0;}
 .ckbd{padding:0 12px 12px;}
+/* S50: header par total + chevron */
+.ckbilltot{margin-left:auto;font-size:1rem;font-weight:900;color:var(--dark);flex-shrink:0;letter-spacing:-.02em;}
+.ckchev{flex-shrink:0;margin-left:7px;font-size:.9rem;font-weight:900;color:var(--muted);line-height:1;transition:transform .18s ease;}
+.ckstrip.on .ckchev{transform:rotate(180deg);color:var(--orange);}
+@media(prefers-reduced-motion:reduce){.ckchev{transition:none;}}
 .ckerr{font-size:.78rem;font-weight:700;color:#b91c1c;background:#fef2f2;border-radius:9px;padding:8px 10px;margin-top:8px;display:none;}
 .cksave{width:100%;margin-top:11px;padding:12px;border:none;border-radius:var(--r);background:var(--ograd);color:#fff;font-weight:800;font-size:.88rem;cursor:pointer;font-family:inherit;}
 .cknote{font-size:.75rem;font-weight:800;color:var(--orange);cursor:pointer;padding:9px 0 2px;}
@@ -549,7 +562,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 <div id="mainApp" style="display:none">
   <div class="hdr">
     <div class="brand"><img class="brand-logo" src="logo.webp" decoding="async" onerror="this.onerror=null;this.src='logo.png'" alt="Kicken Bites"><div class="brand-txt"><h1 id="shopName">Kicken Bites</h1><div class="dt" id="todayLbl"></div></div></div>
-    <button class="pbtn" onclick="switchTab('profile')">👤</button>
+    <!-- S50: header wala avatar. Pehle yahan sirf 👤 emoji chhapa tha aur use
+         kabhi badla hi nahi jaata tha — isiliye Profile me photo dikhti thi par
+         upar nahi. Ab paintAvatars() ise bhi bharta hai. -->
+    <button class="pbtn" id="hdrAv" onclick="switchTab('profile')">👤</button>
   </div>
   <div class="tbar">
     <div class="ti active" id="tb-order" onclick="switchTab('order')">🛒 Order</div>
@@ -658,12 +674,17 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           </div>
         </div>
 
-        <div class="ckstrip on fix" id="ck3">
-          <div class="ckhd">
+        <!-- S50: Bill ab tah hoti hai aur SHURU ME BAND rehti hai. Paisa phir bhi
+             kabhi nahi chhupta kyunki total patti ke header par hi likha rehta hai —
+             sirf uska hisaab (item + delivery charge) tah hota hai. -->
+        <div class="ckstrip" id="ck3">
+          <div class="ckhd" onclick="ckOpen(3)">
             <div class="cknum" id="ckn3">3</div>
-            <div style="min-width:0"><div class="cktt">Bill</div></div>
+            <div style="min-width:0"><div class="cktt">Bill Summary</div></div>
+            <div class="ckbilltot" id="ckBillTot">₹0</div>
+            <div class="ckchev" id="ckChev3">⌄</div>
           </div>
-          <div class="ckbd" id="ckb3">
+          <div class="ckbd" id="ckb3" style="display:none">
             <div id="billDate" style="font-size:.8rem;font-weight:700;color:var(--orange);margin:-2px 0 7px"></div>
             <div class="bill">
               <div id="billItems"></div>
@@ -890,7 +911,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         <div class="ref-err" id="payRefErr"></div>
         <div class="ref-help">Nahi mil raha? <u onclick="fillRefZeros()">0000 daal dein</u> — order chala jayega par shop khud check karegi (thoda time lagega).</div>
       </div></div>
-      <div class="pstep"><span class="pnum">4</span><button class="i-paid-btn" id="iPaidBtn" onclick="iHavePaid()">✅ Click to Confirm Payment and Order</button></div>
+      <div class="pstep"><span class="pnum">4</span><button class="i-paid-btn" id="iPaidBtn" onclick="iHavePaid()">✅ Confirm Payment &amp; Place Order</button></div>
     </div>
 
   </div>
@@ -953,8 +974,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 <!-- Session 24: fixed running-total bar (JS updateBill isko bharta hai) -->
 <div id="runTotalBar">
   <div class="rt-info">
+    <!-- S50: bada ₹ yahan se hata diya. Rakam ab sirf EK jagah dikhti hai —
+         daayen, button ke andar. Pehle bar par aur button par, dono jagah thi. -->
     <div class="rt-count" id="rtCount">0 items</div>
-    <div class="rt-amt" id="rtAmt">₹0</div>
   </div>
   <button class="rt-go" id="rtGoBtn" onclick="ckBarAction()">Order Now →</button>
 </div>
@@ -1216,7 +1238,10 @@ function updateProfileUI(p) {
   const name = p.name||localStorage.getItem('custName')||'';
   const phone = p.phone||localStorage.getItem('custPhone')||'';
   if(p.photoUrl){ showProfilePic(p.photoUrl); }
-  else { document.getElementById('profAv').textContent = (name||phone||'?')[0].toUpperCase(); }
+  else {
+    document.getElementById('profAv').textContent = (name||phone||'?')[0].toUpperCase();
+    paintHeaderAvatar('');        // S50: photo nahi hai to header par naam ka akshar
+  }
   document.getElementById('profName').textContent = name||'Tap to set name';
   document.getElementById('profPhone').textContent = '📞 '+phone;
   document.getElementById('piName').value = name;
@@ -1293,7 +1318,29 @@ function showProfilePic(url){
   const av=document.getElementById('profAv'); if(!av||!url)return;
   av.innerHTML='<img src="'+url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'+
     '<div style="position:absolute;bottom:0;right:0;background:white;color:var(--orange);width:20px;height:20px;border-radius:50%;font-size:.7rem;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3)">📷</div>';
+  paintHeaderAvatar(url);          // S50: upar wala gola bhi
 }
+
+// S50: header ka gol avatar. Photo ho to photo, warna naam ka pehla akshar,
+// aur wo bhi na ho to purana 👤.
+// ⚠️ imgbb ka link kabhi na khule (network/blocked) to img khaali gola chhod deta —
+// isliye onerror par wapas akshar/emoji par gir jaata hai.
+function paintHeaderAvatar(url){
+  const h=document.getElementById('hdrAv'); if(!h) return;
+  const nm=(currentProfile&&currentProfile.name)||localStorage.getItem('custName')||'';
+  const ph=(currentProfile&&currentProfile.phone)||localStorage.getItem('custPhone')||'';
+  const ltr=(nm||ph||'').trim().charAt(0).toUpperCase();
+  const fb=ltr?('<span class="av-ltr">'+ltr+'</span>'):'👤';
+  if(url){
+    const img=document.createElement('img');
+    img.src=url; img.alt='Profile';
+    img.onerror=function(){ h.innerHTML=fb; };
+    h.innerHTML=''; h.appendChild(img);
+  }else{
+    h.innerHTML=fb;
+  }
+}
+window.paintHeaderAvatar=paintHeaderAvatar;
 
 window.changePinPrompt = async function() {
   const newPin=prompt('Enter new 4-digit PIN:');
@@ -2580,7 +2627,7 @@ window.selType=function(t){
 // Patti 1 aur 2 tah hoti hain; patti 3 (Bill) hamesha khuli.
 let _ckOpen=1;
 window.ckOpen=function(n){
-  if(n===3) return;              // Bill patti tah nahi hoti
+  // S50: Bill ab tah hoti hai (pehle yahan n===3 par return tha).
   _ckOpen=(_ckOpen===n)?0:n;     // dobara tap = band
   ckPaint();
 };
@@ -2626,11 +2673,13 @@ window.ckSaveDetails=function(){
   }
   if(msg){ if(err){err.textContent=msg;err.style.display='block';} return; }
   if(err) err.style.display='none';
-  _ckOpen=0; ckPaint(); updateBill();
+  // S50: details save hote hi Bill khol do — pehle wo hamesha khuli rehti thi,
+  // ab band hoti hai, to yahan na kholte to customer ko kuch bhi na dikhta.
+  _ckOpen=3; ckPaint(); updateBill();
 };
 function ckPaint(){
   const ok=ckDetailsValid();
-  [1,2].forEach(function(i){
+  [1,2,3].forEach(function(i){      // S50: 3 bhi ab tah hoti hai
     const st=document.getElementById('ck'+i), bd=document.getElementById('ckb'+i);
     if(!st||!bd) return;
     const on=(_ckOpen===i);
@@ -2756,9 +2805,9 @@ function updateBill(){
       const okToShow=!payOpen;
       if(nItems>0 && okToShow){
         bar.style.display='flex';
-        const rc=document.getElementById('rtCount'), ra=document.getElementById('rtAmt');
+        const rc=document.getElementById('rtCount');
         if(rc) rc.textContent=nItems+(nItems===1?' item':' items');
-        if(ra) ra.textContent='₹'+total;
+        // S50: rt-amt hata diya — rakam ab sirf button par.
         document.body.style.paddingBottom='74px';   // bar ke peeche content na chhupe
       } else {
         bar.style.display='none';
@@ -2769,17 +2818,18 @@ function updateBill(){
   const btn=document.getElementById('placeBtn');
   btn.disabled=sub===0;
   btn.textContent=sub>0?`Proceed to Pay ₹${total} →`:'Select items to order';
-  // S47: asli button ab neeche wali chipki patti hai. Label teen haalat batata hai:
-  //   pehla tap se pehle  -> "Order Now"   (checkout tak le jaata hai)
-  //   details adhoori     -> "Fill Details"
-  //   sab bhara           -> "Proceed to Pay ₹X"
+  // S50: button ka label. "Place Order" yahan galat tha — is button se sirf
+  // payment screen khulti hai; order asli maayne me payment ke BAAD pakka hota
+  // hai, isliye ab "Proceed to Pay". Dono haalat me ₹ likha rehta hai taaki menu
+  // scroll karte waqt bhi chalta hua total dikhta rahe (bada ₹ bar se hata diya).
   {
     const go=document.getElementById('rtGoBtn');
     if(go && !go.dataset.busy){
       const ok=(typeof ckDetailsValid==='function')&&ckDetailsValid();
-      // S49: do halat hi bachi — bhari hui to seedha order, warna details bharo.
-      go.textContent = ok ? ('Place Order ₹'+total+' →') : 'Fill Details →';
+      go.textContent = ok ? ('Proceed to Pay ₹'+total+' →') : ('Order ₹'+total+' →');
     }
+    // S50: Bill patti ke header par total
+    {const bt=document.getElementById('ckBillTot'); if(bt) bt.textContent='₹'+total;}
     try{ ckPaint(); }catch(e){}
   }
 }
@@ -2989,9 +3039,12 @@ function showPayScreen(total){
   }
   // Confirm button + warn note text depend on mode (dues vs new order)
   const ipb=document.getElementById('iPaidBtn');
+  // S50: yahi wo jagah hai jahan order asli maayne me pakka hota hai, isliye
+  // "Place Order" ab yahan likha hai (bar par nahi — wahan sirf "Proceed to Pay").
+  // Dues chukane wale mode me koi naya order nahi banta, isliye wahan alag text.
   if(ipb) ipb.textContent=isDues
-    ? '✅ Click to Confirm Payment'
-    : '✅ Click to Confirm Payment and Order';
+    ? '✅ Confirm Payment'
+    : '✅ Confirm Payment & Place Order';
   // Session 37: ref-gate. Har baar pay screen khulne par input khaali ho.
   {
     const ri=document.getElementById('payRef4');
