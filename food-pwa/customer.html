@@ -301,9 +301,12 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .pay-logo{color:white;font-weight:800;font-size:.76rem;}
 .pay-x{width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:white;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 /* Session 16: hero aur bhi compact — amount + total + payee sab ek row me */
-.pay-hero{display:flex;align-items:baseline;justify-content:center;gap:7px;text-align:center;padding:0 15px 5px;flex-wrap:wrap;}
-.pay-lbl{color:rgba(255,255,255,.55);font-size:.64rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
-.pay-amt{color:white;font-size:1.5rem;font-weight:900;line-height:1;}
+.pay-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2px 15px 10px;}
+/* S55(#3): amount ab ek "pill" card me — Swiggy/Zomato jaisa saaf highlight */
+.pay-amt-pill{display:inline-flex;align-items:baseline;gap:8px;background:linear-gradient(135deg,rgba(234,88,12,.22),rgba(234,88,12,.10));
+  border:1.5px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 20px;box-shadow:0 3px 14px rgba(0,0,0,.22);}
+.pay-lbl{color:rgba(255,255,255,.7);font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;}
+.pay-amt{color:#fff;font-size:1.7rem;font-weight:900;line-height:1;letter-spacing:-.01em;}
 .pay-name{width:100%;color:rgba(255,255,255,.6);font-size:.68rem;margin-top:0;}
 /* Bug fix: date line ka colour set nahi tha — dark bg par dark text invisible tha */
 .pay-date{color:rgba(255,255,255,.82)!important;}
@@ -886,9 +889,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 <div id="payScreen">
   <div class="pay-bar"><div class="pay-logo">🍗 Kicken Bites</div><button class="pay-x" onclick="closePayScreen()">✕</button></div>
   <div class="pay-hero">
-    <div class="pay-lbl">Order Total</div>
-    <div class="pay-amt" id="payAmt">₹0</div>
-    <div class="pay-date" id="payDate" style="margin-top:2px;font-size:.72rem;opacity:.85;font-weight:600;width:100%"></div>
+    <div class="pay-amt-pill">
+      <span class="pay-lbl">Total</span>
+      <span class="pay-amt" id="payAmt">₹0</span>
+    </div>
+    <div class="pay-date" id="payDate" style="margin-top:7px;font-size:.72rem;opacity:.85;font-weight:600"></div>
   </div>
 
   <div class="pm-tabs">
@@ -903,11 +908,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   </div>
 
   <div class="pm-panel on" id="pmP-qrdl">
-    <div class="pm-remind">💡 <b>Zaroori:</b> payment ke baad UPI app ki success screen par jo <b>Transaction ID</b> aaye, uske <b>last 4 digit note kar lein</b> — neeche Kadam me daalne honge.</div>
+    <div class="pm-remind">💡 Pay karte hi <b>Transaction ID ke last 4 digit</b> yaad rakhein — <b>Kadam 3</b> me daalne honge ✍️</div>
     <div class="pm-acc on" id="pmA-qrdl-1">
       <div class="pm-hd" onclick="pmAcc('qrdl',1)"><div class="pm-num" id="pmN-qrdl-1">1</div><div class="pm-tt">QR Gallery me save karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-qrdl" width="260" height="260"></canvas><div class="pm-qramt">Bilkul <b id="pmAmt-qrdl">₹0</b> hi bhejein</div></div>
+        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-qrdl" width="260" height="260"></canvas><div class="pm-qramt"><b id="pmAmt-qrdl">₹0</b> — QR me amount already set hai ✅</div></div>
         <button class="pm-dl" id="pmDlBtn" onclick="pmDownload()">📥 Download QR to Gallery</button>
       </div>
     </div>
@@ -926,43 +931,43 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <div class="pm-acc" id="pmA-qrdl-3">
       <div class="pm-hd" onclick="pmAcc('qrdl',3)"><div class="pm-num" id="pmN-qrdl-3">3</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-refnote">Payment ke baad UPI app ki success screen par Transaction ID dikhegi. Uske <b>last 4 digit</b> yahan darj karein.</div>
+        <div class="pm-refnote"><b>4 digit</b> daalte hi order confirm ho jaayega 👇</div>
         <input class="pm-ref" id="pmRef-qrdl" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('qrdl')">
         <div class="pm-referr" id="pmErr-qrdl">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
-        <div class="pm-refhelp">Nahi mil raha? <u onclick="pmZeros('qrdl')">0000 daal dein</u> — order chala jayega, shop khud check karegi.</div>
+        <div class="pm-refhelp">Transaction ID nahi mili? <u onclick="pmZeros('qrdl')">0000 daal dein</u> — order lag jayega, baaki shop check kar legi 👍</div>
       </div>
     </div>
     <button class="pm-confirm" onclick="pmConfirm('qrdl')">✅ Confirm Payment &amp; Place Order</button>
   </div>
 
   <div class="pm-panel" id="pmP-showqr">
-    <div class="pm-remind">💡 <b>Zaroori:</b> payment ke baad UPI app ki success screen par jo <b>Transaction ID</b> aaye, uske <b>last 4 digit note kar lein</b> — neeche Kadam me daalne honge.</div>
+    <div class="pm-remind">💡 Pay karte hi <b>Transaction ID ke last 4 digit</b> yaad rakhein — <b>Kadam 2</b> me daalne honge ✍️</div>
     <div class="pm-acc on" id="pmA-showqr-1">
       <div class="pm-hd" onclick="pmAcc('showqr',1)"><div class="pm-num" id="pmN-showqr-1">1</div><div class="pm-tt">Doosre phone se scan karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-showqr" width="300" height="300"></canvas><div class="pm-qramt">Bilkul <b id="pmAmt-showqr">₹0</b> hi bhejein</div></div>
-        <div class="pm-note ok">✅ Doosre phone ki kisi bhi UPI app se ye QR scan karein aur <b id="pmAmt2-showqr">₹0</b> bhejein</div>
+        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-showqr" width="300" height="300"></canvas><div class="pm-qramt"><b id="pmAmt-showqr">₹0</b> — QR me amount already set hai ✅</div></div>
+        <div class="pm-note ok">✅ Doosre phone ki kisi bhi UPI app se ye QR scan karein — <b id="pmAmt2-showqr">₹0</b> auto-fill ho jayega</div>
       </div>
     </div>
     <div class="pm-acc" id="pmA-showqr-2">
       <div class="pm-hd" onclick="pmAcc('showqr',2)"><div class="pm-num" id="pmN-showqr-2">2</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-refnote">Payment ke baad UPI app ki success screen par Transaction ID dikhegi. <b>Last 4 digit</b> note karein aur yahan darj karein.</div>
+        <div class="pm-refnote"><b>4 digit</b> daalte hi order confirm ho jaayega 👇</div>
         <input class="pm-ref" id="pmRef-showqr" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('showqr')">
         <div class="pm-referr" id="pmErr-showqr">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
-        <div class="pm-refhelp">Nahi mil raha? <u onclick="pmZeros('showqr')">0000 daal dein</u> — order chala jayega, shop khud check karegi.</div>
+        <div class="pm-refhelp">Transaction ID nahi mili? <u onclick="pmZeros('showqr')">0000 daal dein</u> — order lag jayega, baaki shop check kar legi 👍</div>
       </div>
     </div>
     <button class="pm-confirm" onclick="pmConfirm('showqr')">✅ Confirm Payment &amp; Place Order</button>
   </div>
 
   <div class="pm-panel" id="pmP-upi">
-    <div class="pm-remind">💡 <b>Zaroori:</b> payment ke baad UPI app ki success screen par jo <b>Transaction ID</b> aaye, uske <b>last 4 digit note kar lein</b> — neeche Kadam me daalne honge.</div>
+    <div class="pm-remind">💡 Pay karte hi <b>Transaction ID ke last 4 digit</b> yaad rakhein — <b>Kadam 3</b> me daalne honge ✍️</div>
     <div class="pm-acc on" id="pmA-upi-1">
       <div class="pm-hd" onclick="pmAcc('upi',1)"><div class="pm-num" id="pmN-upi-1">1</div><div class="pm-tt">UPI ID copy karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
         <div class="pm-upibox"><div class="pm-upiid" id="pmUpiId">—</div><button class="pm-copy" id="pmCopyBtn" onclick="pmCopy()">📋 UPI ID Copy karein</button></div>
-        <div class="pm-note">⚠️ Bilkul <b id="pmAmt-upi">₹0</b> hi bhejein — kam ya zyada bhejne par order hold ho sakta hai</div>
+        <div class="pm-note">⚠️ Amount <b id="pmAmt-upi">₹0</b> khud bharein — bilkul yahi, kam-zyada par order hold ho sakta hai</div>
       </div>
     </div>
     <div class="pm-acc" id="pmA-upi-2">
@@ -980,10 +985,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <div class="pm-acc" id="pmA-upi-3">
       <div class="pm-hd" onclick="pmAcc('upi',3)"><div class="pm-num" id="pmN-upi-3">3</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-refnote">Payment ke baad UPI app ki success screen par Transaction ID dikhegi. <b>Last 4 digit</b> yahan darj karein.</div>
+        <div class="pm-refnote"><b>4 digit</b> daalte hi order confirm ho jaayega 👇</div>
         <input class="pm-ref" id="pmRef-upi" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('upi')">
         <div class="pm-referr" id="pmErr-upi">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
-        <div class="pm-refhelp">Nahi mil raha? <u onclick="pmZeros('upi')">0000 daal dein</u> — order chala jayega, shop khud check karegi.</div>
+        <div class="pm-refhelp">Transaction ID nahi mili? <u onclick="pmZeros('upi')">0000 daal dein</u> — order lag jayega, baaki shop check kar legi 👍</div>
       </div>
     </div>
     <button class="pm-confirm" onclick="pmConfirm('upi')">✅ Confirm Payment &amp; Place Order</button>
@@ -3198,6 +3203,7 @@ function showPayScreen(total){
 // hai. Isliye ye buttons ab SIRF app kholte hain; customer QR download karke, app me
 // gallery/scan se wo QR chunkar payment karta hai. Koi amount deep-link nahi bhejte.
 window.openUpiApp=function(app){
+  window._pmPayAttempt=true;   // S55(#7): app button dabaya = payment ki koshish
   const schemes={ gpay:'tez://upi/', phonepe:'phonepe://', paytm:'paytmmp://', bhim:'upi://' };
   const url=schemes[app]||'upi://';
   try{ window.location.href=url; }catch(e){}
@@ -3427,6 +3433,7 @@ function pmInit(total, isDues){
     if(n2){ n2.textContent='2'; n2.classList.remove('done'); }
   });
   _pmWentBg=false; _pmReturned=false;   // S54: naya payScreen, background flags saaf
+  window._pmPayAttempt=false;            // S55(#7): har naye order par payment-confidence reset
   {const c=document.getElementById('pmCopyBtn'); if(c){ c.textContent='📋 UPI ID Copy karein'; c.classList.remove('done'); }}
   const laterTab=document.getElementById('pmTabLater');
   if(laterTab) laterTab.style.display=isDues?'none':'';
@@ -3529,14 +3536,16 @@ function pmOnReturn(){
   const tab=window._pmTab;
   if(tab==='later') return;
   _pmReturned=true;
-  // Kadam 2 ko green+band (Show QR me kadam 2 hi ref hai — use mat chhuo)
-  if(tab!=='showqr'){
-    const n2=document.getElementById('pmN-'+tab+'-2');
-    if(n2){ n2.textContent='✓'; n2.classList.add('done'); }
-    const a2=document.getElementById('pmA-'+tab+'-2');
-    if(a2) a2.classList.remove('on');
+  window._pmPayAttempt=true;   // S55(#7): customer app me gaya = payment ki koshish maani jaayegi
+  // Jo patti "payment karo" wali hai use green+band. Show QR me wo Kadam 1 (scan) hai,
+  // QR Download/UPI me Kadam 2 (UPI app). Ref wali patti (aakhri) khud khulti hai.
+  const payStep={qrdl:2, upi:2, showqr:1}[tab];
+  if(payStep){
+    const nn=document.getElementById('pmN-'+tab+'-'+payStep);
+    if(nn){ nn.textContent='✓'; nn.classList.add('done'); }
+    const aa=document.getElementById('pmA-'+tab+'-'+payStep);
+    if(aa) aa.classList.remove('on');
   }
-  // ref wali (aakhri) patti khol do + focus
   const last={qrdl:3,showqr:2,upi:3}[tab]||3;
   pmAcc(tab,last);
   setTimeout(function(){
@@ -3568,13 +3577,7 @@ window.addEventListener('focus', function(){ setTimeout(pmOnReturn,60); });
 // ki policy hai, code se theek nahi hoti. Sirf QR-scan (gallery se) bharosemand chalta
 // hai. Isliye ye buttons ab SIRF app kholte hain; customer QR download karke, app me
 // gallery/scan se wo QR chunkar payment karta hai. Koi amount deep-link nahi bhejte.
-window.openUpiApp=function(app){
-  const schemes={ gpay:'tez://upi/', phonepe:'phonepe://', paytm:'paytmmp://', bhim:'upi://' };
-  const url=schemes[app]||'upi://';
-  try{ window.location.href=url; }catch(e){}
-  showToast(app.toUpperCase()+' khul raha hai — ab Gallery/Scan se saved QR chunkar pay karein');
-};
-
+w
 
 // ── Session 13: Pay Later kis ko milega ──
 // Do rule, dono config se badalne yogya (admin Setup tab):
@@ -3711,6 +3714,10 @@ window.iHavePaid=async function(){
       // nahi" — us case me refNoProof true hota hai aur admin ko 🔺 dikhta hai.
       upiRef4:ref4,
       refNoProof:(ref4==='0000'),
+      // S55(#7): payment-confidence. Agar customer ne UPI ID/QR tab me na to koi
+      // UPI app dabaya, na screen background gaya (yaani app khola hi nahi), phir
+      // bhi 4 digit daal diya — to payment ki sambhaavna kam. Admin ko 🔺 (red) dikhega.
+      lowPayConfidence:(!window._pmPayAttempt && ref4!=='0000'),
       customerPaidAt:new Date().toISOString(),
       confirmedAt:new Date().toISOString()
     },{merge:true});
