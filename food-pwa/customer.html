@@ -382,41 +382,45 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .warn-note{animation:kbWarnPulse 2s ease-in-out infinite;}
 .confirm-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--green),#16a34a);color:white;border:none;border-radius:var(--r);font-size:.97rem;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(34,197,94,.35);display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:8px;}
 .back-lnk{display:block;text-align:center;color:var(--muted);font-size:.78rem;cursor:pointer;padding:7px;}
-/* S52: payment page naya dhaancha — 4 tabs + 3-kadam accordion */
-.pm-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:10px 14px 8px}
-.pm-tab{padding:8px 3px;border:2px solid #e7e5e4;border-radius:11px;background:#fff;
-  font-size:10px;font-weight:800;cursor:pointer;text-align:center;color:#78716c;line-height:1.35}
+/* ═══ S53: PAYMENT PAGE — saaf 4-tab + accordion (order page jaisa) ═══ */
+.pm-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 14px 10px}
+.pm-tab{padding:9px 3px;border:2px solid #e7e5e4;border-radius:12px;background:#fff;font-size:.68rem;font-weight:800;cursor:pointer;text-align:center;color:#78716c;line-height:1.3;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .12s}
+.pm-tab .pm-ic{font-size:1.15rem;line-height:1}
 .pm-tab.on{border-color:#ea580c;background:#fff7ed;color:#ea580c}
-.pm-panel{display:none;padding:0 14px 14px}.pm-panel.on{display:block}
-.pm-acc{border:1.5px solid #e7e5e4;border-radius:12px;margin-bottom:8px;overflow:hidden}
+.pm-panel{display:none}.pm-panel.on{display:block;padding:0 14px}
+.pm-acc{border:2px solid #eee;border-radius:14px;margin-bottom:8px;overflow:hidden;background:#fff}
 .pm-acc.on{border-color:#ea580c}
-.pm-hd{display:flex;align-items:center;gap:8px;padding:11px 12px;cursor:pointer}
-.pm-num{width:22px;height:22px;border-radius:50%;background:#e7e5e4;color:#78716c;
-  font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pm-hd{display:flex;align-items:center;gap:9px;padding:12px 13px;cursor:pointer}
+.pm-num{width:23px;height:23px;border-radius:50%;background:#e7e5e4;color:#78716c;font-size:.74rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .pm-acc.on .pm-num{background:#ea580c;color:#fff}
 .pm-num.done{background:#15803d;color:#fff}
-.pm-tt{font-size:.64rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#78716c}
+.pm-tt{font-size:.82rem;font-weight:800;color:#1c1917;line-height:1.2}
 .pm-acc.on .pm-tt{color:#ea580c}
-.pm-chev{margin-left:auto;font-size:.9rem;color:#a8a29e;transition:transform .18s ease}
+.pm-chev{margin-left:auto;font-size:.95rem;color:#a8a29e;transition:transform .18s ease;flex-shrink:0}
 .pm-acc.on .pm-chev{transform:rotate(180deg);color:#ea580c}
-.pm-bd{padding:0 12px 12px;display:none}.pm-acc.on .pm-bd{display:block}
-.pm-dl-btn{width:100%;padding:12px;border:none;border-radius:11px;
-  background:#ea580c;color:#fff;font-size:.88rem;font-weight:800;cursor:pointer;margin-top:8px}
-.pm-dl-btn.done{background:#15803d}
-.pm-app-note{background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;
-  padding:8px 10px;font-size:.72rem;color:#c2410c;line-height:1.55;margin-top:8px}
-.pm-qr-note{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;
-  padding:9px 10px;font-size:.76rem;color:#15803d;font-weight:700;line-height:1.5;margin:8px 0}
-.pm-ref-note{font-size:.75rem;color:#57534e;line-height:1.55;margin-bottom:9px}
-.pm-ref-in{width:100%;padding:13px;border:2px solid #e7e5e4;border-radius:11px;
-  font-size:1.15rem;font-weight:900;text-align:center;letter-spacing:.25em;font-family:monospace}
-.pm-ref-in.bad{border-color:#dc2626;background:#fef2f2}
-.pm-ref-in.good{border-color:#15803d;background:#f0fdf4}
-.pm-ref-err{font-size:.74rem;color:#dc2626;font-weight:700;margin-top:5px;display:none}
-.pm-conf{width:100%;padding:14px;border:none;border-radius:12px;
-  background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-size:.92rem;
-  font-weight:800;cursor:pointer;margin-top:10px;box-shadow:0 3px 12px rgba(22,163,74,.3)}
-.pm-conf:disabled{opacity:.55;cursor:default}
+.pm-bd{padding:0 13px 13px;display:none}.pm-acc.on .pm-bd{display:block}
+.pm-qrwrap{text-align:center;background:#fff;border:2px solid #f3f0ec;border-radius:12px;padding:12px;margin-bottom:9px}
+.pm-qr{max-width:100%;height:auto;display:block;margin:0 auto}
+.pm-qramt{font-size:.72rem;color:#78716c;margin-top:6px}
+.pm-dl{width:100%;padding:13px;border:none;border-radius:12px;background:var(--ograd);color:#fff;font-size:.9rem;font-weight:800;cursor:pointer;font-family:inherit}
+.pm-dl.done{background:linear-gradient(135deg,#16a34a,#15803d)}
+.pm-apps{display:flex;gap:6px;margin-bottom:9px}
+.pm-note{background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:9px 11px;font-size:.75rem;color:#c2410c;line-height:1.55}
+.pm-note.ok{background:#f0fdf4;border-color:#bbf7d0;color:#15803d;font-weight:700}
+.pm-upibox{background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:13px;text-align:center;margin-bottom:9px}
+.pm-upiid{font-size:1.02rem;font-weight:900;color:#1c1917;letter-spacing:.02em;margin-bottom:10px;word-break:break-all}
+.pm-copy{padding:10px 18px;border:1.5px solid #ea580c;border-radius:10px;background:#fff;color:#ea580c;font-size:.84rem;font-weight:800;cursor:pointer;font-family:inherit}
+.pm-copy.done{background:#f0fdf4;border-color:#15803d;color:#15803d}
+.pm-refnote{font-size:.76rem;color:#57534e;line-height:1.55;margin-bottom:9px}
+.pm-ref{width:100%;padding:14px;border:2px solid #e7e5e4;border-radius:12px;font-size:1.3rem;font-weight:900;text-align:center;letter-spacing:.4em;font-family:monospace;color:#1c1917;box-sizing:border-box;outline:none}
+.pm-ref:focus{border-color:#ea580c}
+.pm-ref.bad{border-color:#dc2626;background:#fef2f2}
+.pm-ref.good{border-color:#15803d;background:#f0fdf4}
+.pm-referr{font-size:.75rem;color:#dc2626;font-weight:700;margin-top:6px;display:none}
+.pm-referr.show{display:block}
+.pm-refhelp{font-size:.72rem;color:#78716c;margin-top:7px;line-height:1.5}
+.pm-refhelp u{color:#ea580c;font-weight:700;cursor:pointer}
+.pm-confirm{width:100%;padding:15px;border:none;border-radius:13px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-size:.94rem;font-weight:800;cursor:pointer;margin:4px 0 14px;box-shadow:0 3px 12px rgba(22,163,74,.3);font-family:inherit}
 @media(prefers-reduced-motion:reduce){.pm-chev{transition:none}}
 
 /* SUCCESS */
@@ -878,214 +882,128 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 <!-- PAYMENT SCREEN -->
 <div id="payScreen">
   <div class="pay-bar"><div class="pay-logo">🍗 Kicken Bites</div><button class="pay-x" onclick="closePayScreen()">✕</button></div>
-  <!-- Amount hero — always visible -->
   <div class="pay-hero">
-    <div class="pay-lbl">Order Total –</div>
+    <div class="pay-lbl">Order Total</div>
     <div class="pay-amt" id="payAmt">₹0</div>
     <div class="pay-date" id="payDate" style="margin-top:2px;font-size:.72rem;opacity:.85;font-weight:600;width:100%"></div>
   </div>
 
-  <!-- S52: NAYA PAYMENT PAGE — 4 tabs, 3-kadam accordion har payment tab me.
-       Old IDs (payNowPanel, payMethQR, payMethUPI, payLaterPanel, walletSection,
-       upiEmptyWarn, payRefLbl, payRefSub, payRefErr, copyBtn, upiId, plOrderAmt,
-       plPrevDue, plPrevDueRow, plLockNote, tabMethQR, tabMethUPI, tabMethLater,
-       qrBox, qrCanvas, qrFallback, walletBal, iPaidBtn, pl-confirm-btn)
-       SARE BACHA KE RAKHE HAIN taaki purani JS na toote. Sirf layout badla hai.
-       Nayi JS: pmSwitchTab, pmAcc, pmDoDownload, pmDoConfirm, pmOnRef. -->
-
-  <!-- hidden legacy wrappers — purani JS inhe dhoondhti hai -->
-  <div id="payNowPanel" style="display:none"></div>
-  <div id="payLaterPanel" style="display:none"></div>
-  <div id="plLockNote" style="display:none"></div>
-  <div id="upiEmptyWarn" style="display:none"></div>
-  <div id="walletSection" style="display:none">
-    <div id="walletBal"></div>
-  </div>
-  <!-- hidden original ref input — iHavePaid() ise padhta hai -->
-  <input id="payRef4" style="display:none" maxlength="4" autocomplete="off">
-  <div id="payRefErr" style="display:none"></div>
-  <div id="payRefLbl" style="display:none"></div>
-  <div id="payRefSub" style="display:none"></div>
-  <!-- hidden UPI ID for copyUpi() / updatePayUi -->
-  <span id="upiId" style="display:none"></span>
-  <div id="qrAmt" style="display:none"></div>
-  <div id="payTo" style="display:none"></div>
-  <div id="hintAmt" style="display:none"></div>
-  <div id="hintAmt2" style="display:none"></div>
-  <div id="procAmt1" style="display:none"></div>
-  <!-- hidden legacy tab buttons -->
-  <button id="tabMethQR" style="display:none" onclick="switchPayMethod('qr')"></button>
-  <button id="tabMethUPI" style="display:none" onclick="switchPayMethod('upi')"></button>
-  <button id="tabMethLater" style="display:none" onclick="switchPayMethod('later')"></button>
-  <!-- hidden legacy pay-method panels -->
-  <div id="payMethQR" style="display:none">
-    <div class="qr-box-big" id="qrBox"><canvas id="qrCanvas" width="300" height="300"></canvas></div>
-    <div id="qrFallback" style="display:none"></div>
-  </div>
-  <div id="payMethUPI" style="display:none">
-    <button class="copy-btn-big" id="copyBtn" onclick="copyUpi()" style="display:none"></button>
-  </div>
-  <!-- hidden legacy pay amounts -->
-  <span id="plOrderAmt" style="display:none">₹0</span>
-  <span id="plPrevDue" style="display:none">₹0</span>
-  <div id="plPrevDueRow" style="display:none"></div>
-  <!-- hidden iPaidBtn — iHavePaid() usse call karta hai; nayi confirm buttons usse trigger karte hain -->
-  <button id="iPaidBtn" onclick="iHavePaid()" style="display:none">✅ Confirm Payment &amp; Place Order</button>
-
-  <!-- ═══════════ VISIBLE NEW LAYOUT ═══════════ -->
   <div class="pm-tabs">
-    <button class="pm-tab on" id="pmTabQRDL" onclick="pmSwitchTab('qrdl')">📥<br>QR<br>Download</button>
-    <button class="pm-tab" id="pmTabSHOW" onclick="pmSwitchTab('showqr')">📱<br>Show<br>QR</button>
-    <button class="pm-tab" id="pmTabUPI" onclick="pmSwitchTab('upi')">📋<br>UPI<br>ID</button>
-    <button class="pm-tab" id="pmTabLater" onclick="pmSwitchTab('later')">🕑<br>Pay<br>Later</button>
+    <button class="pm-tab on" id="pmTabQRDL" onclick="pmTab('qrdl')"><span class="pm-ic">📥</span>QR Download</button>
+    <button class="pm-tab" id="pmTabSHOW" onclick="pmTab('showqr')"><span class="pm-ic">📱</span>Show QR</button>
+    <button class="pm-tab" id="pmTabUPI" onclick="pmTab('upi')"><span class="pm-ic">📋</span>UPI ID</button>
+    <button class="pm-tab" id="pmTabLater" onclick="pmTab('later')"><span class="pm-ic">🕑</span>Pay Later</button>
   </div>
 
-  <!-- ──────── TAB 1: QR DOWNLOAD ──────── -->
+  <div id="pmUpiWarn" style="display:none;margin:0 14px 8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:11px;padding:11px;font-size:.78rem;color:#991b1b;line-height:1.5">
+    ⚠️ <b>UPI ID set nahi hai.</b> Admin se Setup me UPI ID save karwayein. Tab tak sirf <b>Pay Later</b> use karein.
+  </div>
+
   <div class="pm-panel on" id="pmP-qrdl">
-    <!-- Kadam 1: Download QR -->
     <div class="pm-acc on" id="pmA-qrdl-1">
-      <div class="pm-hd" onclick="pmAcc('qrdl',1)">
-        <div class="pm-num" id="pmN-qrdl-1">1</div>
-        <div><div class="pm-tt">📥 QR Gallery me save karein</div></div>
-        <span class="pm-chev">⌄</span>
-      </div>
+      <div class="pm-hd" onclick="pmAcc('qrdl',1)"><div class="pm-num" id="pmN-qrdl-1">1</div><div class="pm-tt">QR Gallery me save karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div id="upiEmptyWarnD" style="display:none;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:10px;margin-bottom:8px;font-size:.78rem;color:#991b1b;line-height:1.5">
-          ⚠️ <b>UPI ID set nahi hai.</b> Admin se Setup me UPI ID save karwayein — tab tak sirf <b>Pay Later</b> use karein.
-        </div>
-        <div style="text-align:center;background:#fff;border:1.5px solid #e7e5e4;border-radius:11px;padding:10px;margin-bottom:8px">
-          <canvas id="qrCanvasDL" width="220" height="220" style="max-width:100%"></canvas>
-          <div id="qrFallbackDL" style="display:none;font-size:.75rem;color:#991b1b;padding:8px">⚠️ QR nahi bana — UPI ID tab use karein</div>
-          <div style="font-size:.7rem;color:#78716c;margin-top:4px">Bilkul <b id="qrAmtDL">₹0</b> hi bhejein</div>
-        </div>
-        <button class="pm-dl-btn" id="pmDlBtn" onclick="pmDoDownload()">📥 Download QR to Gallery</button>
+        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-qrdl" width="220" height="220"></canvas><div class="pm-qramt">Bilkul <b id="pmAmt-qrdl">₹0</b> hi bhejein</div></div>
+        <button class="pm-dl" id="pmDlBtn" onclick="pmDownload()">📥 Download QR to Gallery</button>
       </div>
     </div>
-    <!-- Kadam 2: UPI App -->
     <div class="pm-acc" id="pmA-qrdl-2">
-      <div class="pm-hd" onclick="pmAcc('qrdl',2)">
-        <div class="pm-num" id="pmN-qrdl-2">2</div>
-        <div><div class="pm-tt">📱 UPI App se pay karein</div></div>
-        <span class="pm-chev">⌄</span>
-      </div>
+      <div class="pm-hd" onclick="pmAcc('qrdl',2)"><div class="pm-num" id="pmN-qrdl-2">2</div><div class="pm-tt">UPI App se pay karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="upi-apps-row" style="margin-bottom:0">
-          <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
+        <div class="pm-apps">
+          <button class="upi-app-btn gpay" onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
           <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
-          <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
-          <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
+          <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
+          <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
         </div>
-        <div class="pm-app-note">Koi bhi UPI app kholein → Gallery me jaayein → saved QR chunein → amount auto-fill ho jaayega → pay karein</div>
+        <div class="pm-note">Koi bhi UPI app kholein → Gallery se saved QR chunein → amount <b id="pmAmt2-qrdl">₹0</b> auto-fill hoga → pay karein</div>
       </div>
     </div>
-    <!-- Kadam 3: Last 4 digits -->
     <div class="pm-acc" id="pmA-qrdl-3">
-      <div class="pm-hd" onclick="pmAcc('qrdl',3)">
-        <div class="pm-num" id="pmN-qrdl-3">3</div>
-        <div><div class="pm-tt">🔢 Transaction ID — last 4</div></div>
-        <span class="pm-chev">⌄</span>
-      </div>
+      <div class="pm-hd" onclick="pmAcc('qrdl',3)"><div class="pm-num" id="pmN-qrdl-3">3</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-ref-note">Payment karne ke baad UPI app ki success screen par Transaction ID dikhegi. Iske <b>last 4 digit</b> yahan darj karein.</div>
-        <input class="pm-ref-in" id="pmRef-qrdl" maxlength="4" autocomplete="off" spellcheck="false" placeholder="_ _ _ _" oninput="pmOnRef('qrdl')">
-        <div class="pm-ref-err" id="pmErr-qrdl">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
+        <div class="pm-refnote">Payment ke baad UPI app ki success screen par Transaction ID dikhegi. Uske <b>last 4 digit</b> yahan darj karein.</div>
+        <input class="pm-ref" id="pmRef-qrdl" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('qrdl')">
+        <div class="pm-referr" id="pmErr-qrdl">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
+        <div class="pm-refhelp">Nahi mil raha? <u onclick="pmZeros('qrdl')">0000 daal dein</u> — order chala jayega, shop khud check karegi.</div>
       </div>
     </div>
-    <button class="pm-conf" onclick="pmDoConfirm('qrdl')">✅ Confirm Payment &amp; Place Order</button>
+    <button class="pm-confirm" onclick="pmConfirm('qrdl')">✅ Confirm Payment &amp; Place Order</button>
   </div>
 
-  <!-- ──────── TAB 2: SHOW QR ──────── -->
   <div class="pm-panel" id="pmP-showqr">
     <div class="pm-acc on" id="pmA-showqr-1">
-      <div class="pm-hd" onclick="pmAcc('showqr',1)">
-        <div class="pm-num" id="pmN-showqr-1">1</div>
-        <div><div class="pm-tt">📱 Doosre phone se scan karein</div></div>
-        <span class="pm-chev">⌄</span>
-      </div>
+      <div class="pm-hd" onclick="pmAcc('showqr',1)"><div class="pm-num" id="pmN-showqr-1">1</div><div class="pm-tt">Doosre phone se scan karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div style="text-align:center;background:#fff;border:1.5px solid #e7e5e4;border-radius:11px;padding:10px;margin-bottom:8px">
-          <canvas id="qrCanvasSHOW" width="240" height="240" style="max-width:100%"></canvas>
-          <div style="font-size:.7rem;color:#78716c;margin-top:4px">Bilkul <b id="qrAmtSHOW">₹0</b> hi bhejein</div>
-        </div>
-        <div class="pm-qr-note">✅ Doosre phone ki kisi bhi UPI app se ye QR scan karein aur <b id="qrAmtSHOW2">₹0</b> bhejein</div>
+        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-showqr" width="240" height="240"></canvas><div class="pm-qramt">Bilkul <b id="pmAmt-showqr">₹0</b> hi bhejein</div></div>
+        <div class="pm-note ok">✅ Doosre phone ki kisi bhi UPI app se ye QR scan karein aur <b id="pmAmt2-showqr">₹0</b> bhejein</div>
       </div>
     </div>
-    <!-- Kadam 2: Last 4 digits (UPI app patti nahi) -->
     <div class="pm-acc" id="pmA-showqr-2">
-      <div class="pm-hd" onclick="pmAcc('showqr',2)">
-        <div class="pm-num" id="pmN-showqr-2">2</div>
-        <div><div class="pm-tt">🔢 Transaction ID — last 4</div></div>
-        <span class="pm-chev">⌄</span>
-      </div>
+      <div class="pm-hd" onclick="pmAcc('showqr',2)"><div class="pm-num" id="pmN-showqr-2">2</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-ref-note">Payment ke baad UPI app ki success screen par Transaction ID dikhegi. <b>Last 4 digit</b> note karein aur yahan darj karein.</div>
-        <input class="pm-ref-in" id="pmRef-showqr" maxlength="4" autocomplete="off" spellcheck="false" placeholder="_ _ _ _" oninput="pmOnRef('showqr')">
-        <div class="pm-ref-err" id="pmErr-showqr">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
+        <div class="pm-refnote">Payment ke baad UPI app ki success screen par Transaction ID dikhegi. <b>Last 4 digit</b> note karein aur yahan darj karein.</div>
+        <input class="pm-ref" id="pmRef-showqr" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('showqr')">
+        <div class="pm-referr" id="pmErr-showqr">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
+        <div class="pm-refhelp">Nahi mil raha? <u onclick="pmZeros('showqr')">0000 daal dein</u> — order chala jayega, shop khud check karegi.</div>
       </div>
     </div>
-    <button class="pm-conf" onclick="pmDoConfirm('showqr')">✅ Confirm Payment &amp; Place Order</button>
+    <button class="pm-confirm" onclick="pmConfirm('showqr')">✅ Confirm Payment &amp; Place Order</button>
   </div>
 
-  <!-- ──────── TAB 3: UPI ID ──────── -->
   <div class="pm-panel" id="pmP-upi">
     <div class="pm-acc on" id="pmA-upi-1">
-      <div class="pm-hd" onclick="pmAcc('upi',1)">
-        <div class="pm-num" id="pmN-upi-1">1</div>
-        <div><div class="pm-tt">📋 UPI ID copy karein</div></div>
-        <span class="pm-chev">⌄</span>
-      </div>
+      <div class="pm-hd" onclick="pmAcc('upi',1)"><div class="pm-num" id="pmN-upi-1">1</div><div class="pm-tt">UPI ID copy karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:11px;padding:12px;text-align:center;margin-bottom:8px">
-          <div id="pmUpiId" style="font-size:1rem;font-weight:900;color:#1c1917;letter-spacing:.02em;margin-bottom:10px">—</div>
-          <button id="pmCopyBtn" onclick="pmCopyUpi()" style="padding:9px 16px;border:1.5px solid #ea580c;border-radius:9px;background:#fff7ed;color:#ea580c;font-size:.82rem;font-weight:800;cursor:pointer">📋 UPI ID Copy karein</button>
-        </div>
-        <div class="pm-app-note">⚠️ Bilkul <b id="pmUpiAmt">₹0</b> hi bhejein — kam ya zyada bhejne par order hold ho sakta hai</div>
+        <div class="pm-upibox"><div class="pm-upiid" id="pmUpiId">—</div><button class="pm-copy" id="pmCopyBtn" onclick="pmCopy()">📋 UPI ID Copy karein</button></div>
+        <div class="pm-note">⚠️ Bilkul <b id="pmAmt-upi">₹0</b> hi bhejein — kam ya zyada bhejne par order hold ho sakta hai</div>
       </div>
     </div>
     <div class="pm-acc" id="pmA-upi-2">
-      <div class="pm-hd" onclick="pmAcc('upi',2)">
-        <div class="pm-num" id="pmN-upi-2">2</div>
-        <div><div class="pm-tt">📱 UPI App se pay karein</div></div>
-        <span class="pm-chev">⌄</span>
-      </div>
+      <div class="pm-hd" onclick="pmAcc('upi',2)"><div class="pm-num" id="pmN-upi-2">2</div><div class="pm-tt">UPI App se pay karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="upi-apps-row" style="margin-bottom:0">
-          <button class="upi-app-btn gpay"    onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
+        <div class="pm-apps">
+          <button class="upi-app-btn gpay" onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
           <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
-          <button class="upi-app-btn paytm"   onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
-          <button class="upi-app-btn bhim"    onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
+          <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
+          <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
         </div>
-        <div class="pm-app-note">Koi bhi UPI app kholein → UPI ID paste karein → amount <b id="pmUpiAmt2">₹0</b> bharein → pay karein</div>
+        <div class="pm-note">Koi bhi UPI app kholein → UPI ID paste karein → amount <b id="pmAmt2-upi">₹0</b> bharein → pay karein</div>
       </div>
     </div>
     <div class="pm-acc" id="pmA-upi-3">
-      <div class="pm-hd" onclick="pmAcc('upi',3)">
-        <div class="pm-num" id="pmN-upi-3">3</div>
-        <div><div class="pm-tt">🔢 Transaction ID — last 4</div></div>
-        <span class="pm-chev">⌄</span>
-      </div>
+      <div class="pm-hd" onclick="pmAcc('upi',3)"><div class="pm-num" id="pmN-upi-3">3</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-ref-note">Payment ke baad UPI app ki success screen par Transaction ID dikhegi. <b>Last 4 digit</b> yahan darj karein.</div>
-        <input class="pm-ref-in" id="pmRef-upi" maxlength="4" autocomplete="off" spellcheck="false" placeholder="_ _ _ _" oninput="pmOnRef('upi')">
-        <div class="pm-ref-err" id="pmErr-upi">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
+        <div class="pm-refnote">Payment ke baad UPI app ki success screen par Transaction ID dikhegi. <b>Last 4 digit</b> yahan darj karein.</div>
+        <input class="pm-ref" id="pmRef-upi" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('upi')">
+        <div class="pm-referr" id="pmErr-upi">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
+        <div class="pm-refhelp">Nahi mil raha? <u onclick="pmZeros('upi')">0000 daal dein</u> — order chala jayega, shop khud check karegi.</div>
       </div>
     </div>
-    <button class="pm-conf" onclick="pmDoConfirm('upi')">✅ Confirm Payment &amp; Place Order</button>
+    <button class="pm-confirm" onclick="pmConfirm('upi')">✅ Confirm Payment &amp; Place Order</button>
   </div>
 
-  <!-- ──────── TAB 4: PAY LATER ──────── -->
   <div class="pm-panel" id="pmP-later">
-    <div class="pl-lock-note-new" id="plLockNoteNew" style="display:none;background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:11px;padding:9px 11px;font-size:.75rem;line-height:1.5;margin-bottom:8px"></div>
+    <div id="pmPlLock" style="display:none;background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:11px;padding:9px 11px;font-size:.75rem;line-height:1.5;margin-bottom:8px"></div>
     <div class="pl-info-box">
       <div class="pl-info-sub" style="margin-bottom:11px">Order <b>abhi confirm</b> ho jaayega — paisa baad me cash ya online de dein. Due aapke account me track hoga.</div>
-      <div class="pl-due-row"><span>Is order ka amount</span><span style="font-weight:800;color:#e65c00" id="plOrderAmtV">₹0</span></div>
-      <div class="pl-due-row" id="plPrevDueRowV" style="display:none">
-        <span>Pehle se baaki (dues)</span><span style="font-weight:800;color:#dc2626" id="plPrevDueV">₹0</span>
-      </div>
-      <button class="pl-confirm-btn" id="pmPlBtn" onclick="payLater()">📋 Pay Later — Order Confirm Karein</button>
+      <div class="pl-due-row"><span>Is order ka amount</span><span style="font-weight:800;color:#e65c00" id="pmPlAmt">₹0</span></div>
+      <div class="pl-due-row" id="pmPlDueRow" style="display:none"><span>Pehle se baaki (dues)</span><span style="font-weight:800;color:#dc2626" id="pmPlDue">₹0</span></div>
+      <button class="pl-confirm-btn" onclick="payLater()">📋 Pay Later — Order Confirm Karein</button>
       <div class="pl-note">⚠️ Ye order confirm ho jaayega. Baad me cash ya online — kisi bhi tarike se — pay kar sakte hain.</div>
     </div>
-    <span class="back-lnk" style="display:block;text-align:center;margin-top:16px" onclick="closePayScreen()">← Wapas jaayein</span>
+  </div>
+
+  <div style="display:none" aria-hidden="true">
+    <input id="payRef4" maxlength="4"><div id="payRefErr"></div><div id="payRefLbl"></div><div id="payRefSub"></div>
+    <span id="upiId"></span><div id="qrAmt"></div><div id="payTo"></div><div id="hintAmt"></div><div id="hintAmt2"></div><div id="procAmt1"></div>
+    <button id="tabMethQR" onclick="switchPayMethod('qr')"></button><button id="tabMethUPI" onclick="switchPayMethod('upi')"></button><button id="tabMethLater" onclick="switchPayMethod('later')"></button>
+    <div id="payNowPanel"></div><div id="payLaterPanel"></div><div id="plLockNote"></div><div id="upiEmptyWarn"></div>
+    <div id="payMethQR"><canvas id="qrCanvas" width="300" height="300"></canvas><div id="qrFallback"></div></div>
+    <div id="payMethUPI"><button id="copyBtn" onclick="copyUpi()"></button></div>
+    <div id="walletSection"><div id="walletBal"></div></div>
+    <span id="plOrderAmt">₹0</span><span id="plPrevDue">₹0</span><div id="plPrevDueRow"></div>
+    <button id="iPaidBtn" onclick="iHavePaid()"></button>
   </div>
 
   <span class="back-lnk" id="payBackLnk" style="display:block;text-align:center;padding:8px 0 16px" onclick="closePayScreen()">← Wapas jaayein</span>
@@ -3250,7 +3168,9 @@ function showPayScreen(total){
     checkPayLaterEligibility(total).then(applyPayLaterGate).catch(()=>{});
   }
   // default to Pay Now tab; dues mode goes straight to Pay Now
-  switchPayMethod('qr');   // Session 14: har baar QR chip se shuru (switchPayTab bhi ye call karta hai)
+  // S53: legacy state ke liye switchPayMethod, visible layout pmInit se
+  try{ switchPayMethod('qr'); }catch(e){}
+  pmInit(total, isDues);
   show('payScreen');window.scrollTo(0,0);
   setTimeout(loadWalletBalance,300);
 }
@@ -3471,6 +3391,101 @@ window.switchPayTab=function(tab){
 
 window.togglePayLater=function(){ switchPayMethod('later'); };
 
+// ══════════ S53: PAYMENT PAGE JS (saaf, koi hidden panel leak nahi) ══════════
+// pmInit openPayScreen se call hota hai. 4 tabs + accordion. Order lagane ke liye
+// purani iHavePaid/payLater use hoti hain (hidden legacy elements se). Koi panel toggle nahi.
+window._pmTab='qrdl';
+function pmInit(total, isDues){
+  const uid=(menuConfig.upiId||'').trim();
+  const amt='₹'+total;
+  ['pmAmt-qrdl','pmAmt2-qrdl','pmAmt-showqr','pmAmt2-showqr','pmAmt-upi','pmAmt2-upi']
+    .forEach(function(id){ const e=document.getElementById(id); if(e) e.textContent=amt; });
+  {const e=document.getElementById('pmUpiId'); if(e) e.textContent=uid||'—';}
+  {const w=document.getElementById('pmUpiWarn'); if(w) w.style.display=uid?'none':'block';}
+  {const e=document.getElementById('pmPlAmt'); if(e) e.textContent=amt;}
+  if(window._payUpiStr){
+    pmDrawQr('qrCanvas-qrdl', window._payUpiStr, 220);
+    pmDrawQr('qrCanvas-showqr', window._payUpiStr, 240);
+  }
+  ['qrdl','showqr','upi'].forEach(function(t){
+    pmAcc(t,1);
+    const r=document.getElementById('pmRef-'+t); if(r){ r.value=''; r.classList.remove('bad','good'); }
+    const er=document.getElementById('pmErr-'+t); if(er) er.classList.remove('show');
+  });
+  {const b=document.getElementById('pmDlBtn'); if(b){ b.textContent='📥 Download QR to Gallery'; b.classList.remove('done'); }}
+  {const n1=document.getElementById('pmN-qrdl-1'); if(n1){ n1.textContent='1'; n1.classList.remove('done'); }}
+  {const c=document.getElementById('pmCopyBtn'); if(c){ c.textContent='📋 UPI ID Copy karein'; c.classList.remove('done'); }}
+  const laterTab=document.getElementById('pmTabLater');
+  if(laterTab) laterTab.style.display=isDues?'none':'';
+  pmTab('qrdl');
+  setTimeout(pmSyncLater, 60);
+  setTimeout(pmSyncLater, 700);
+}
+function pmDrawQr(canvasId, data, size){
+  const cv=document.getElementById(canvasId); if(!cv) return;
+  try{
+    if(typeof qrcode!=='function') return;
+    const qr=qrcode(0,'M'); qr.addData(data); qr.make();
+    const n=qr.getModuleCount(), quiet=4;
+    const px=Math.max(4,Math.floor(size/(n+quiet*2)));
+    const dim=(n+quiet*2)*px; cv.width=dim; cv.height=dim;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,dim,dim);
+    ctx.fillStyle='#000';
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(qr.isDark(r,c)) ctx.fillRect((c+quiet)*px,(r+quiet)*px,px,px);
+  }catch(e){}
+}
+function pmSyncLater(){
+  const lock=document.getElementById('plLockNote'), lockV=document.getElementById('pmPlLock');
+  if(lock&&lockV){ lockV.innerHTML=lock.innerHTML; lockV.style.display=lock.innerHTML.trim()?'block':'none'; }
+  const due=document.getElementById('plPrevDue'), dueV=document.getElementById('pmPlDue');
+  const dueRow=document.getElementById('plPrevDueRow'), dueRowV=document.getElementById('pmPlDueRow');
+  if(due&&dueV) dueV.textContent=due.textContent;
+  if(dueRow&&dueRowV) dueRowV.style.display=dueRow.style.display;
+}
+window.pmTab=function(t){
+  window._pmTab=t;
+  ['qrdl','showqr','upi','later'].forEach(function(id){ const p=document.getElementById('pmP-'+id); if(p) p.classList.toggle('on',id===t); });
+  const map={qrdl:'QRDL',showqr:'SHOW',upi:'UPI',later:'Later'};
+  Object.keys(map).forEach(function(id){ const b=document.getElementById('pmTab'+map[id]); if(b) b.classList.toggle('on',id===t); });
+  const leg={qrdl:'qr',showqr:'qr',upi:'upi',later:'later'}[t]||'qr';
+  try{ window._payMethod=(leg==='upi')?'upi':(leg==='later'?'later':'qr'); }catch(e){}
+  if(t==='later') pmSyncLater();
+};
+window.pmAcc=function(tab,n){
+  const max={qrdl:3,showqr:2,upi:3}[tab]||3;
+  for(let i=1;i<=max;i++){ const a=document.getElementById('pmA-'+tab+'-'+i); if(a) a.classList.toggle('on',i===n); }
+};
+window.pmRefIn=function(tab){
+  const el=document.getElementById('pmRef-'+tab), er=document.getElementById('pmErr-'+tab);
+  if(!el) return;
+  el.classList.remove('bad','good'); if(er) er.classList.remove('show');
+  if(/^\d{4}$/.test(el.value)){ el.classList.add('good'); const leg=document.getElementById('payRef4'); if(leg) leg.value=el.value; }
+};
+window.pmZeros=function(tab){
+  const el=document.getElementById('pmRef-'+tab);
+  if(el){ el.value='0000'; pmRefIn(tab); }
+};
+window.pmDownload=function(){
+  if(typeof downloadQR==='function'){ try{ downloadQR(); }catch(e){} }
+  const b=document.getElementById('pmDlBtn'); if(b){ b.textContent='✅ QR Downloaded!'; b.classList.add('done'); }
+  const n=document.getElementById('pmN-qrdl-1'); if(n){ n.textContent='✓'; n.classList.add('done'); }
+  setTimeout(function(){ pmAcc('qrdl',2); },420);
+};
+window.pmCopy=function(){
+  const id=(document.getElementById('pmUpiId')?.textContent||'').trim();
+  if(id && id!=='—'){ try{ navigator.clipboard.writeText(id); }catch(e){} }
+  const b=document.getElementById('pmCopyBtn'); if(b){ b.textContent='✅ Copied!'; b.classList.add('done'); }
+  setTimeout(function(){ pmAcc('upi',2); },300);
+};
+window.pmConfirm=function(tab){
+  const el=document.getElementById('pmRef-'+tab), er=document.getElementById('pmErr-'+tab);
+  if(!el || !/^\d{4}$/.test(el.value)){ if(el){ el.classList.add('bad'); el.focus(); } if(er) er.classList.add('show'); return; }
+  if(er) er.classList.remove('show');
+  const leg=document.getElementById('payRef4'); if(leg) leg.value=el.value;
+  if(typeof iHavePaid==='function') iHavePaid();
+};
+
 // Download the payment QR to the gallery so the customer can upload it in their UPI app
 // Open a specific UPI app (app only — NO amount prefill, since deep-linking the amount
 // caused GPay to decline). Customer then scans/uploads the saved QR inside the app.
@@ -3495,49 +3510,6 @@ window.openUpiApp=function(app){
   showToast(app.toUpperCase()+' khul raha hai — ab Gallery/Scan se saved QR chunkar pay karein');
 };
 
-window.switchPayMethod=function(m){
-  // Pay Later locked ho to us chip par jaane hi mat do
-  if(m==='later' && window._plEligible && window._plEligible.allowed===false){
-    // locked chip: note dikhao (yahi wo jagah hai jahan customer ineligible reason dekhega)
-    const note=document.getElementById('plLockNote');
-    if(note){ note.style.display='block'; note.innerHTML=(window._plEligible.msg||''); }
-    showToast((window._plEligible.short)||'Pay Later abhi available nahi hai');
-    return;
-  }
-  window._payMethod=(m==='upi')?'upi':(m==='later'?'later':'qr');
-  if(m!=='later'){ const n=document.getElementById('plLockNote'); if(n){ n.style.display='none'; n.innerHTML=''; } }
-  const isLater=(m==='later');
-  const isQR=(m==='qr'||(!isLater&&m!=='upi'));
-  const q=document.getElementById('payMethQR'), u=document.getElementById('payMethUPI');
-  const payCard=q?q.closest('.pay-card'):null;   // QR+UPI+I-paid sab isi card me hain
-  if(q) q.style.display=(isQR&&!isLater)?'block':'none';
-  if(u) u.style.display=(!isQR&&!isLater)?'block':'none';
-  if(payCard){ payCard.style.display=isLater?'none':'block'; payCard.classList.toggle('qr-mode', isQR&&!isLater); }
-  document.getElementById('tabMethQR')?.classList.toggle('active',isQR&&!isLater);
-  document.getElementById('tabMethUPI')?.classList.toggle('active',!isQR&&!isLater);
-  document.getElementById('tabMethLater')?.classList.toggle('active',isLater);
-  switchPayTab(isLater?'later':'now');
-};
-
-// Session 13: Pay Now hamesha dikhta hai; Pay Later neeche se khulta hai.
-// (Purana naam rakha gaya hai kyunki dues-mode aur openPayScreen ise call karte hain.)
-window.switchPayTab=function(tab){
-  const isNow=(tab!=='later');
-  const np=document.getElementById('payNowPanel');
-  const lp=document.getElementById('payLaterPanel');
-  const bl=document.getElementById('payBackLnk');
-  if(np) np.style.display='block';          // pay-now content kabhi chhupta nahi
-  if(lp) lp.style.display=isNow?'none':'block';
-  if(bl) bl.style.display='block';
-  window._payTab=isNow?'now':'later';
-};
-
-window.togglePayLater=function(){ switchPayMethod('later'); };
-
-// ══════════ S52: PAYMENT PAGE — NAYI JS ══════════
-// pmSwitchTab, pmAcc, pmDoDownload, pmDoConfirm, pmOnRef, pmCopyUpi
-// ये JS purani switchPayMethod/iHavePaid/payRef4 ke saath SAATH chalti hai —
-// visible naya layout chalata hai, hidden purani elements se API compatibility.
 
 // ── Session 13: Pay Later kis ko milega ──
 // Do rule, dono config se badalne yogya (admin Setup tab):
@@ -4317,169 +4289,6 @@ body[style*="padding-bottom: 74px"] #kbInstallBtn{bottom:80px;}
   </div>
 </div>
 <script>
-window.pmSwitchTab=function(t){
-  ['qrdl','showqr','upi','later'].forEach(function(id){
-    const p=document.getElementById('pmP-'+id);
-    if(p) p.classList.toggle('on',id===t);
-    const b=document.getElementById('pmTab'+(id==='qrdl'?'QRDL':id==='showqr'?'SHOW':id==='upi'?'UPI':'Later'));
-    if(b) b.classList.toggle('on',id===t);
-  });
-  // purana switchPayMethod bhi sync me rakho taaki applyPayLaterGate/checkPayLaterEligibility kaam kare
-  const legMap={qrdl:'qr',showqr:'qr',upi:'upi',later:'later'};
-  try{ if(typeof switchPayMethod==='function') switchPayMethod(legMap[t]||'qr'); }catch(e){}
-};
-
-window.pmAcc=function(tab,n){
-  // total kadam is tab me kiti hain
-  const max={qrdl:3,showqr:2,upi:3,later:0}[tab]||3;
-  for(let i=1;i<=max;i++){
-    const a=document.getElementById('pmA-'+tab+'-'+i);
-    if(a) a.classList.toggle('on',i===n);
-  }
-};
-
-window.pmOnRef=function(tab){
-  const el=document.getElementById('pmRef-'+tab);
-  const er=document.getElementById('pmErr-'+tab);
-  if(!el) return;
-  el.classList.remove('bad','good');
-  if(er) er.style.display='none';
-  if(el.value.length===4 && /^\d{4}$/.test(el.value)){
-    el.classList.add('good');
-    // legacy ref bhi sync karo taaki iHavePaid sahi padhta rahe
-    const leg=document.getElementById('payRef4');
-    if(leg) leg.value=el.value;
-  }
-};
-
-window.pmDoDownload=function(){
-  // QR Download tab ka pehla kadam: asli downloadQR chhupa hua element par chalao,
-  // phir button green, phir kadam 2 kholo
-  if(typeof downloadQR==='function'){
-    try{ downloadQR(); }catch(e){}
-  }
-  const btn=document.getElementById('pmDlBtn');
-  if(btn){ btn.textContent='✅ QR Downloaded!'; btn.classList.add('done'); }
-  const n=document.getElementById('pmN-qrdl-1');
-  if(n){ n.textContent='✓'; n.className='pm-num done'; }
-  setTimeout(function(){ pmAcc('qrdl',2); },420);
-};
-
-window.pmDoConfirm=function(tab){
-  const el=document.getElementById('pmRef-'+tab);
-  const er=document.getElementById('pmErr-'+tab);
-  // Show QR me sirf 2 kadam hain — confirm ke liye ref zaroori
-  if(!el||el.value.length!==4||!/^\d{4}$/.test(el.value)){
-    if(el){ el.classList.add('bad'); el.focus(); }
-    if(er){ er.style.display='block'; }
-    return;
-  }
-  if(er) er.style.display='none';
-  // legacy payRef4 me daal do (iHavePaid waha se padhta hai)
-  const leg=document.getElementById('payRef4');
-  if(leg) leg.value=el.value;
-  // asli confirm button trigger karo
-  if(typeof iHavePaid==='function') iHavePaid();
-};
-
-window.pmCopyUpi=function(){
-  const id=(document.getElementById('pmUpiId')?.textContent||'').trim();
-  const btn=document.getElementById('pmCopyBtn');
-  if(id && id!=='—') try{ navigator.clipboard.writeText(id); }catch(e){}
-  if(btn){ btn.textContent='✅ Copied!'; btn.style.background='#f0fdf4'; btn.style.borderColor='#15803d'; btn.style.color='#15803d'; }
-  // kadam 2 auto-kholo
-  setTimeout(function(){ pmAcc('upi',2); },300);
-};
-
-// openPayScreen ke baad UI sync — nayi fields me bhi rakam/UPI bharo
-(function patchOpenPay(){
-  const orig=window.openPayScreen;
-  if(typeof orig!=='function') return;
-  window.openPayScreen=function(){
-    orig.apply(this,arguments);
-    // thodi der baad — renderQrCanvas aur upiId update ho chuke hain
-    setTimeout(function(){
-      try{
-        const uid=(document.getElementById('upiId')?.textContent||'').trim();
-        const amt=(document.getElementById('payAmt')?.textContent||'').replace('₹','').trim();
-        if(uid){
-          if(document.getElementById('pmUpiId')) document.getElementById('pmUpiId').textContent=uid;
-          if(document.getElementById('pmCopyBtn')) document.getElementById('pmCopyBtn').textContent='📋 UPI ID Copy karein';
-          // copy btn reset
-          const cpb=document.getElementById('pmCopyBtn');
-          if(cpb){ cpb.style.background=''; cpb.style.borderColor=''; cpb.style.color=''; }
-        }
-        ['pmUpiAmt','pmUpiAmt2'].forEach(function(id){
-          const e=document.getElementById(id); if(e) e.textContent='₹'+amt;
-        });
-        ['qrAmtDL','qrAmtSHOW','qrAmtSHOW2'].forEach(function(id){
-          const e=document.getElementById(id); if(e) e.textContent='₹'+amt;
-        });
-        // QR canvas copy karo — purana renderQrCanvas #qrCanvas par kaam karta hai
-        // nayi tabs ke liye wahi data dubara render karo
-        if(window._payUpiStr){
-          ['qrCanvasDL','qrCanvasSHOW'].forEach(function(cid){
-            const cv=document.getElementById(cid);
-            if(!cv) return;
-            try{
-              if(typeof qrcode!=='function') return;
-              const qr=qrcode(0,'M'); qr.addData(window._payUpiStr); qr.make();
-              const n=qr.getModuleCount(); const quiet=4;
-              const px=Math.max(5,Math.floor((cid==='qrCanvasSHOW'?240:220)/(n+quiet*2)));
-              const dim=(n+quiet*2)*px; cv.width=dim; cv.height=dim;
-              const ctx=cv.getContext('2d');
-              ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,dim,dim);
-              ctx.fillStyle='#000000';
-              for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(qr.isDark(r,c))
-                ctx.fillRect((c+quiet)*px,(r+quiet)*px,px,px);
-            }catch(e){}
-          });
-        }
-        // UPI empty warn
-        const uid2=(document.getElementById('upiId')?.textContent||'').trim();
-        const w=document.getElementById('upiEmptyWarnD');
-        if(w) w.style.display=uid2?'none':'block';
-        // Pay Later visible amounts
-        const plaV=document.getElementById('plOrderAmtV');
-        const plOrig=document.getElementById('plOrderAmt');
-        if(plaV&&plOrig) plaV.textContent=plOrig.textContent;
-        // ref fields reset
-        ['qrdl','showqr','upi'].forEach(function(t){
-          const el=document.getElementById('pmRef-'+t); if(el) el.value='';
-          const er=document.getElementById('pmErr-'+t); if(er) er.style.display='none';
-          const el2=document.getElementById('pmRef-'+t); if(el2) el2.classList.remove('bad','good');
-        });
-        // download button reset
-        const dlb=document.getElementById('pmDlBtn');
-        if(dlb){ dlb.textContent='📥 Download QR to Gallery'; dlb.classList.remove('done'); }
-        const dn=document.getElementById('pmN-qrdl-1');
-        if(dn){ dn.textContent='1'; dn.className='pm-num'; }
-        // kadam 1 kholo
-        ['qrdl','showqr','upi'].forEach(function(t){ pmAcc(t,1); });
-        // default tab = QR Download
-        pmSwitchTab('qrdl');
-        // Pay Later tab ki lock note + due amounts
-        const ll=document.getElementById('plLockNote');
-        const lln=document.getElementById('plLockNoteNew');
-        if(ll&&lln){ lln.innerHTML=ll.innerHTML; lln.style.display=ll.innerHTML.trim()?'block':'none'; }
-        const prevR=document.getElementById('plPrevDueRow');
-        const prevRV=document.getElementById('plPrevDueRowV');
-        const prevD=document.getElementById('plPrevDue');
-        const prevDV=document.getElementById('plPrevDueV');
-        if(prevR&&prevRV) prevRV.style.display=prevR.style.display;
-        if(prevD&&prevDV) prevDV.textContent=prevD.textContent;
-        // Pay Later locked to to tab hide kar do
-        const isDues=(window._payMode==='dues');
-        if(isDues){
-          const lt=document.getElementById('pmTabLater'); if(lt) lt.style.display='none';
-          pmSwitchTab('qrdl');
-        } else {
-          const lt=document.getElementById('pmTabLater'); if(lt) lt.style.display='';
-        }
-      }catch(e){ console.log('pmPatch',e); }
-    },200);
-  };
-})();
 
 
 
