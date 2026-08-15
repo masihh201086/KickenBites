@@ -211,11 +211,11 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 #runTotalBar{position:fixed;left:0;right:0;bottom:0;z-index:400;display:none;
   background:#fff;border-top:1px solid #eee;box-shadow:0 -4px 16px rgba(0,0,0,.1);
   padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));align-items:center;gap:11px}
-#runTotalBar .rt-info{flex:1;min-width:0}
-#runTotalBar .rt-count{font-size:.72rem;color:var(--muted);font-weight:700;line-height:1.1}
-#runTotalBar .rt-amt{font-size:1.35rem;font-weight:900;color:var(--dark);line-height:1.1;letter-spacing:-.02em}
-#runTotalBar .rt-go{flex-shrink:0;padding:12px 20px;border:none;border-radius:12px;background:var(--ograd);
-  color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;box-shadow:var(--sh-brand);font-family:inherit}
+/* S51: rt-info/rt-count/rt-amt hata diye — patti ab sirf button hai. */
+#runTotalBar .rt-go{flex:1;width:100%;padding:14px 18px;border:none;border-radius:12px;background:var(--ograd);
+  color:#fff;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:var(--sh-brand);font-family:inherit;
+  letter-spacing:.01em;transition:opacity .15s}
+#runTotalBar .rt-go:disabled{opacity:.75;cursor:default}
 .place-btn{width:calc(100% - 26px);margin:13px 13px 26px;padding:16px;border-radius:var(--r-lg);border:none;background:var(--ograd);color:white;font-family:var(--font-head);font-size:1.05rem;font-weight:700;letter-spacing:.01em;cursor:pointer;box-shadow:var(--sh-brand);transition:transform .12s,box-shadow .2s;}
 .place-btn:active:not(:disabled){transform:translateY(1px);box-shadow:0 3px 12px rgba(230,92,0,.3);}
 .place-btn:disabled{opacity:.4;cursor:not-allowed;}
@@ -568,10 +568,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <button class="pbtn" id="hdrAv" onclick="switchTab('profile')">👤</button>
   </div>
   <div class="tbar">
+    <!-- S51: tab ka kram badla — My Orders sabse zyada khulta hai, wo chauthe
+         number par pada tha. Sirf DOM ka kram hai; id/onclick jaise the waise hain,
+         isliye switchTab aur tab-persistence (kb_cust_tab) par koi asar nahi. -->
     <div class="ti active" id="tb-order" onclick="switchTab('order')">🛒 Order</div>
+    <div class="ti" id="tb-myorders" onclick="switchTab('myorders')">🧾 My Orders</div>
     <div class="ti" id="tb-party" onclick="switchTab('party')">🎉 Party</div>
     <div class="ti" id="tb-wish" onclick="switchTab('wish')">⭐ Wish</div>
-    <div class="ti" id="tb-myorders" onclick="switchTab('myorders')">🧾 My Orders</div>
     <div class="ti" id="tb-profile" onclick="switchTab('profile')">👤 Profile</div>
   </div>
 
@@ -603,7 +606,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       </div>
       <div class="ckwrap">
 
-        <div class="ckstrip on" id="ck1">
+        <div class="ckstrip" id="ck1">
           <div class="ckhd" onclick="ckOpen(1)">
             <div class="cknum" id="ckn1">1</div>
             <div style="min-width:0">
@@ -612,7 +615,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
             </div>
             <div class="ckchg" id="ckc1" style="display:none">Change</div>
           </div>
-          <div class="ckbd" id="ckb1">
+          <div class="ckbd" id="ckb1" style="display:none">
             <div class="tr">
               <button class="tb active" id="btnDel" onclick="selType('delivery')">🛵 Delivery</button>
               <button class="tb" id="btnTA" onclick="selType('takeaway')">🏠 Takeaway</button>
@@ -674,17 +677,23 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           </div>
         </div>
 
-        <!-- S50: Bill ab tah hoti hai aur SHURU ME BAND rehti hai. Paisa phir bhi
-             kabhi nahi chhupta kyunki total patti ke header par hi likha rehta hai —
-             sirf uska hisaab (item + delivery charge) tah hota hai. -->
-        <div class="ckstrip" id="ck3">
+        <!-- S51: Bill tah hoti hai par SHURU ME KHULI rehti hai — customer ko
+             delivery charge ek baar bina kuch dabaye dikh jaana chahiye, warna
+             baad me "15 rupaye extra kyun" wali shikayat aati hai. Chhoti karni
+             ho to header par tap kar de; total to header par likha hi rehta hai. -->
+        <div class="ckstrip on" id="ck3">
           <div class="ckhd" onclick="ckOpen(3)">
             <div class="cknum" id="ckn3">3</div>
-            <div style="min-width:0"><div class="cktt">Bill Summary</div></div>
+            <div style="min-width:0">
+              <div class="cktt">Bill Summary</div>
+              <!-- S51: item count yahan aa gaya (pehle neeche wali bar par tha,
+                   jo ab poori button ban gayi hai). -->
+              <div class="cksub" id="ckBillCnt">0 items</div>
+            </div>
             <div class="ckbilltot" id="ckBillTot">₹0</div>
             <div class="ckchev" id="ckChev3">⌄</div>
           </div>
-          <div class="ckbd" id="ckb3" style="display:none">
+          <div class="ckbd" id="ckb3">
             <div id="billDate" style="font-size:.8rem;font-weight:700;color:var(--orange);margin:-2px 0 7px"></div>
             <div class="bill">
               <div id="billItems"></div>
@@ -973,11 +982,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
 <!-- Session 24: fixed running-total bar (JS updateBill isko bharta hai) -->
 <div id="runTotalBar">
-  <div class="rt-info">
-    <!-- S50: bada ₹ yahan se hata diya. Rakam ab sirf EK jagah dikhti hai —
-         daayen, button ke andar. Pehle bar par aur button par, dono jagah thi. -->
-    <div class="rt-count" id="rtCount">0 items</div>
-  </div>
+  <!-- S51: ab poori patti hi ek button hai. Item count Bill Summary patti par
+       chala gaya, isliye yahan sirf ek saaf CTA bacha. -->
   <button class="rt-go" id="rtGoBtn" onclick="ckBarAction()">Order Now →</button>
 </div>
 <!-- Session 27: Helpdesk / Invoice / Feedback modals -->
@@ -2625,7 +2631,7 @@ window.selType=function(t){
 
 // ══════════ S47: CHECKOUT PATTIYAN ══════════
 // Patti 1 aur 2 tah hoti hain; patti 3 (Bill) hamesha khuli.
-let _ckOpen=1;
+let _ckOpen=3;   // S51: shuru me Bill Summary khuli
 window.ckOpen=function(n){
   // S50: Bill ab tah hoti hai (pehle yahan n===3 par return tha).
   _ckOpen=(_ckOpen===n)?0:n;     // dobara tap = band
@@ -2703,7 +2709,7 @@ window.ckPaint=ckPaint;
 // chahe uski details pehle se bhari hui hon.
 // S49: EK TAP. Pehle do tap lagte the (pehla sirf checkout tak le jaata tha) —
 // user ne kaha wo fazool hai. Ab details bhari hain to seedha order lagta hai:
-// button "Placing…" dikhata hai aur payment screen khul jaati hai.
+// button "Opening payment…" dikhata hai aur payment screen khul jaati hai.
 // Details adhoori hain tabhi patti 2 kholte hain — bina us par order nahi lag sakta.
 window.ckBarAction=function(){
   try{ if(typeof switchTab==='function') switchTab('order'); }catch(e){}
@@ -2720,7 +2726,9 @@ window.ckResetSeen=function(){};
 // Purana customer: autoFill ne details bhar di hain to dono pattiyan tah rakho —
 // use seedha Bill dikhe, na ki khula hua form.
 window.ckCollapseIfReady=function(){
-  try{ if(ckDetailsValid()){ _ckOpen=0; ckPaint(); } }catch(e){}
+  // S51: pehle yahan _ckOpen=0 tha (sab band). Ab Bill khuli chhodte hain —
+  // purane customer ko seedha bill dikhe, upar wali do pattiyan tah.
+  try{ if(ckDetailsValid()){ _ckOpen=3; ckPaint(); } }catch(e){}
 };
 
 // Takeaway ka pickup box — pata aur time dono Admin -> Setup se aate hain,
@@ -2805,9 +2813,8 @@ function updateBill(){
       const okToShow=!payOpen;
       if(nItems>0 && okToShow){
         bar.style.display='flex';
-        const rc=document.getElementById('rtCount');
-        if(rc) rc.textContent=nItems+(nItems===1?' item':' items');
-        // S50: rt-amt hata diya — rakam ab sirf button par.
+        // S51: rt-count/rt-amt dono hat gaye — patti ab poori button hai.
+        // Item count ab Bill Summary patti ke header par likha jaata hai.
         document.body.style.paddingBottom='74px';   // bar ke peeche content na chhupe
       } else {
         bar.style.display='none';
@@ -2828,8 +2835,14 @@ function updateBill(){
       const ok=(typeof ckDetailsValid==='function')&&ckDetailsValid();
       go.textContent = ok ? ('Proceed to Pay ₹'+total+' →') : ('Order ₹'+total+' →');
     }
-    // S50: Bill patti ke header par total
-    {const bt=document.getElementById('ckBillTot'); if(bt) bt.textContent='₹'+total;}
+    // S50/S51: Bill patti ke header par item count + total, aur "3" ka rang.
+    {
+      const nQ=Object.keys(quantities).reduce((a,k)=>a+(quantities[k]>0?quantities[k]:0),0);
+      const bt=document.getElementById('ckBillTot'); if(bt) bt.textContent='₹'+total;
+      const bc=document.getElementById('ckBillCnt'); if(bc) bc.textContent=nQ+(nQ===1?' item':' items');
+      // "3" tabhi hara jab cart me kuch ho — khaali cart par hara dikhana jhoot lagta hai.
+      const n3=document.getElementById('ckn3'); if(n3) n3.className='cknum'+(nQ>0?' ok':'');
+    }
     try{ ckPaint(); }catch(e){}
   }
 }
@@ -2916,8 +2929,11 @@ window.placeOrderClick=async function(){
   const btn=document.getElementById('placeBtn');btn.disabled=true;btn.textContent='Placing…';
   // S47: chipki patti hi customer ko dikhti hai — feedback wahan bhi chahiye.
   // dataset.busy updateBill ko label wapas likhne se rokta hai.
+  // S51: "Placing…" shabd galat tha — yahan order place nahi hota, hum payment
+  // screen par ja rahe hain. Ishaara hatana theek nahi (slow network par 1-2 sec
+  // kuch na dikhe to customer dobara dabata hai), isliye sirf shabd badla.
   const goB=document.getElementById('rtGoBtn');
-  if(goB){ goB.dataset.busy='1'; goB.disabled=true; goB.textContent='Placing…'; }
+  if(goB){ goB.dataset.busy='1'; goB.disabled=true; goB.textContent='Opening payment…'; }
   try{
     const ds=selectedDate||today;
     const dailyRef=doc(db,'dailyMenu',ds);
@@ -2991,7 +3007,7 @@ window.placeOrderClick=async function(){
   }catch(e){console.error('Order error:',e);alert('Error placing order: '+(e&&e.message?e.message:'Please try again.'));}
   btn.disabled=false;
   // S47: chipki patti ko wapas chaalu karo — warna order fail hone par button
-  // hamesha "Placing…" par atka reh jaata aur customer dobara koshish hi na kar paata.
+  // hamesha "Opening payment…" par atka reh jaata aur customer dobara koshish na kar paata.
   {const goB=document.getElementById('rtGoBtn'); if(goB){ delete goB.dataset.busy; goB.disabled=false; }}
   updateBill();
 };
