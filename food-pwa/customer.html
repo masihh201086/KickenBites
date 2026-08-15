@@ -3560,24 +3560,6 @@ document.addEventListener('visibilitychange',function(){
 window.addEventListener('blur', pmMarkBackground);
 window.addEventListener('focus', function(){ setTimeout(pmOnReturn,60); });
 
-// Download the payment QR to the gallery so the customer can upload it in their UPI app
-// Open a specific UPI app (app only — NO amount prefill, since deep-linking the amount
-// caused GPay to decline). Customer then scans/uploads the saved QR inside the app.
-// Session 26b: PAYMENT-SAFE deep-link. User ne bताya deep-link se app to khulta tha
-// par payment FAIL hota tha — isliye QR/gallery wala rasta apnaya gaya tha. Wajah:
-// pehle intent:// ne UPI string ko re-format kiya, jisse app payload ko theek se
-// parse nahi kar paata tha. QR isliye kaam karta hai kyunki wo BILKUL wahi upi://
-// string deta hai bina kisi badlav ke. To ab hum bhi wahi karte hain: har app ko
-// _payUpiStr (= QR ki hu-ba-hu same string) SEEDHA bhejte hain, koi re-format nahi.
-// Ye "gallery se scan" ke barabar hai — amount bhara, aur payment usi tarah complete.
-// App-specific: GPay/PhonePe/Paytm ke apne payment-scheme (jo poori upi query lete
-// hain) taaki wahi app khule; kaam na kare to 1.2s me generic upi:// (phone app-picker).
-// Session 26c REVERT: UPI network deep-link/link payments ko security ke liye DECLINE
-// kar deta hai ("Payment to this receiver was declined by the UPI network") — ye UPI
-// ki policy hai, code se theek nahi hoti. Sirf QR-scan (gallery se) bharosemand chalta
-// hai. Isliye ye buttons ab SIRF app kholte hain; customer QR download karke, app me
-// gallery/scan se wo QR chunkar payment karta hai. Koi amount deep-link nahi bhejte.
-w
 
 // ── Session 13: Pay Later kis ko milega ──
 // Do rule, dono config se badalne yogya (admin Setup tab):
