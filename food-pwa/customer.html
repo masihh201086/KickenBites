@@ -129,6 +129,11 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .mc-body{padding:9px 10px;}
 /* 2-col me name thoda chhota taaki wrap na kare; price ab zyada prominent (neeche) */
 .mc-name{font-weight:800;font-size:1.02rem;line-height:1.2;margin-bottom:4px;letter-spacing:-.01em;}
+/* S63(P13): veg/non-veg marker — Swiggy/Zomato jaisा chaukor + dot */
+.vnv{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:3px;border:1.5px solid;margin-right:6px;vertical-align:middle;position:relative;top:-1px;box-sizing:border-box;}
+.vnv::before{content:"";width:7px;height:7px;border-radius:50%;display:block;}
+.vnv.veg{border-color:#15803d;} .vnv.veg::before{background:#15803d;}
+.vnv.nonveg{border-color:#b91c1c;} .vnv.nonveg::before{background:#b91c1c;}
 /* S50: "MENU FOR DINNER" ab bhaari. Item ke naam (1.02rem/800) se jaan-boojh kar
    THODA CHHOTA rakha hai — barabar kar dete to aankh ko pata hi na chalta kaunsa
    heading hai aur kaunsi dish. */
@@ -303,8 +308,8 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .i-paid-btn{width:100%;padding:13px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 3px 12px rgba(22,163,74,.35);margin-top:4px}
 /* Session 14: procedure ab numbering ke bajaye arrow-steps, ek compact row */
 
-#payScreen{display:none;position:fixed;inset:0;min-height:100dvh;z-index:200;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:linear-gradient(160deg,var(--dark),#0f3460);background-attachment:fixed;}
-.pay-bar{padding:5px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;background:linear-gradient(160deg,var(--dark),#16213e);}
+#payScreen{display:none;position:fixed;inset:0;min-height:100dvh;z-index:200;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#fdf6ee;background-attachment:fixed;}
+.pay-bar{padding:5px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#f97316,#ea580c);}
 .pay-logo{color:white;font-weight:800;font-size:.76rem;}
 .pay-x{width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:white;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 /* Session 16: hero aur bhi compact — amount + total + payee sab ek row me */
@@ -316,7 +321,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .pay-amt{color:#fff;font-size:1.45rem;font-weight:900;line-height:1;letter-spacing:-.01em;}
 .pay-name{width:100%;color:rgba(255,255,255,.6);font-size:.68rem;margin-top:0;}
 /* Bug fix: date line ka colour set nahi tha — dark bg par dark text invisible tha */
-.pay-date{color:rgba(255,255,255,.82)!important;}
+.pay-date{color:#57534e!important;}
 .pay-card{background:white;border-radius:16px 16px 0 0;padding:9px 12px 16px;}
 .pay-opt-title{font-size:.8rem;font-weight:800;color:var(--dark);margin:0 0 5px;text-align:center;}
 .qr-wrap-big{text-align:center;margin-bottom:5px;}
@@ -497,6 +502,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .oh.pending_payment{border-left-color:#f59e0b;}
 .oh.out_for_delivery{border-left-color:var(--blue);}
 .oh.preparing{border-left-color:#8b5cf6;}
+/* S63(P12): status ke hisaab se card ka rang — safed=chal raha, hara=ho gaya, laal=cancel */
+.oh.delivered{background:#f0fdf4;}
+.oh.cancelled{background:#fef2f2;border-left-color:#ef4444;}
 .oh-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
 .oh-id{font-weight:700;font-size:.86rem;}
 .oh-date{font-size:.7rem;color:var(--muted);}
@@ -1036,7 +1044,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <button id="iPaidBtn" onclick="iHavePaid()"></button>
   </div>
 
-  <button id="payHomeBtn" onclick="closePayScreen()" style="width:calc(100% - 28px);margin:6px 14px 18px;padding:12px;background:rgba(255,255,255,.12);color:#fff;border:2px solid rgba(255,255,255,.35);border-radius:13px;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit">🏠 Home par jayein</button>
+  <button id="payHomeBtn" onclick="closePayScreen()" style="width:calc(100% - 28px);margin:6px 14px 18px;padding:12px;background:#fff;color:#1c1917;border:2px solid #e7e5e4;border-radius:13px;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit">🏠 Home par jayein</button>
 </div>
 
 <!-- SUCCESS SCREEN -->
@@ -1619,7 +1627,13 @@ function loadMyOrders(phone) {
   try{
     const q=query(collection(db,'orders'),where('phone','==',phone));
     ordersUnsub=onSnapshot(q,snap=>{
-      const orders=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+      // S63(P12): pehle LIVE (chal rahe) order, phir delivered/cancelled — har group me newest pehle.
+      const _rank=(o)=>(o.status==='cancelled')?2:((o.status==='delivered')?1:0);
+      const orders=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{
+        const ra=_rank(a),rb=_rank(b);
+        if(ra!==rb) return ra-rb;
+        return (b.createdAt||'').localeCompare(a.createdAt||'');
+      });
       window._myOrdersAll=orders;   // Session 34: pichle order ka feedback prompt isi se banta hai
       checkDeliveredNotice(orders);
       renderMyOrders(orders);
@@ -2361,7 +2375,7 @@ function buildCard(item){
     : '';
   div.innerHTML=imgHtml+`
     <div class="mc-body">
-      <div class="mc-name">${item.name}</div>
+      <div class="mc-name"><span class="vnv ${item.foodType==='veg'?'veg':'nonveg'}"></span>${item.name}</div>
       ${item.desc?`<div class="mc-desc">${item.desc}</div>`:''}
       <div class="mc-meta">
         <span class="mc-price" id="pr_${item.id}"><span class="rs">₹</span>${portionPrice(item)}<span class="mc-unit">/${portionUnitLabel(item)}</span></span>
@@ -2558,6 +2572,7 @@ async function mergeMasterPrices(menuObj){
         price:m.price,
         halfPrice:Number(m.halfPrice)||0,
         unit:m.unit||'plate',
+        foodType:m.foodType||'nonveg',
         emoji:m.emoji||'🍛',
         desc:m.desc||'',
         imageUrl:m.imageUrl||'',
@@ -2570,7 +2585,7 @@ async function mergeMasterPrices(menuObj){
 function buildDefaultMenuC(ds,mcfg){
   const wd=weekdayKey(ds);
   const items=((mcfg&&mcfg.masterItems)||[]).filter(i=>i.name&&i.price>0&&i.weekdays&&i.weekdays[wd])
-    .map(i=>({id:i.id,name:i.name,price:i.price,halfPrice:Number(i.halfPrice)||0,unit:i.unit||'plate',emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
+    .map(i=>({id:i.id,name:i.name,price:i.price,halfPrice:Number(i.halfPrice)||0,unit:i.unit||'plate',foodType:i.foodType||'nonveg',emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
   if(!items.length)return null;
   return {date:ds,isOpen:true,isDefault:true,locationCharges:mcfg.locationCharges||{},shopName:mcfg.shopName||'Kicken Bites',upiId:mcfg.upiId||'',upiName:mcfg.upiName||'',imgbbKey:mcfg.imgbbKey||'',items};
 }
@@ -3244,7 +3259,7 @@ function showPayScreen(total){
   const pa1=document.getElementById('procAmt1'); if(pa1)pa1.textContent=total;
   const cb=document.getElementById('copyBtn'); cb.textContent='📋 Copy UPI ID'; cb.classList.remove('copied');
   const ud=`upi://pay?pa=${encodeURIComponent(uid)}&pn=${encodeURIComponent(uname)}&am=${total}&cu=INR&tn=${encodeURIComponent(isDues?'Kicken Bites Dues':'Kicken Bites')}`;
-  window._payUpiStr=ud; window._payQrName='KickenBites-Pay-'+total+'.png';
+  window._payUpiStr=ud; window._payQrName='KickenBites-Pay-'+total+'.png'; window._payTotal=total;
   renderQrCanvas(ud);
   // populate Pay Later panel amounts
   {const el=document.getElementById('plOrderAmt'); if(el)el.textContent='₹'+total;}
@@ -3331,9 +3346,33 @@ function renderQrCanvas(data){
   }
 }
 
+// S63(P10): QR ke saath ek band (amount + naam) jodkar ek naya canvas banao,
+// taaki gallery me QR dekhte hi pata chale kis amount ka hai.
+function buildQrWithAmount(srcCv){
+  try{
+    const total=window._payTotal;
+    const pad=24, band=64;
+    const W=srcCv.width+pad*2, H=srcCv.height+pad*2+band;
+    const out=document.createElement('canvas'); out.width=W; out.height=H;
+    const ctx=out.getContext('2d');
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+    ctx.drawImage(srcCv,pad,pad);
+    // amount band ke neeche
+    const cy=srcCv.height+pad*2;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='#ea580c';
+    ctx.font='900 34px Arial, sans-serif';
+    ctx.fillText((total!=null?('₹'+total):'Kicken Bites'), W/2, cy+22);
+    ctx.fillStyle='#57534e';
+    ctx.font='600 15px Arial, sans-serif';
+    ctx.fillText('Kicken Bites — QR me amount set hai', W/2, cy+46);
+    return out;
+  }catch(e){ return srcCv; }
+}
 window.downloadQR=function(){
-  const cv=document.getElementById('qrCanvas');
-  if(!cv || !window._qrReady){ showToast('QR ready nahi hai — UPI ID se try karein'); return; }
+  const src=document.getElementById('qrCanvas');
+  if(!src || !window._qrReady){ showToast('QR ready nahi hai — UPI ID se try karein'); return; }
+  const cv=buildQrWithAmount(src);   // S63(P10): amount-band wala canvas
   const name=window._payQrName||'KickenBites-QR.png';
   const finish=()=>showToast('✅ QR gallery me save ho gaya — UPI app me upload karein');
   try{

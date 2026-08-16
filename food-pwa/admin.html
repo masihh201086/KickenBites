@@ -2455,7 +2455,7 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;'
 function buildDefaultMenu(ds){
   const wd=weekdayKey(ds);
   const items=(masterItems||[]).filter(i=>i.name&&i.price>0&&i.weekdays&&i.weekdays[wd])
-    .map(i=>({id:i.id,name:i.name,price:i.price,halfPrice:Number(i.halfPrice)||0,unit:i.unit||'plate',emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
+    .map(i=>({id:i.id,name:i.name,price:i.price,halfPrice:Number(i.halfPrice)||0,unit:i.unit||'plate',foodType:i.foodType||'nonveg',emoji:i.emoji||'🍛',desc:i.desc||'',imageUrl:i.imageUrl||'',availableQty:qtyForDay(i,wd)}));
   if(!items.length)return null;
   return {date:ds,isOpen:true,isDefault:true,locationCharges:cfg.locationCharges||{},shopName:cfg.shopName||'Kicken Bites',upiId:cfg.upiId||'',upiName:cfg.upiName||'',imgbbKey:cfg.imgbbKey||'',items};
 }
@@ -2766,6 +2766,13 @@ function renderMaster(){
             </select>
           </div>
           <div class="inp-row" style="margin-top:6px">
+            <label style="font-size:.64rem;font-weight:800;text-transform:uppercase;color:var(--muted);align-self:center">Veg / Non-veg:</label>
+            <select class="inp" data-i="${idx}" data-f="foodType" style="flex:1">
+              <option value="nonveg" ${((item.foodType||'nonveg')==='nonveg')?'selected':''}>🔴 Non-veg</option>
+              <option value="veg" ${(item.foodType==='veg')?'selected':''}>🟢 Veg</option>
+            </select>
+          </div>
+          <div class="inp-row" style="margin-top:6px">
             <label style="font-size:.64rem;font-weight:800;text-transform:uppercase;color:var(--muted);align-self:center">Half price:</label>
             <input class="inp" data-i="${idx}" data-f="halfPrice" type="number" inputmode="numeric" value="${item.halfPrice||''}" placeholder="₹ (optional — Full/Half chips)" style="flex:1">
           </div>
@@ -2818,7 +2825,7 @@ window.handleImgUpload=async function(e){
   e.target.value='';
 };
 
-window.addItem=function(){masterItems.push({id:'item_'+Date.now(),name:'',price:0,unit:'plate',emoji:'🍛',desc:'',imageUrl:'',todayActive:false,availableQty:0,weekdays:{},dayQty:{},defaultQty:0});renderMaster();renderToday();};
+window.addItem=function(){masterItems.push({id:'item_'+Date.now(),name:'',price:0,unit:'plate',foodType:'nonveg',emoji:'🍛',desc:'',imageUrl:'',todayActive:false,availableQty:0,weekdays:{},dayQty:{},defaultQty:0});renderMaster();renderToday();};
 window.removeItem=function(idx){if(!confirm('Remove this item?'))return;masterItems.splice(idx,1);renderMaster();renderToday();};
 
 window.saveMaster=async function(){
