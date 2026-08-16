@@ -433,8 +433,15 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .pm-refhelp{font-size:.72rem;color:#78716c;margin-top:7px;line-height:1.5}
 .pm-refhelp u{color:#ea580c;font-weight:700;cursor:pointer}
 /* S54: har pay-tab ke upar "txn id note kar lo" reminder */
-.pm-remind{background:#fffbeb;border:1px solid #fde68a;border-radius:11px;padding:10px 12px;margin-bottom:9px;font-size:.75rem;color:#92400e;line-height:1.55}
-.pm-remind b{color:#78350f}
+.pm-remind{background:#f0fdf4;border:2px solid #22c55e;border-radius:11px;padding:10px 12px;margin-bottom:9px;font-size:.75rem;color:#166534;line-height:1.55;position:relative;animation:pmHintBorder 1.6s ease-in-out infinite}
+.pm-remind b{color:#15803d}
+/* S60: last-4 note — halka hara + border lagataar animate hota hai (dhyaan kheenche) */
+@keyframes pmHintBorder{
+  0%,100%{ border-color:#22c55e; box-shadow:0 0 0 0 rgba(34,197,94,0); }
+  50%{ border-color:#16a34a; box-shadow:0 0 0 3px rgba(34,197,94,.28); }
+}
+/* random 4-ank example — bold laal */
+.pm-eg{color:#dc2626;font-weight:900}
 .pm-confirm{width:100%;padding:15px;border:none;border-radius:13px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-size:.94rem;font-weight:800;cursor:pointer;margin:4px 0 14px;box-shadow:0 3px 12px rgba(22,163,74,.3);font-family:inherit}
 @media(prefers-reduced-motion:reduce){.pm-chev{transition:none}}
 
@@ -917,7 +924,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   </div>
 
   <div class="pm-panel on" id="pmP-qrdl">
-    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 3</b> me daalne honge ✍️</div>
+    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 3</b> me daalne honge ✍️ <span class="pm-eg">(jaise: <span id="pmEg-qrdl">----</span>)</span></div>
     <div class="pm-acc on" id="pmA-qrdl-1">
       <div class="pm-hd" onclick="pmAcc('qrdl',1)"><div class="pm-num" id="pmN-qrdl-1">1</div><div class="pm-tt">QR Gallery me save karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
@@ -934,7 +941,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
           <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
         </div>
-        <div class="pm-note">Koi bhi UPI app kholein → Gallery se saved QR chunein → amount <b id="pmAmt2-qrdl">₹0</b> auto-fill hoga → pay karein<br><b>⚠️ Payment ke baad Transaction ID ke last 4 digit note kar lein — agle Step me daalne honge.</b></div>
+        <div class="pm-note">Koi bhi UPI app kholein → Gallery se saved QR chunein → amount <b id="pmAmt2-qrdl">₹0</b> auto-fill hoga → pay karein</div>
+        <div class="pm-remind">⚠️ Payment ke baad <b>Transaction ID ke last 4 digit</b> note kar lein — agle Step me daalne honge <span class="pm-eg">(jaise: <span id="pmEg2-qrdl">----</span>)</span></div>
       </div>
     </div>
     <div class="pm-acc" id="pmA-qrdl-3">
@@ -950,7 +958,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   </div>
 
   <div class="pm-panel" id="pmP-showqr">
-    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 2</b> me daalne honge ✍️</div>
+    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 2</b> me daalne honge ✍️ <span class="pm-eg">(jaise: <span id="pmEg-showqr">----</span>)</span></div>
     <div class="pm-acc on" id="pmA-showqr-1">
       <div class="pm-hd" onclick="pmAcc('showqr',1)"><div class="pm-num" id="pmN-showqr-1">1</div><div class="pm-tt">Doosre phone se scan karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
@@ -971,7 +979,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   </div>
 
   <div class="pm-panel" id="pmP-upi">
-    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 3</b> me daalne honge ✍️</div>
+    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 3</b> me daalne honge ✍️ <span class="pm-eg">(jaise: <span id="pmEg-upi">----</span>)</span></div>
     <div class="pm-acc on" id="pmA-upi-1">
       <div class="pm-hd" onclick="pmAcc('upi',1)"><div class="pm-num" id="pmN-upi-1">1</div><div class="pm-tt">UPI ID copy karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
@@ -988,7 +996,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
           <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
         </div>
-        <div class="pm-note">Koi bhi UPI app kholein → UPI ID paste karein → amount <b id="pmAmt2-upi">₹0</b> bharein → pay karein<br><b>⚠️ Payment ke baad Transaction ID ke last 4 digit note kar lein — agle Step me daalne honge.</b></div>
+        <div class="pm-note">Koi bhi UPI app kholein → UPI ID paste karein → amount <b id="pmAmt2-upi">₹0</b> bharein → pay karein</div>
+        <div class="pm-remind">⚠️ Payment ke baad <b>Transaction ID ke last 4 digit</b> note kar lein — agle Step me daalne honge <span class="pm-eg">(jaise: <span id="pmEg2-upi">----</span>)</span></div>
       </div>
     </div>
     <div class="pm-acc" id="pmA-upi-3">
@@ -3474,6 +3483,12 @@ function pmInit(total, isDues){
   const amt='₹'+total;
   ['pmAmt-qrdl','pmAmt2-qrdl','pmAmt-showqr','pmAmt2-showqr','pmAmt-upi','pmAmt2-upi']
     .forEach(function(id){ const e=document.getElementById(id); if(e) e.textContent=amt; });
+  // S60: har last-4 note me ek random 4-ank example (bold laal) — customer samjhe kya daalna hai.
+  {
+    const eg=String(Math.floor(1000+Math.random()*8999));   // 1000-9998
+    ['pmEg-qrdl','pmEg-showqr','pmEg-upi','pmEg2-qrdl','pmEg2-upi']
+      .forEach(function(id){ const e=document.getElementById(id); if(e) e.textContent=eg; });
+  }
   {const e=document.getElementById('pmUpiId'); if(e) e.textContent=uid||'—';}
   {const w=document.getElementById('pmUpiWarn'); if(w) w.style.display=uid?'none':'block';}
   {const e=document.getElementById('pmPlAmt'); if(e) e.textContent=amt;}
