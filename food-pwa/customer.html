@@ -228,6 +228,23 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .ckwrap{padding:13px 13px 0;}
 .ckstrip{background:#fff;border:2px solid #eee;border-radius:var(--r-lg);margin-bottom:9px;overflow:hidden;}
 .ckstrip.on{border-color:var(--orange);}
+/* S58: running-border highlight — narangi line #ck3 ke chaaro taraf ghoomti hai (~1.5s) */
+.ck-runborder{position:relative;overflow:visible;}
+.ck-runborder::after{
+  content:"";position:absolute;inset:0;border-radius:var(--r-lg);padding:2px;
+  background:conic-gradient(from 0deg, rgba(234,88,12,0) 0deg, rgba(234,88,12,0) 300deg, #ea580c 340deg, #f97316 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  animation:ckBorderSpin 0.85s linear 2; pointer-events:none; z-index:5;
+}
+@keyframes ckBorderSpin{ to{ transform:rotate(360deg); } }
+/* mask na chale to bhi kuch highlight dikhe — halka glow fallback */
+@supports not (mask-composite: exclude){
+  .ck-runborder{ animation:ckGlowFallback 0.85s ease-in-out 2; }
+  .ck-runborder::after{ display:none; }
+}
+@keyframes ckGlowFallback{ 0%,100%{ box-shadow:0 0 0 0 rgba(234,88,12,0); } 50%{ box-shadow:0 0 0 4px rgba(234,88,12,.35); } }
 .ckhd{display:flex;align-items:center;gap:9px;padding:12px 12px;cursor:pointer;}
 .ckstrip.fix .ckhd{cursor:default;}
 .cknum{width:22px;height:22px;border-radius:50%;background:#e7e5e4;color:var(--muted);font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -729,7 +746,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
              delivery charge ek baar bina kuch dabaye dikh jaana chahiye, warna
              baad me "15 rupaye extra kyun" wali shikayat aati hai. Chhoti karni
              ho to header par tap kar de; total to header par likha hi rehta hai. -->
-        <div class="ckstrip" id="ck3">
+        <div class="ckstrip on" id="ck3">
           <div class="ckhd" onclick="ckOpen(3)">
             <div class="cknum" id="ckn3">3</div>
             <div style="min-width:0">
@@ -2452,6 +2469,7 @@ window.chgQty=function(id,d,max){
   const cur=quantities[id]||0,nw=Math.max(0,Math.min(max,cur+d));
   if(d>0&&nw===cur&&cur>=max){showToast('Maximum available quantity!');return;}
   quantities[id]=nw;
+  _ckReviewed=false;   // S58: cart badla -> dobara "Proceed to Order" (bill review) maango
   document.getElementById('qn_'+id).textContent=nw;
   document.getElementById('mc_'+id)?.classList.toggle('selected',nw>0);
   const pb=document.getElementById('pb_'+id);
@@ -2730,7 +2748,8 @@ window.selType=function(t){
 
 // ══════════ S47: CHECKOUT PATTIYAN ══════════
 // Patti 1 aur 2 tah hoti hain; patti 3 (Bill) hamesha khuli.
-let _ckOpen=0;   // S57: shuru me Bill Summary BAND (smart-CTA: pehla tap bill kholega)
+let _ckOpen=3;   // S58: Bill Summary khuli rehti hai (band nahi)
+let _ckReviewed=false;   // S58: pehla "Proceed to Order" tap ho chuka? (bill highlight dikha diya)
 window.ckOpen=function(n){
   // S50: Bill ab tah hoti hai (pehle yahan n===3 par return tha).
   _ckOpen=(_ckOpen===n)?0:n;     // dobara tap = band
@@ -2818,15 +2837,29 @@ window.ckBarAction=function(){
     setTimeout(function(){ document.getElementById('ck2')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
     return;
   }
-  // S57 SMART-CTA: details poore hain. Agar Bill Summary abhi BAND hai to pehle
-  // use kholo + neeche scroll karo (customer bill dekh le) — is tap par pay NAHI.
-  // Bill pehle se khuli ho to seedha pay (tez customer ko extra tap nahi).
-  if(_ckOpen!==3){
-    _ckOpen=3; ckPaint(); updateBill();
-    setTimeout(function(){ document.getElementById('ck3')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
+  // S58 TWO-STEP CTA: details poore hain. Pehla tap ("Proceed to Order") ->
+  // bill summary tak scroll + running-border highlight, taaki customer bill dekh le.
+  // Is tap par pay NAHI. Doosra tap ("Proceed to Pay") -> payment page.
+  if(!_ckReviewed){
+    _ckReviewed=true;
+    _ckOpen=3; ckPaint(); updateBill();   // bill khuli rakho + button label refresh
+    setTimeout(function(){
+      const el=document.getElementById('ck3');
+      if(el){
+        el.scrollIntoView({behavior:'smooth',block:'center'});
+        ckRunBorder();   // narangi line chaaro taraf ghoomti hai (~1.5s)
+      }
+    },80);
     return;
   }
   placeOrderClick();
+};
+// S58: bill summary par ek baar running-border animation chalao (dhyaan kheenchne ko).
+window.ckRunBorder=function(){
+  const el=document.getElementById('ck3'); if(!el) return;
+  el.classList.remove('ck-runborder'); void el.offsetWidth;   // reflow -> dobara chal sake
+  el.classList.add('ck-runborder');
+  setTimeout(function(){ el.classList.remove('ck-runborder'); },1700);
 };
 // S49: two-tap hat gaya, isliye ye ab kuch nahi karta. Naam bacha rakha hai
 // kyunki placeOrderClick isko bulata hai.
@@ -2834,9 +2867,9 @@ window.ckResetSeen=function(){};
 // Purana customer: autoFill ne details bhar di hain to dono pattiyan tah rakho —
 // use seedha Bill dikhe, na ki khula hua form.
 window.ckCollapseIfReady=function(){
-  // S57: smart-CTA ke liye Bill dobara BAND se shuru — details bhari ho to bhi
-  // pehla tap bill kholega (customer bill dekhe), doosra tap pay. Sab pattiyan tah.
-  try{ if(ckDetailsValid()){ _ckOpen=0; ckPaint(); } }catch(e){}
+  // S58: Bill Summary khuli rehti hai (band nahi). Purane customer ke liye upar wali
+  // do pattiyan (Order Type / Your Details) tah, Bill (#ck3) khuli — taaki bill dikhe.
+  try{ if(ckDetailsValid()){ _ckOpen=3; ckPaint(); } }catch(e){}
 };
 
 // Takeaway ka pickup box — pata aur time dono Admin -> Setup se aate hain,
@@ -2941,10 +2974,10 @@ function updateBill(){
     const go=document.getElementById('rtGoBtn');
     if(go && !go.dataset.busy){
       const ok=(typeof ckDetailsValid==='function')&&ckDetailsValid();
-      // S57 SMART-CTA: details poore + Bill khuli -> "Proceed to Pay"; details poore
-      // par Bill band -> "Proceed to Order" (pehla tap bill kholega); details adhoore -> "Order".
+      // S58 TWO-STEP CTA: details poore par pehle "Proceed to Order" (tap = bill highlight),
+      // review ho jaane ke baad "Proceed to Pay". Details adhoore -> "Order".
       go.textContent = ok
-        ? ((_ckOpen===3) ? ('Proceed to Pay ₹'+total+' →') : ('Proceed to Order ₹'+total+' →'))
+        ? (_ckReviewed ? ('Proceed to Pay ₹'+total+' →') : ('Proceed to Order ₹'+total+' →'))
         : ('Order ₹'+total+' →');
     }
     // S50/S51: Bill patti ke header par item count + total, aur "3" ka rang.
