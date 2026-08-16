@@ -908,7 +908,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   </div>
 
   <div class="pm-panel on" id="pmP-qrdl">
-    <div class="pm-remind">💡 Pay karte hi <b>Transaction ID ke last 4 digit</b> yaad rakhein — <b>Kadam 3</b> me daalne honge ✍️</div>
+    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 3</b> me daalne honge ✍️</div>
     <div class="pm-acc on" id="pmA-qrdl-1">
       <div class="pm-hd" onclick="pmAcc('qrdl',1)"><div class="pm-num" id="pmN-qrdl-1">1</div><div class="pm-tt">QR Gallery me save karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
@@ -941,7 +941,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   </div>
 
   <div class="pm-panel" id="pmP-showqr">
-    <div class="pm-remind">💡 Pay karte hi <b>Transaction ID ke last 4 digit</b> yaad rakhein — <b>Kadam 2</b> me daalne honge ✍️</div>
+    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 2</b> me daalne honge ✍️</div>
     <div class="pm-acc on" id="pmA-showqr-1">
       <div class="pm-hd" onclick="pmAcc('showqr',1)"><div class="pm-num" id="pmN-showqr-1">1</div><div class="pm-tt">Doosre phone se scan karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
@@ -962,7 +962,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   </div>
 
   <div class="pm-panel" id="pmP-upi">
-    <div class="pm-remind">💡 Pay karte hi <b>Transaction ID ke last 4 digit</b> yaad rakhein — <b>Kadam 3</b> me daalne honge ✍️</div>
+    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 3</b> me daalne honge ✍️</div>
     <div class="pm-acc on" id="pmA-upi-1">
       <div class="pm-hd" onclick="pmAcc('upi',1)"><div class="pm-num" id="pmN-upi-1">1</div><div class="pm-tt">UPI ID copy karein</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
@@ -3432,6 +3432,8 @@ function pmInit(total, isDues){
     const n2=document.getElementById('pmN-'+t+'-2');
     if(n2){ n2.textContent='2'; n2.classList.remove('done'); }
   });
+  // S56: Show QR ka Kadam 1 (scan) bhi reset
+  {const n1s=document.getElementById('pmN-showqr-1'); if(n1s){ n1s.textContent='1'; n1s.classList.remove('done'); }}
   _pmWentBg=false; _pmReturned=false;   // S54: naya payScreen, background flags saaf
   window._pmPayAttempt=false;            // S55(#7): har naye order par payment-confidence reset
   {const c=document.getElementById('pmCopyBtn'); if(c){ c.textContent='📋 UPI ID Copy karein'; c.classList.remove('done'); }}
@@ -3475,6 +3477,18 @@ window.pmTab=function(t){
 window.pmAcc=function(tab,n){
   const max={qrdl:3,showqr:2,upi:3}[tab]||3;
   for(let i=1;i<=max;i++){ const a=document.getElementById('pmA-'+tab+'-'+i); if(a) a.classList.toggle('on',i===n); }
+  // S56: Show QR me doosre phone se scan hota hai — ye phone background nahi jaata,
+  // isliye background-green kabhi nahi lagta. Fix: jab customer ref-step (Kadam 2) khole,
+  // scan-step (Kadam 1) ko green+done maan lo (scan ho hi chuka tabhi ref daalega).
+  if(tab==='showqr' && n===2){
+    const n1=document.getElementById('pmN-showqr-1');
+    if(n1){ n1.textContent='✓'; n1.classList.add('done'); }
+  }
+  // wapas Kadam 1 par gaya to green hata do (dobara scan dikhana)
+  if(tab==='showqr' && n===1){
+    const n1=document.getElementById('pmN-showqr-1');
+    if(n1){ n1.textContent='1'; n1.classList.remove('done'); }
+  }
 };
 window.pmRefIn=function(tab){
   const el=document.getElementById('pmRef-'+tab), er=document.getElementById('pmErr-'+tab);
