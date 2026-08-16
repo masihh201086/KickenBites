@@ -228,23 +228,13 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .ckwrap{padding:13px 13px 0;}
 .ckstrip{background:#fff;border:2px solid #eee;border-radius:var(--r-lg);margin-bottom:9px;overflow:hidden;}
 .ckstrip.on{border-color:var(--orange);}
-/* S58: running-border highlight — narangi line #ck3 ke chaaro taraf ghoomti hai (~1.5s) */
-.ck-runborder{position:relative;overflow:visible;}
-.ck-runborder::after{
-  content:"";position:absolute;inset:0;border-radius:var(--r-lg);padding:2px;
-  background:conic-gradient(from 0deg, rgba(234,88,12,0) 0deg, rgba(234,88,12,0) 300deg, #ea580c 340deg, #f97316 360deg);
-  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite:exclude;
-  animation:ckBorderSpin 0.85s linear 2; pointer-events:none; z-index:5;
+/* S59: Bill Summary highlight — border narangi glow ke saath 3 baar pulse (breathe).
+   Saaf & halka; ghoomti line ki jagah patti ka apna border dhyaan kheenchta hai. */
+.ck-runborder{ animation:ckBorderPulse 0.6s ease-in-out 3; }
+@keyframes ckBorderPulse{
+  0%,100%{ border-color:var(--orange); box-shadow:0 0 0 0 rgba(234,88,12,0); }
+  50%{ border-color:#ea580c; box-shadow:0 0 0 4px rgba(234,88,12,.28); }
 }
-@keyframes ckBorderSpin{ to{ transform:rotate(360deg); } }
-/* mask na chale to bhi kuch highlight dikhe — halka glow fallback */
-@supports not (mask-composite: exclude){
-  .ck-runborder{ animation:ckGlowFallback 0.85s ease-in-out 2; }
-  .ck-runborder::after{ display:none; }
-}
-@keyframes ckGlowFallback{ 0%,100%{ box-shadow:0 0 0 0 rgba(234,88,12,0); } 50%{ box-shadow:0 0 0 4px rgba(234,88,12,.35); } }
 .ckhd{display:flex;align-items:center;gap:9px;padding:12px 12px;cursor:pointer;}
 .ckstrip.fix .ckhd{cursor:default;}
 .cknum{width:22px;height:22px;border-radius:50%;background:#e7e5e4;color:var(--muted);font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -2858,8 +2848,8 @@ window.ckBarAction=function(){
 window.ckRunBorder=function(){
   const el=document.getElementById('ck3'); if(!el) return;
   el.classList.remove('ck-runborder'); void el.offsetWidth;   // reflow -> dobara chal sake
-  el.classList.add('ck-runborder');
-  setTimeout(function(){ el.classList.remove('ck-runborder'); },1700);
+  el.classList.add('ck-runborder');   // S59: border 3 baar pulse (0.6s x 3 = 1.8s)
+  setTimeout(function(){ el.classList.remove('ck-runborder'); },1900);
 };
 // S49: two-tap hat gaya, isliye ye ab kuch nahi karta. Naam bacha rakha hai
 // kyunki placeOrderClick isko bulata hai.
