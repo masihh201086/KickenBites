@@ -303,9 +303,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* Session 16: hero aur bhi compact — amount + total + payee sab ek row me */
 .pay-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2px 15px 10px;}
 /* S55(#3): amount ab ek "pill" card me — Swiggy/Zomato jaisa saaf highlight */
-.pay-amt-pill{display:inline-flex;align-items:baseline;gap:8px;background:linear-gradient(135deg,rgba(234,88,12,.22),rgba(234,88,12,.10));
-  border:1.5px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 20px;box-shadow:0 3px 14px rgba(0,0,0,.22);}
-.pay-lbl{color:rgba(255,255,255,.7);font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;}
+.pay-amt-pill{display:inline-flex;align-items:baseline;gap:9px;background:linear-gradient(135deg,#f97316,#ea580c);
+  border:none;border-radius:999px;padding:9px 22px;box-shadow:0 4px 16px rgba(234,88,12,.45);}
+.pay-lbl{color:rgba(255,255,255,.92);font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;}
 .pay-amt{color:#fff;font-size:1.7rem;font-weight:900;line-height:1;letter-spacing:-.01em;}
 .pay-name{width:100%;color:rgba(255,255,255,.6);font-size:.68rem;margin-top:0;}
 /* Bug fix: date line ka colour set nahi tha — dark bg par dark text invisible tha */
@@ -415,6 +415,8 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .pm-copy{padding:10px 18px;border:1.5px solid #ea580c;border-radius:10px;background:#fff;color:#ea580c;font-size:.84rem;font-weight:800;cursor:pointer;font-family:inherit}
 .pm-copy.done{background:#f0fdf4;border-color:#15803d;color:#15803d}
 .pm-refnote{font-size:.76rem;color:#57534e;line-height:1.55;margin-bottom:9px}
+.pm-refnote-big{font-size:.92rem;color:#1c1917;font-weight:800;line-height:1.5}
+.pm-refnote-big b{color:#ea580c}
 .pm-ref{width:100%;padding:14px;border:2px solid #e7e5e4;border-radius:12px;font-size:1.3rem;font-weight:900;text-align:center;letter-spacing:.4em;font-family:monospace;color:#1c1917;box-sizing:border-box;outline:none}
 .pm-ref:focus{border-color:#ea580c}
 .pm-ref.bad{border-color:#dc2626;background:#fef2f2}
@@ -925,13 +927,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
           <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
         </div>
-        <div class="pm-note">Koi bhi UPI app kholein → Gallery se saved QR chunein → amount <b id="pmAmt2-qrdl">₹0</b> auto-fill hoga → pay karein</div>
+        <div class="pm-note">Koi bhi UPI app kholein → Gallery se saved QR chunein → amount <b id="pmAmt2-qrdl">₹0</b> auto-fill hoga → pay karein<br><b>⚠️ Payment ke baad Transaction ID ke last 4 digit note kar lein — agle Step me daalne honge.</b></div>
       </div>
     </div>
     <div class="pm-acc" id="pmA-qrdl-3">
       <div class="pm-hd" onclick="pmAcc('qrdl',3)"><div class="pm-num" id="pmN-qrdl-3">3</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-refnote"><b>4 digit</b> daalte hi order confirm ho jaayega 👇</div>
+        <div class="pm-refnote pm-refnote-big">Enter <b>last 4 digit of UPI Transaction ID</b> to confirm payment 👇</div>
         <input class="pm-ref" id="pmRef-qrdl" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('qrdl')">
         <div class="pm-referr" id="pmErr-qrdl">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
         <div class="pm-refhelp">Transaction ID nahi mili? <u onclick="pmZeros('qrdl')">0000 daal dein</u> — order lag jayega, baaki shop check kar legi 👍</div>
@@ -952,7 +954,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <div class="pm-acc" id="pmA-showqr-2">
       <div class="pm-hd" onclick="pmAcc('showqr',2)"><div class="pm-num" id="pmN-showqr-2">2</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-refnote"><b>4 digit</b> daalte hi order confirm ho jaayega 👇</div>
+        <div class="pm-refnote pm-refnote-big">Enter <b>last 4 digit of UPI Transaction ID</b> to confirm payment 👇</div>
         <input class="pm-ref" id="pmRef-showqr" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('showqr')">
         <div class="pm-referr" id="pmErr-showqr">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
         <div class="pm-refhelp">Transaction ID nahi mili? <u onclick="pmZeros('showqr')">0000 daal dein</u> — order lag jayega, baaki shop check kar legi 👍</div>
@@ -979,13 +981,13 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
           <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
         </div>
-        <div class="pm-note">Koi bhi UPI app kholein → UPI ID paste karein → amount <b id="pmAmt2-upi">₹0</b> bharein → pay karein</div>
+        <div class="pm-note">Koi bhi UPI app kholein → UPI ID paste karein → amount <b id="pmAmt2-upi">₹0</b> bharein → pay karein<br><b>⚠️ Payment ke baad Transaction ID ke last 4 digit note kar lein — agle Step me daalne honge.</b></div>
       </div>
     </div>
     <div class="pm-acc" id="pmA-upi-3">
       <div class="pm-hd" onclick="pmAcc('upi',3)"><div class="pm-num" id="pmN-upi-3">3</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
       <div class="pm-bd">
-        <div class="pm-refnote"><b>4 digit</b> daalte hi order confirm ho jaayega 👇</div>
+        <div class="pm-refnote pm-refnote-big">Enter <b>last 4 digit of UPI Transaction ID</b> to confirm payment 👇</div>
         <input class="pm-ref" id="pmRef-upi" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('upi')">
         <div class="pm-referr" id="pmErr-upi">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
         <div class="pm-refhelp">Transaction ID nahi mili? <u onclick="pmZeros('upi')">0000 daal dein</u> — order lag jayega, baaki shop check kar legi 👍</div>
