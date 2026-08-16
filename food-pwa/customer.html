@@ -729,7 +729,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
              delivery charge ek baar bina kuch dabaye dikh jaana chahiye, warna
              baad me "15 rupaye extra kyun" wali shikayat aati hai. Chhoti karni
              ho to header par tap kar de; total to header par likha hi rehta hai. -->
-        <div class="ckstrip on" id="ck3">
+        <div class="ckstrip" id="ck3">
           <div class="ckhd" onclick="ckOpen(3)">
             <div class="cknum" id="ckn3">3</div>
             <div style="min-width:0">
@@ -1529,6 +1529,29 @@ function kbPlayNotifTone(){
       g.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+i*0.15+0.12);
       o.start(ctx.currentTime+i*0.15);
       o.stop(ctx.currentTime+i*0.15+0.13);
+    });
+  }catch(e){}
+}
+// S57: order confirm hone par ek halki, choti (~1s) khushnuma chime.
+// File-free (WebAudio). try/catch-safe: silent mode / blocked autoplay me kuch
+// nahi bajega par order confirm phir bhi hoga. Confirm ka tap user-gesture deta
+// hai isliye browser audio allow karta hai.
+function kbPlaySuccessChime(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    // C5 - E5 - G5 - C6 : ek pyara upward major arpeggio
+    const notes=[523.25,659.25,783.99,1046.50];
+    notes.forEach(function(freq,i){
+      const t=ctx.currentTime+i*0.11;
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='triangle';           // triangle = mridu/soft, beep se meetha
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=freq;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(0.18,t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.22);
+      o.start(t);
+      o.stop(t+0.24);
     });
   }catch(e){}
 }
@@ -2707,7 +2730,7 @@ window.selType=function(t){
 
 // ══════════ S47: CHECKOUT PATTIYAN ══════════
 // Patti 1 aur 2 tah hoti hain; patti 3 (Bill) hamesha khuli.
-let _ckOpen=3;   // S51: shuru me Bill Summary khuli
+let _ckOpen=0;   // S57: shuru me Bill Summary BAND (smart-CTA: pehla tap bill kholega)
 window.ckOpen=function(n){
   // S50: Bill ab tah hoti hai (pehle yahan n===3 par return tha).
   _ckOpen=(_ckOpen===n)?0:n;     // dobara tap = band
@@ -2789,9 +2812,18 @@ window.ckPaint=ckPaint;
 // Details adhoori hain tabhi patti 2 kholte hain — bina us par order nahi lag sakta.
 window.ckBarAction=function(){
   try{ if(typeof switchTab==='function') switchTab('order'); }catch(e){}
+  // Details adhoore -> Your Details patti kholo + scroll (pehle jaisa).
   if(!ckDetailsValid()){
     _ckOpen=2; ckPaint(); updateBill();
     setTimeout(function(){ document.getElementById('ck2')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
+    return;
+  }
+  // S57 SMART-CTA: details poore hain. Agar Bill Summary abhi BAND hai to pehle
+  // use kholo + neeche scroll karo (customer bill dekh le) — is tap par pay NAHI.
+  // Bill pehle se khuli ho to seedha pay (tez customer ko extra tap nahi).
+  if(_ckOpen!==3){
+    _ckOpen=3; ckPaint(); updateBill();
+    setTimeout(function(){ document.getElementById('ck3')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
     return;
   }
   placeOrderClick();
@@ -2802,9 +2834,9 @@ window.ckResetSeen=function(){};
 // Purana customer: autoFill ne details bhar di hain to dono pattiyan tah rakho —
 // use seedha Bill dikhe, na ki khula hua form.
 window.ckCollapseIfReady=function(){
-  // S51: pehle yahan _ckOpen=0 tha (sab band). Ab Bill khuli chhodte hain —
-  // purane customer ko seedha bill dikhe, upar wali do pattiyan tah.
-  try{ if(ckDetailsValid()){ _ckOpen=3; ckPaint(); } }catch(e){}
+  // S57: smart-CTA ke liye Bill dobara BAND se shuru — details bhari ho to bhi
+  // pehla tap bill kholega (customer bill dekhe), doosra tap pay. Sab pattiyan tah.
+  try{ if(ckDetailsValid()){ _ckOpen=0; ckPaint(); } }catch(e){}
 };
 
 // Takeaway ka pickup box — pata aur time dono Admin -> Setup se aate hain,
@@ -2909,7 +2941,11 @@ function updateBill(){
     const go=document.getElementById('rtGoBtn');
     if(go && !go.dataset.busy){
       const ok=(typeof ckDetailsValid==='function')&&ckDetailsValid();
-      go.textContent = ok ? ('Proceed to Pay ₹'+total+' →') : ('Order ₹'+total+' →');
+      // S57 SMART-CTA: details poore + Bill khuli -> "Proceed to Pay"; details poore
+      // par Bill band -> "Proceed to Order" (pehla tap bill kholega); details adhoore -> "Order".
+      go.textContent = ok
+        ? ((_ckOpen===3) ? ('Proceed to Pay ₹'+total+' →') : ('Proceed to Order ₹'+total+' →'))
+        : ('Order ₹'+total+' →');
     }
     // S50/S51: Bill patti ke header par item count + total, aur "3" ka rang.
     {
@@ -3496,7 +3532,12 @@ window.pmRefIn=function(tab){
   const el=document.getElementById('pmRef-'+tab), er=document.getElementById('pmErr-'+tab);
   if(!el) return;
   el.classList.remove('bad','good'); if(er) er.classList.remove('show');
-  if(/^\d{4}$/.test(el.value)){ el.classList.add('good'); const leg=document.getElementById('payRef4'); if(leg) leg.value=el.value; }
+  if(/^\d{4}$/.test(el.value)){
+    el.classList.add('good');
+    const leg=document.getElementById('payRef4'); if(leg) leg.value=el.value;
+    // S57: 4 digit poore -> keyboard band karo taaki neeche ka green Confirm button dikhe.
+    try{ el.blur(); }catch(e){}
+  }
 };
 window.pmZeros=function(tab){
   const el=document.getElementById('pmRef-'+tab);
@@ -3824,6 +3865,7 @@ function showSuccess(){
   if(lastOrder.notes)s+=`<br>📝 ${esc(lastOrder.notes)}`;
   document.getElementById('succDetails').innerHTML=s;
   show('successScreen');
+  kbPlaySuccessChime();   // S57: order confirm chime
   // S49: class hatao -> reflow -> dobara lagao, warna doosre order par
   // animation chalti hi nahi (browser use pehle hi chali hui maanta hai).
   try{
