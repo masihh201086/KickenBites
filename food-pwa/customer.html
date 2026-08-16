@@ -3495,6 +3495,8 @@ function pmInit(total, isDues){
   });
   // S56: Show QR ka Kadam 1 (scan) bhi reset
   {const n1s=document.getElementById('pmN-showqr-1'); if(n1s){ n1s.textContent='1'; n1s.classList.remove('done'); }}
+  // S59: UPI ID tab ka Kadam 1 (copy) bhi reset
+  {const n1u=document.getElementById('pmN-upi-1'); if(n1u){ n1u.textContent='1'; n1u.classList.remove('done'); }}
   _pmWentBg=false; _pmReturned=false;   // S54: naya payScreen, background flags saaf
   window._pmPayAttempt=false;            // S55(#7): har naye order par payment-confidence reset
   {const c=document.getElementById('pmCopyBtn'); if(c){ c.textContent='📋 UPI ID Copy karein'; c.classList.remove('done'); }}
@@ -3576,6 +3578,8 @@ window.pmCopy=function(){
   const id=(document.getElementById('pmUpiId')?.textContent||'').trim();
   if(id && id!=='—'){ try{ navigator.clipboard.writeText(id); }catch(e){} }
   const b=document.getElementById('pmCopyBtn'); if(b){ b.textContent='✅ Copied!'; b.classList.add('done'); }
+  // S59: UPI ID copy = Kadam 1 poora -> use green karo (Show QR jaisा), phir Kadam 2 kholo.
+  {const n1=document.getElementById('pmN-upi-1'); if(n1){ n1.textContent='✓'; n1.classList.add('done'); }}
   setTimeout(function(){ pmAcc('upi',2); },300);
 };
 window.pmConfirm=function(tab){
