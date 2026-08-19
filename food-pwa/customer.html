@@ -130,7 +130,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* 2-col me name thoda chhota taaki wrap na kare; price ab zyada prominent (neeche) */
 .mc-name{font-weight:800;font-size:1.02rem;line-height:1.2;margin-bottom:4px;letter-spacing:-.01em;}
 /* S63(P13): veg/non-veg marker — Swiggy/Zomato jaisा chaukor + dot */
-.vnv{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:3px;border:1.5px solid;margin-right:6px;vertical-align:middle;position:relative;top:-1px;box-sizing:border-box;}
+.vnv{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:3px;border:1.5px solid;margin-left:6px;vertical-align:middle;position:relative;top:-1px;box-sizing:border-box;flex:0 0 auto;}
+.mc-name{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.mc-nm{min-width:0;}
 .vnv::before{content:"";width:7px;height:7px;border-radius:50%;display:block;}
 .vnv.veg{border-color:#15803d;} .vnv.veg::before{background:#15803d;}
 .vnv.nonveg{border-color:#b91c1c;} .vnv.nonveg::before{background:#b91c1c;}
@@ -313,7 +315,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .pay-logo{color:white;font-weight:800;font-size:.76rem;}
 .pay-x{width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:white;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 /* Session 16: hero aur bhi compact — amount + total + payee sab ek row me */
-.pay-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 15px 6px;}
+.pay-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px 15px 6px;}
 /* S55(#3): amount ab ek "pill" card me — Swiggy/Zomato jaisa saaf highlight */
 .pay-amt-pill{display:inline-flex;align-items:baseline;gap:9px;background:linear-gradient(135deg,#f97316,#ea580c);
   border:none;border-radius:999px;padding:7px 20px;box-shadow:0 4px 16px rgba(234,88,12,.45);}
@@ -559,8 +561,12 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 
 /* TOAST */
 #toast{position:fixed;bottom:75px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:9px 18px;border-radius:50px;font-size:.78rem;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center;pointer-events:none;}
-@media(min-width:600px){#mainApp,#payScreen,#successScreen{max-width:600px;margin:0 auto;}
+@media(min-width:600px){#mainApp{max-width:900px;margin:0 auto;}
+  #payScreen,#successScreen{max-width:560px;margin:0 auto;}
   #payScreen{left:50%;right:auto;transform:translateX(-50%);}}
+/* S64(Q6): bade screen par menu zyada columns le — poori width use ho */
+@media(min-width:760px){.menu-grid{grid-template-columns:1fr 1fr 1fr;}}
+@media(min-width:1040px){.menu-grid{grid-template-columns:1fr 1fr 1fr 1fr;}}
 .wchip{flex:1;padding:9px;border:2px solid #f59e0b;border-radius:10px;background:white;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;color:#b45309;}
 /* Selected: dark green fill agar us din wish hai, warna orange fill */
 .wchip.active{border-color:var(--orange);background:var(--orange);color:#fff;}
@@ -1627,13 +1633,11 @@ function loadMyOrders(phone) {
   try{
     const q=query(collection(db,'orders'),where('phone','==',phone));
     ordersUnsub=onSnapshot(q,snap=>{
-      // S63(P12): pehle LIVE (chal rahe) order, phir delivered/cancelled — har group me newest pehle.
-      const _rank=(o)=>(o.status==='cancelled')?2:((o.status==='delivered')?1:0);
-      const orders=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{
-        const ra=_rank(a),rb=_rank(b);
-        if(ra!==rb) return ra-rb;
-        return (b.createdAt||'').localeCompare(a.createdAt||'');
-      });
+      // S64(Q4): sabhi orders date+time (createdAt) se newest-first — All tab + har din.
+      // Colour-coding (P-12) waise hi rehti hai; ab live/cancelled ke hisaab se group nahi,
+      // sidhа latest upar. createdAt na ho to date par gir jao.
+      const _ts=(o)=>String(o.createdAt||o.date||'');
+      const orders=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>_ts(b).localeCompare(_ts(a)));
       window._myOrdersAll=orders;   // Session 34: pichle order ka feedback prompt isi se banta hai
       checkDeliveredNotice(orders);
       renderMyOrders(orders);
@@ -2375,7 +2379,7 @@ function buildCard(item){
     : '';
   div.innerHTML=imgHtml+`
     <div class="mc-body">
-      <div class="mc-name"><span class="vnv ${item.foodType==='veg'?'veg':'nonveg'}"></span>${item.name}</div>
+      <div class="mc-name"><span class="mc-nm">${item.name}</span><span class="vnv ${item.foodType==='veg'?'veg':'nonveg'}"></span></div>
       ${item.desc?`<div class="mc-desc">${item.desc}</div>`:''}
       <div class="mc-meta">
         <span class="mc-price" id="pr_${item.id}"><span class="rs">₹</span>${portionPrice(item)}<span class="mc-unit">/${portionUnitLabel(item)}</span></span>
@@ -2621,8 +2625,29 @@ function renderOrderDayChips(){
   // kar nahi use kiya).
   try{
     const act=wrap.querySelector('.dbtn.active');
-    if(act) wrap.scrollLeft=Math.max(0,act.offsetLeft-(wrap.clientWidth-act.offsetWidth)/2);
+    if(act){
+      // S64(Q5): sirf tab beech me lao jab active chip strip ke DIKHNE wale hisse se
+      // bahar ho — warna har render par strip ko re-center karke chip "jump" karta dikhta tha.
+      const l=act.offsetLeft, r=l+act.offsetWidth;
+      const vl=wrap.scrollLeft, vr=vl+wrap.clientWidth;
+      if(l<vl || r>vr){
+        wrap.scrollLeft=Math.max(0,act.offsetLeft-(wrap.clientWidth-act.offsetWidth)/2);
+      }
+    }
   }catch(e){}
+  // S64(Q5): desktop par is horizontal strip par mouse-wheel ko HORIZONTAL scroll banao,
+  // taaki wheel strip me atke nahi aur page/menu normal scroll karta rahe.
+  if(!wrap._wheelBound){
+    wrap._wheelBound=true;
+    wrap.addEventListener('wheel',function(ev){
+      if(Math.abs(ev.deltaY)>Math.abs(ev.deltaX) && wrap.scrollWidth>wrap.clientWidth){
+        // sirf jab strip me sach me horizontal room ho — warna page ko scroll hone do
+        const atStart=wrap.scrollLeft<=0 && ev.deltaY<0;
+        const atEnd=wrap.scrollLeft>=wrap.scrollWidth-wrap.clientWidth-1 && ev.deltaY>0;
+        if(!atStart && !atEnd){ wrap.scrollLeft+=ev.deltaY; ev.preventDefault(); }
+      }
+    },{passive:false});
+  }
   paintChipScroll();
 }
 
@@ -4201,34 +4226,96 @@ window.dismissPrevFb=function(){
   const pop=document.getElementById('prevFbPopup'); if(pop)pop.remove();
   const c=document.getElementById('prevFbCard'); if(c)c.style.display='none';
 };
+// S64(Q1): pichle un-rated delivered orders ka feedback — ab ek BADA popup jisme
+// customer SEEDHE rating+comment de sakta hai (item ki image ke saath). Do order
+// pending ho to pehla review hote hi agla apne aap khul jaata hai (queue).
+function _imgForItem(id){
+  try{ const m=(menuConfig.items||[]).find(x=>x.id===id); return (m&&m.imageUrl)||''; }catch(e){ return ''; }
+}
+function _emojiForItem(id){
+  try{ const m=(menuConfig.items||[]).find(x=>x.id===id); return (m&&m.emoji)||'🍛'; }catch(e){ return '🍛'; }
+}
+const prevFbStars={};
+window.prevFbSetStar=function(itemId,val){
+  prevFbStars[itemId]=val;
+  document.querySelectorAll('#pfb_stars_'+itemId+' span').forEach(function(sp){
+    sp.style.color=Number(sp.dataset.v)<=val?'#f59e0b':'#ddd';
+  });
+};
 async function maybeShowPrevFeedback(){
-  // S62(P7): inline card ki jagah ab ek popup (order confirm ke ~5s baad).
   try{ await loadItemRatings(); }catch(e){}
   const rated=window._ratedOrders||new Set();
   const mine=window._myOrdersAll||[];
-  const cand=mine
+  // saare un-rated delivered orders (just-placed order chhodkar), newest pehle -> queue
+  const queue=mine
     .filter(o=>o.status==='delivered' && o.id!==currentOrderId && !rated.has(o.id))
-    .sort((a,b)=>String(b.deliveredAt||b.createdAt||'').localeCompare(String(a.deliveredAt||a.createdAt||'')))[0];
-  if(!cand)return;
-  // sirf tab dikhao jab success screen abhi bhi khula ho (customer aage na badh gaya ho)
+    .sort((a,b)=>String(b.deliveredAt||b.createdAt||'').localeCompare(String(a.deliveredAt||a.createdAt||'')));
+  if(!queue.length)return;
   const ss=document.getElementById('successScreen');
   if(!ss || ss.style.display==='none') return;
-  const items=(cand.items||[]).map(i=>i.name+' ×'+(i.qty||1)).join(', ');
+  showPrevFbQueue(queue,0);
+}
+function showPrevFbQueue(queue,idx){
   const old=document.getElementById('prevFbPopup'); if(old) old.remove();
+  if(idx>=queue.length) return;   // sab ho gaye
+  const cand=queue[idx];
+  const items=(cand.items||[]);
   const ov=document.createElement('div');
   ov.id='prevFbPopup';
-  ov.style.cssText='position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:22px';
+  ov.style.cssText='position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px';
   ov.onclick=function(e){ if(e.target===ov) dismissPrevFb(); };
-  ov.innerHTML='<div style="background:#fff;border-radius:18px;max-width:340px;width:100%;padding:20px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)">'
-    +'<div style="font-size:2.4rem;line-height:1;margin-bottom:6px">⭐</div>'
-    +'<div style="font-weight:900;font-size:1.05rem;color:#b45309;margin-bottom:5px">Pichle order ka feedback dein</div>'
-    +'<div style="font-size:.8rem;color:#555">Order #'+String(cand.id).slice(-5).toUpperCase()+(cand.date?' · '+esc(cand.date):'')+'</div>'
-    +(items?'<div style="font-size:.8rem;color:#777;margin-top:3px">'+esc(items)+'</div>':'')
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px">'
+  const more=(queue.length-idx-1);
+  const itemsHtml=items.map(function(i){
+    const img=_imgForItem(i.id), emo=_emojiForItem(i.id);
+    const pic=img
+      ? '<img src="'+esc(img)+'" style="width:52px;height:52px;border-radius:10px;object-fit:cover;flex:0 0 auto" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div style="width:52px;height:52px;border-radius:10px;background:#fff3e6;display:none;align-items:center;justify-content:center;font-size:1.6rem;flex:0 0 auto">'+emo+'</div>'
+      : '<div style="width:52px;height:52px;border-radius:10px;background:#fff3e6;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex:0 0 auto">'+emo+'</div>';
+    return '<div style="display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #f0f0f0;text-align:left">'
+      + pic
+      + '<div style="flex:1;min-width:0">'
+        + '<div style="font-weight:800;font-size:.9rem;margin-bottom:4px">'+esc(i.name)+'</div>'
+        + '<div id="pfb_stars_'+i.id+'" style="display:flex;gap:5px;margin-bottom:6px">'
+          + [1,2,3,4,5].map(function(n){ return '<span onclick="prevFbSetStar(\''+i.id+'\','+n+')" data-v="'+n+'" style="font-size:1.55rem;cursor:pointer;color:#ddd;line-height:1">★</span>'; }).join('')
+        + '</div>'
+        + '<textarea id="pfb_rev_'+i.id+'" placeholder="Apna comment likhein… (optional)" style="width:100%;padding:8px;border:1.5px solid #eee;border-radius:9px;font-size:.8rem;height:44px;resize:none;font-family:inherit;outline:none;box-sizing:border-box"></textarea>'
+      + '</div>'
+    + '</div>';
+  }).join('');
+  ov.innerHTML='<div style="background:#fff;border-radius:20px;max-width:400px;width:100%;max-height:88vh;overflow-y:auto;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,.3)">'
+    +'<div style="text-align:center;margin-bottom:4px"><span style="font-size:2rem">⭐</span></div>'
+    +'<div style="font-weight:900;font-size:1.1rem;color:#b45309;text-align:center">Pichle order ka feedback</div>'
+    +'<div style="font-size:.76rem;color:#777;text-align:center;margin-bottom:6px">Order #'+String(cand.id).slice(-5).toUpperCase()+(cand.date?' · '+esc(cand.date):'')+(more>0?(' · '+more+' aur baaki'):'')+'</div>'
+    +itemsHtml
+    +'<div style="display:grid;grid-template-columns:1fr 2fr;gap:9px;margin-top:15px">'
       +'<button onclick="dismissPrevFb()" style="padding:12px;background:#eee;color:#555;border:none;border-radius:12px;font-weight:700;font-size:.86rem;cursor:pointer">Baad me</button>'
-      +'<button onclick="rateFromSuccess(\''+cand.id+'\')" style="padding:12px;background:#f59e0b;color:#fff;border:none;border-radius:12px;font-weight:800;font-size:.86rem;cursor:pointer">⭐ Feedback do</button>'
+      +'<button id="pfbSubmitBtn" style="padding:12px;background:#f59e0b;color:#fff;border:none;border-radius:12px;font-weight:800;font-size:.86rem;cursor:pointer">⭐ Submit'+(more>0?' & agla':'')+'</button>'
     +'</div></div>';
   document.body.appendChild(ov);
+  document.getElementById('pfbSubmitBtn').onclick=function(){ submitPrevFb(cand,queue,idx); };
+}
+async function submitPrevFb(cand,queue,idx){
+  const items=(cand.items||[]);
+  let submitted=0;
+  for(const item of items){
+    const r=prevFbStars[item.id];
+    if(r){
+      const rev=(document.getElementById('pfb_rev_'+item.id)?.value||'').trim();
+      try{
+        await setDoc(doc(db,'ratings',cand.id+'_'+item.id),{
+          orderId:cand.id,itemId:item.id,itemName:item.name,
+          rating:r,review:rev,hidden:false,createdAt:new Date().toISOString()
+        });
+        submitted++;
+      }catch(e){console.error(e);}
+    }
+  }
+  if(!submitted){ showToast('Kam se kam ek star to dein 🙂'); return; }
+  // is order ke stars saaf karo, rated set me daalo, agla popup kholo
+  items.forEach(function(i){ delete prevFbStars[i.id]; });
+  try{ window._ratedOrders=window._ratedOrders||new Set(); window._ratedOrders.add(cand.id); }catch(e){}
+  showToast('✅ Shukriya! Aapka feedback mil gaya.');
+  try{ loadItemRatings().then(()=>renderMenu(menuConfig.items||[])); }catch(e){}
+  showPrevFbQueue(queue,idx+1);   // agla un-rated order (queue)
 }
 
 window.placeNext=function(){
