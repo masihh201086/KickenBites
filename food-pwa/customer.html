@@ -1814,6 +1814,11 @@ window.setMyOrdFilter=function(f){
 
 function renderMyOrders(all) {
   _allMyOrders=all||[];
+  // Q-11: item images master template se aati hain — agar wo abhi load nahi hui to
+  // load karke ek baar dobara render karo (warna emoji fallback dikhega).
+  if(!_masterCfg || !_masterCfg.masterItems){
+    try{ getMasterCfg().then(function(){ if(_allMyOrders.length) renderMyOrders(_allMyOrders); }); }catch(e){}
+  }
   // BUG-04: apne khud ke puraane unpaid order yahin nipat jaate hain
   sweepMyStaleOrders(_allMyOrders);
   renderMyOrdDayChips();
@@ -3255,26 +3260,20 @@ window.showPayProcedurePopup=function(total){
     +'<div style="text-align:center;font-weight:900;font-size:1.15rem;color:#ea580c;margin-bottom:4px">💳 Payment kaise karein</div>'
     +'<div style="text-align:center;font-size:.8rem;color:#777;margin-bottom:8px">Total: <b style="color:#ea580c">₹'+total+'</b></div>'
     +step(1,'Selected method se <b>payment karein</b> (QR scan / UPI ID / app).')
-    +step(2,'UPI <b>Transaction ID ke last 4 digit</b> note karke daalein.')
+    +step(2,'Kisi bhi UPI app se pay karke <b>wapas is page par aayein</b> aur UPI <b>Transaction ID ke last 4 digit</b> note karke daalein.')
     +step(3,'<b>"Confirm Payment &amp; Place Order"</b> dabaayein — aapka order lag jayega ✅')
     +'<button onclick="ackPayProcedure('+total+')" style="width:100%;margin-top:14px;padding:13px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:13px;font-weight:800;font-size:.95rem;cursor:pointer;font-family:inherit">Samajh gaya, aage badhein →</button>'
   +'</div>';
   document.body.appendChild(ov);
 };
 window.ackPayProcedure=function(total){
+  // pay screen pehle se khuli hai — sirf popup band karo.
   const pop=document.getElementById('payProcPopup'); if(pop) pop.remove();
-  window._payProcAck=true;
-  showPayScreen(total);
 };
 function showPayScreen(total){
-  // Q-10: order-mode me pehle ek PAYMENT PROCEDURE popup — 3 saaf steps. "Aage badhein"
-  // dabane par hi asli pay screen khulti hai. Dues-mode me ye popup nahi (wahan alag flow).
+  // Q-10 (revised): popup ab pay screen ke UPAR dikhta hai — pehle payScreen khulti hai,
+  // phir uske upar procedure popup (neeche show('payScreen') ke baad call hota hai).
   const _isDuesMode=(window._payMode==='dues');
-  if(!_isDuesMode && !window._payProcAck){
-    showPayProcedurePopup(total);
-    return;
-  }
-  window._payProcAck=false;   // reset for next time
   // Session 28: running-total bar (1 item · ₹X · Order Now) sirf order/menu page par —
   // payment screen par usse chhupa do, warna wo pay button ke upar float karta hai.
   try{ const rb=document.getElementById('runTotalBar'); if(rb) rb.style.display='none'; document.body.style.paddingBottom=''; }catch(e){}
@@ -3359,6 +3358,8 @@ function showPayScreen(total){
   pmInit(total, isDues);
   show('payScreen');window.scrollTo(0,0);
   setTimeout(loadWalletBalance,300);
+  // Q-10: pay screen khulne ke BAAD uske upar procedure popup (order-mode me, ek baar).
+  if(!_isDuesMode){ setTimeout(function(){ showPayProcedurePopup(total); },180); }
 }
 // Download the payment QR to the gallery so the customer can upload it in their UPI app
 // Open a specific UPI app (app only — NO amount prefill, since deep-linking the amount
@@ -4279,14 +4280,25 @@ window.dismissPrevFb=function(){
 // S64(Q1): pichle un-rated delivered orders ka feedback — ab ek BADA popup jisme
 // customer SEEDHE rating+comment de sakta hai (item ki image ke saath). Do order
 // pending ho to pehla review hote hi agla apne aap khul jaata hai (queue).
+// Q-11 fix: item ko pehle aaj ke menu me, phir MASTER template me (jahan har item hota
+// hai, chahe aaj serve na ho) dhoondho — taaki purane order ki bhi image mile, emoji nahi.
+function _lookupItem(id){
+  try{
+    let m=(menuConfig.items||[]).find(x=>x.id===id);
+    if(m && (m.imageUrl||m.emoji)) return m;
+    const mi=(_masterCfg&&_masterCfg.masterItems)||[];
+    const mm=mi.find(x=>x.id===id);
+    return mm||m||null;
+  }catch(e){ return null; }
+}
 function _foodTypeForItem(id){
-  try{ const m=(menuConfig.items||[]).find(x=>x.id===id); return (m&&m.foodType==='veg')?'veg':'nonveg'; }catch(e){ return 'nonveg'; }
+  const m=_lookupItem(id); return (m&&m.foodType==='veg')?'veg':'nonveg';
 }
 function _imgForItem(id){
-  try{ const m=(menuConfig.items||[]).find(x=>x.id===id); return (m&&m.imageUrl)||''; }catch(e){ return ''; }
+  const m=_lookupItem(id); return (m&&m.imageUrl)||'';
 }
 function _emojiForItem(id){
-  try{ const m=(menuConfig.items||[]).find(x=>x.id===id); return (m&&m.emoji)||'🍛'; }catch(e){ return '🍛'; }
+  const m=_lookupItem(id); return (m&&m.emoji)||'🍛';
 }
 const prevFbStars={};
 window.prevFbSetStar=function(itemId,val){
