@@ -129,10 +129,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .mc-body{padding:9px 10px;}
 /* 2-col me name thoda chhota taaki wrap na kare; price ab zyada prominent (neeche) */
 .mc-name{font-weight:800;font-size:1.02rem;line-height:1.2;margin-bottom:4px;letter-spacing:-.01em;}
-/* S63(P13): veg/non-veg marker — Swiggy/Zomato jaisा chaukor + dot */
-.vnv{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:3px;border:1.5px solid;margin-left:6px;vertical-align:middle;position:relative;top:-1px;box-sizing:border-box;flex:0 0 auto;}
-.mc-name{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
-.mc-nm{min-width:0;}
+/* S63(P13): veg/non-veg marker — Swiggy/Zomato jaisा chaukor + dot. S64(Q2): naam ke
+   turant BAAD, usi line me (inline) — flex/wrap hatane se dot nayी line me nahi jaata. */
+.vnv{display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:3px;border:1.5px solid;margin-left:5px;vertical-align:middle;position:relative;top:-1px;box-sizing:border-box;}
 .vnv::before{content:"";width:7px;height:7px;border-radius:50%;display:block;}
 .vnv.veg{border-color:#15803d;} .vnv.veg::before{background:#15803d;}
 .vnv.nonveg{border-color:#b91c1c;} .vnv.nonveg::before{background:#b91c1c;}
