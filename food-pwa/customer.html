@@ -605,10 +605,33 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <div class="lb-title">Kicken Bites</div>
     <div class="lerr" id="loginErr"></div>
     <div id="ls1">
+      <!-- P-14: Google Sign-In (customer). Isse profile compulsory ho jaata hai. -->
+      <button class="lbtn" id="gLoginBtn" onclick="googleLogin()" style="background:#fff;color:#3c4043;border:1px solid #dadce0;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign in with Google
+      </button>
+      <div style="display:flex;align-items:center;gap:10px;margin:12px 0;color:rgba(255,255,255,.55);font-size:.72rem"><div style="flex:1;height:1px;background:rgba(255,255,255,.2)"></div>YA<div style="flex:1;height:1px;background:rgba(255,255,255,.2)"></div></div>
       <div class="lb-sub">Enter your mobile number to continue</div>
       <input class="li" type="tel" id="lPhone" placeholder="10-digit mobile" maxlength="10" inputmode="numeric">
       <button class="lbtn" onclick="goStep2()">Continue →</button>
       <span class="lskip" onclick="skipLogin()">Skip for now</span>
+    </div>
+    <div id="gProfile" style="display:none">
+      <div class="lb-sub" style="font-weight:700;color:#fff">Apni profile poori karein</div>
+      <div id="gpEmailLine" style="font-size:.72rem;color:rgba(255,255,255,.6);margin-bottom:8px"></div>
+      <div class="lerr" id="gpErr" style="display:none"></div>
+      <input class="li" type="text" id="gpName" placeholder="Poora naam">
+      <input class="li" type="tel" id="gpPhone" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric">
+      <select class="li" id="gpLoc" style="color:#333">
+        <option value="">Location chunein…</option>
+        <option value="NTPC">NTPC</option>
+        <option value="GAIL GAON">GAIL GAON</option>
+        <option value="PATA GATE">PATA GATE</option>
+        <option value="OTHERS">OTHERS</option>
+      </select>
+      <input class="li" type="text" id="gpHouse" placeholder="House no. / pata">
+      <button class="lbtn" onclick="saveGoogleProfile()">Save & Continue →</button>
+      <div style="font-size:.68rem;color:rgba(255,255,255,.55);margin-top:8px;line-height:1.4">Mobile number zaroori hai — delivery aur order updates ke liye.</div>
     </div>
     <div id="ls2" style="display:none">
       <div class="lb-sub" id="ls2msg">Enter your 4-digit PIN</div>
@@ -1132,7 +1155,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   </div>
 </div>
 <script type="module">
-import { db, getTodayDate, formatDisplayDate, getTodayMenu, getDailyMenu, listenToTodayMenu, listenToDelivery, confirmPayment, updateOrderStatus, submitRating, collection, doc, setDoc, getDoc, onSnapshot, query, where, runTransaction } from './src/utils/firebase.js';
+import { db, getTodayDate, formatDisplayDate, getTodayMenu, getDailyMenu, listenToTodayMenu, listenToDelivery, confirmPayment, updateOrderStatus, submitRating, collection, doc, setDoc, getDoc, onSnapshot, query, where, runTransaction, auth, googleProvider, signInWithPopup, signOut } from './src/utils/firebase.js';
 
 // ---- STATE ----
 let menuConfig={}, quantities={}, orderType='delivery', currentOrderId=null, currentTotal=0;
@@ -1242,7 +1265,7 @@ function startPresence(){
 // ---- LOGIN ----
 function showErr(m){const e=document.getElementById('loginErr');e.textContent=m;e.style.display='block';}
 function hideErr(){document.getElementById('loginErr').style.display='none';}
-function showStep(id){['ls1','ls2'].forEach(s=>document.getElementById(s).style.display=s===id?'block':'none');}
+function showStep(id){['ls1','ls2','gProfile'].forEach(s=>{const el=document.getElementById(s); if(el) el.style.display=s===id?'block':'none';});}
 
 window.goStep2 = async function() {
   hideErr();
@@ -1263,6 +1286,83 @@ window.goStep2 = async function() {
       document.getElementById('pinSec').style.display='none';
     }
   } catch(e) { showStep('ls1'); showErr('Could not connect. Check internet and try again.'); }
+};
+
+// ===== P-14: GOOGLE SIGN-IN (customer) =====
+// App customer ko PHONE se pehchanta hai (doc-id). Google sirf ek surakshit login deta
+// hai; phone phir bhi chahiye. Isliye googleUsers/{uid} me uid->phone mapping rakhte hain.
+let _gUser=null;   // abhi sign-in kiya hua Google user (uid/email/name)
+window.googleLogin = async function(){
+  hideErr();
+  const btn=document.getElementById('gLoginBtn');
+  if(btn){ btn.disabled=true; btn.style.opacity='.6'; }
+  try{
+    const res=await signInWithPopup(auth, googleProvider);
+    _gUser=res.user;
+    // uid->phone mapping dekho
+    let mappedPhone='';
+    try{
+      const m=await getDoc(doc(db,'googleUsers',_gUser.uid));
+      if(m.exists()) mappedPhone=(m.data().phone||'').trim();
+    }catch(e){}
+    if(mappedPhone){
+      // pehle se linked — us customer se seedhe login
+      const cs=await getDoc(doc(db,'customers',mappedPhone));
+      if(cs.exists()){
+        currentProfile=cs.data();
+        loginPhoneVal=mappedPhone;
+        localStorage.setItem('custPhone',mappedPhone);
+        localStorage.setItem('custSession','ok');
+        localStorage.setItem('kb_google_uid',_gUser.uid);
+        syncLocalStorage(currentProfile);
+        showApp();
+        return;
+      }
+    }
+    // naya (ya phone abhi tak link nahi) — profile setup maango (phone COMPULSORY)
+    openGoogleProfileSetup();
+  }catch(e){
+    showErr('Google sign-in nahi ho paaya. Dobara koshish karein ya mobile number use karein.');
+    if(btn){ btn.disabled=false; btn.style.opacity='1'; }
+  }
+};
+function openGoogleProfileSetup(){
+  showStep('gProfile');
+  const nm=document.getElementById('gpName'); if(nm && _gUser && _gUser.displayName && !nm.value) nm.value=_gUser.displayName;
+  const em=document.getElementById('gpEmailLine'); if(em && _gUser) em.textContent=_gUser.email||'';
+}
+window.saveGoogleProfile = async function(){
+  hideErr();
+  const name=(document.getElementById('gpName').value||'').trim();
+  const phone=(document.getElementById('gpPhone').value||'').trim();
+  const loc=(document.getElementById('gpLoc').value||'').trim();
+  const house=(document.getElementById('gpHouse').value||'').trim();
+  const err=document.getElementById('gpErr');
+  const setErr=(m)=>{ if(err){ err.textContent=m; err.style.display='block'; } };
+  if(err) err.style.display='none';
+  if(name.length<2){ setErr('Poora naam likhein'); return; }
+  if(!/^\d{10}$/.test(phone)){ setErr('Sahi 10-digit mobile number daalein'); return; }
+  if(!loc){ setErr('Location chunein'); return; }
+  if(house.length<2){ setErr('Ghar ka pata / house no. likhein'); return; }
+  try{
+    // agar is phone par pehle se customer hai to usko update karo warna naya banao
+    let existing=null;
+    try{ const cs=await getDoc(doc(db,'customers',phone)); if(cs.exists()) existing=cs.data(); }catch(e){}
+    const profile=Object.assign({}, existing||{}, {
+      phone, name, location:loc, houseNo:house,
+      googleUid:(_gUser&&_gUser.uid)||'', email:(_gUser&&_gUser.email)||'',
+      createdAt:(existing&&existing.createdAt)||new Date().toISOString()
+    });
+    await setDoc(doc(db,'customers',phone), profile, {merge:true});
+    if(_gUser&&_gUser.uid){ try{ await setDoc(doc(db,'googleUsers',_gUser.uid), {phone, at:new Date().toISOString()}); }catch(e){} }
+    currentProfile=profile;
+    loginPhoneVal=phone;
+    localStorage.setItem('custPhone',phone);
+    localStorage.setItem('custSession','ok');
+    if(_gUser&&_gUser.uid) localStorage.setItem('kb_google_uid',_gUser.uid);
+    syncLocalStorage(currentProfile);
+    showApp();
+  }catch(e){ setErr('Save nahi ho paaya. Internet check karein.'); }
 };
 
 window.verifyPin = async function() {
@@ -1339,7 +1439,9 @@ window.backStep1 = function(){ hideErr(); showStep('ls1'); document.getElementBy
 window.skipLogin = function(){ localStorage.setItem('custSession','ok'); showApp(); };
 window.logoutCust = function(){
   if(!confirm('Logout?')) return;
-  ['custPhone','custSession','custName','custLoc','custHouse'].forEach(k=>localStorage.removeItem(k));
+  ['custPhone','custSession','custName','custLoc','custHouse','kb_google_uid'].forEach(k=>localStorage.removeItem(k));
+  // P-14: Google se bhi sign-out (agar Google se aaye the)
+  try{ signOut(auth); }catch(e){}
   location.reload();
 };
 

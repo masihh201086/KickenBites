@@ -172,6 +172,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---- googleUsers: uid -> phone mapping (P-14 customer Google login) ----
+    match /googleUsers/{uid} {
+      allow read: if true;
+      allow create, update: if request.resource.data.phone is string;
+      allow delete: if false;
+    }
+
     // ---- everything else: DENY ----
     match /{document=**} {
       allow read, write: if false;
