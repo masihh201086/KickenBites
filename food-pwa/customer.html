@@ -448,6 +448,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 }
 /* example — masked txn id, last 4 bold laal */
 .pm-eg{color:#57534e;font-weight:600}
+/* Q-9: UPI app se wapas aane par Confirm/ref wali patti chamakti hai (dhyaan kheenche) */
+.pm-flash{animation:pmFlash 0.6s ease-in-out 3}
+@keyframes pmFlash{ 0%,100%{ box-shadow:0 0 0 0 rgba(249,115,22,0);} 50%{ box-shadow:0 0 0 5px rgba(249,115,22,.5);} }
 .pm-eg .l4{color:#dc2626;font-weight:900}
 .pm-confirm{width:100%;padding:15px;border:none;border-radius:13px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-size:.94rem;font-weight:800;cursor:pointer;margin:4px 0 14px;box-shadow:0 3px 12px rgba(22,163,74,.3);font-family:inherit}
 @media(prefers-reduced-motion:reduce){.pm-chev{transition:none}}
@@ -1826,6 +1829,14 @@ function renderMyOrders(all) {
   el.innerHTML=orders.map(o=>{
     const time=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
     const items=(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
+    // Q-11: My Orders card me har item ki chhoti image + veg/non-veg dot (menuConfig se lookup)
+    const itemsHtml=(o.items||[]).map(function(i){
+      const img=_imgForItem(i.id), emo=_emojiForItem(i.id), ft=_foodTypeForItem(i.id);
+      const pic=img
+        ? `<img src="${esc(img)}" style="width:34px;height:34px;border-radius:7px;object-fit:cover;flex:0 0 auto" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div style="width:34px;height:34px;border-radius:7px;background:#fff3e6;display:none;align-items:center;justify-content:center;font-size:1.1rem;flex:0 0 auto">${emo}</div>`
+        : `<div style="width:34px;height:34px;border-radius:7px;background:#fff3e6;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex:0 0 auto">${emo}</div>`;
+      return `<div style="display:flex;align-items:center;gap:8px;margin:3px 0">${pic}<span style="font-size:.84rem;font-weight:600">${esc(i.name)}<span class="vnv ${ft}" style="margin-left:5px"></span> ×${i.qty}</span></div>`;
+    }).join('');
     const isActive=['confirmed','preparing','ready','out_for_delivery'].includes(o.status);
     const canRate = o.status==='delivered';
     // A1: customer may cancel only BEFORE the order goes out for delivery.
@@ -1866,7 +1877,7 @@ function renderMyOrders(all) {
         <div><div class="oh-id">Order #${o.id.slice(-6).toUpperCase()}</div><div class="oh-date">${formatDate(o.date)} at ${time}</div></div>
         <span class="status-pill sp-${o.status}">${sl[o.status]||o.status}</span>
       </div>
-      <div class="oh-items">${items}</div>
+      <div class="oh-items">${itemsHtml}</div>
       <div class="oh-total">₹${o.total} | ${o.orderType==='delivery'?'🛵':'🏠'} ${o.orderType}</div>
       ${o.status==='cancelled'&&o.cancelledBy==='admin'?`<div style="background:var(--rp);color:var(--red);font-size:.76rem;font-weight:600;padding:7px 9px;border-radius:8px;margin-top:7px">⚠️ This order was cancelled by the shop${o.cancelReason?': '+esc(o.cancelReason):'.'}</div>`:''}
       ${payStrip}${declStrip}${refundStrip}
@@ -3230,7 +3241,40 @@ window.payDuesNow=async function(){
   window._payMode='dues';
   showPayScreen(total);
 };
+// Q-10: payment procedure samjhane wala popup (Proceed to Pay ke baad, pay screen se pehle).
+window.showPayProcedurePopup=function(total){
+  const old=document.getElementById('payProcPopup'); if(old) old.remove();
+  const ov=document.createElement('div');
+  ov.id='payProcPopup';
+  ov.style.cssText='position:fixed;inset:0;z-index:650;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:18px';
+  ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+  const step=(n,t)=>'<div style="display:flex;gap:11px;align-items:flex-start;margin:11px 0;text-align:left">'
+    +'<div style="flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:#ea580c;color:#fff;font-weight:900;font-size:1rem;display:flex;align-items:center;justify-content:center">'+n+'</div>'
+    +'<div style="font-size:.92rem;font-weight:600;color:#333;line-height:1.4;padding-top:3px">'+t+'</div></div>';
+  ov.innerHTML='<div style="background:#fff;border-radius:20px;max-width:380px;width:100%;padding:22px;box-shadow:0 14px 44px rgba(0,0,0,.3)">'
+    +'<div style="text-align:center;font-weight:900;font-size:1.15rem;color:#ea580c;margin-bottom:4px">💳 Payment kaise karein</div>'
+    +'<div style="text-align:center;font-size:.8rem;color:#777;margin-bottom:8px">Total: <b style="color:#ea580c">₹'+total+'</b></div>'
+    +step(1,'Selected method se <b>payment karein</b> (QR scan / UPI ID / app).')
+    +step(2,'UPI <b>Transaction ID ke last 4 digit</b> note karke daalein.')
+    +step(3,'<b>"Confirm Payment &amp; Place Order"</b> dabaayein — aapka order lag jayega ✅')
+    +'<button onclick="ackPayProcedure('+total+')" style="width:100%;margin-top:14px;padding:13px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:13px;font-weight:800;font-size:.95rem;cursor:pointer;font-family:inherit">Samajh gaya, aage badhein →</button>'
+  +'</div>';
+  document.body.appendChild(ov);
+};
+window.ackPayProcedure=function(total){
+  const pop=document.getElementById('payProcPopup'); if(pop) pop.remove();
+  window._payProcAck=true;
+  showPayScreen(total);
+};
 function showPayScreen(total){
+  // Q-10: order-mode me pehle ek PAYMENT PROCEDURE popup — 3 saaf steps. "Aage badhein"
+  // dabane par hi asli pay screen khulti hai. Dues-mode me ye popup nahi (wahan alag flow).
+  const _isDuesMode=(window._payMode==='dues');
+  if(!_isDuesMode && !window._payProcAck){
+    showPayProcedurePopup(total);
+    return;
+  }
+  window._payProcAck=false;   // reset for next time
   // Session 28: running-total bar (1 item · ₹X · Order Now) sirf order/menu page par —
   // payment screen par usse chhupa do, warna wo pay button ke upar float karta hai.
   try{ const rb=document.getElementById('runTotalBar'); if(rb) rb.style.display='none'; document.body.style.paddingBottom=''; }catch(e){}
@@ -3736,7 +3780,14 @@ function pmOnReturn(){
   setTimeout(function(){
     const r=document.getElementById('pmRef-'+tab);
     if(r){ try{ r.focus(); }catch(e){} }
-    try{ document.getElementById('pmA-'+tab+'-'+last)?.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
+    const stepEl=document.getElementById('pmA-'+tab+'-'+last);
+    try{ stepEl?.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
+    // Q-9: Confirm/ref wali patti ko chamkao + reminder toast, taaki customer confuse na ho.
+    if(stepEl){
+      stepEl.classList.remove('pm-flash'); void stepEl.offsetWidth; stepEl.classList.add('pm-flash');
+      setTimeout(function(){ stepEl.classList.remove('pm-flash'); },2400);
+    }
+    try{ showToast('Payment ho gaya? Neeche Transaction ID ke last 4 digit daal kar Confirm karein 👇'); }catch(e){}
   },120);
 }
 document.addEventListener('visibilitychange',function(){
@@ -4228,6 +4279,9 @@ window.dismissPrevFb=function(){
 // S64(Q1): pichle un-rated delivered orders ka feedback — ab ek BADA popup jisme
 // customer SEEDHE rating+comment de sakta hai (item ki image ke saath). Do order
 // pending ho to pehla review hote hi agla apne aap khul jaata hai (queue).
+function _foodTypeForItem(id){
+  try{ const m=(menuConfig.items||[]).find(x=>x.id===id); return (m&&m.foodType==='veg')?'veg':'nonveg'; }catch(e){ return 'nonveg'; }
+}
 function _imgForItem(id){
   try{ const m=(menuConfig.items||[]).find(x=>x.id===id); return (m&&m.imageUrl)||''; }catch(e){ return ''; }
 }
