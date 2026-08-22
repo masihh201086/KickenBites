@@ -315,6 +315,22 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .pay-x{width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:white;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 /* Session 16: hero aur bhi compact — amount + total + payee sab ek row me */
 .pay-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px 15px 6px;}
+/* S65: PAYMENT REDESIGN — single-screen: static QR + amount text + tick + confirm */
+.pay-simple{padding:14px 16px 22px;}
+.pqr-card{background:#fff;border:1.5px solid #e7e5e4;border-radius:16px;padding:16px;text-align:center;}
+.pqr-img{width:100%;max-width:260px;border-radius:10px;border:1px solid #e7e5e4;display:block;margin:0 auto;}
+.pqr-note{font-size:.8rem;color:#57534e;margin-top:12px;line-height:1.5;}
+.pqr-dl{display:inline-block;margin-top:12px;background:transparent;border:1.5px solid #ea580c;color:#ea580c;border-radius:10px;padding:9px 18px;font-size:.78rem;font-weight:700;text-decoration:none;}
+.pqr-ticks{display:flex;gap:10px;margin-top:16px;}
+.pqr-tick{flex:1;display:flex;align-items:center;gap:8px;border:2px solid #d6d3d1;border-radius:12px;padding:12px;cursor:pointer;background:#fff;transition:border-color .15s,background .15s;}
+.pqr-tick input{width:18px;height:18px;flex-shrink:0;pointer-events:none;}
+.pqr-tick span{font-size:.85rem;font-weight:700;color:#1c1917;}
+.pqr-tick.yes-on{border-color:#16a34a;background:#f0fdf4;}
+.pqr-tick.no-on{border-color:#dc2626;background:#fef2f2;}
+.pqr-nudge{display:none;margin-top:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:11px;font-size:.78rem;color:#991b1b;line-height:1.5;}
+.pqr-nudge.show{display:block;}
+.pqr-confirm{margin-top:16px;width:100%;padding:15px;border:none;border-radius:13px;background:#e7e5e4;color:#a8a29e;font-size:.95rem;font-weight:800;cursor:pointer;font-family:inherit;transition:background .15s,color .15s;}
+.pqr-confirm.ready{background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;}
 /* S55(#3): amount ab ek "pill" card me — Swiggy/Zomato jaisa saaf highlight */
 .pay-amt-pill{display:inline-flex;align-items:baseline;gap:9px;background:linear-gradient(135deg,#f97316,#ea580c);
   border:none;border-radius:999px;padding:7px 20px;box-shadow:0 4px 16px rgba(234,88,12,.45);}
@@ -589,10 +605,6 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .wish-qnum{min-width:34px;text-align:center;font-weight:900;font-size:1rem;color:#333;}
 .wish-add{padding:7px 14px;border:2px solid #f59e0b;border-radius:9px;background:white;color:#d97706;font-weight:800;font-size:.8rem;cursor:pointer;flex-shrink:0;}
 </style>
-<!-- Session 16: offline QR generator (qrcode-generator 1.4.4, MIT) — QR ab client-side canvas par banta hai, koi external fetch nahi, isliye download reliably chalta hai -->
-<script>
-var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1})},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},f};t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,t.createStringToBytes=function(t,r){var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?r.push(a):(r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);return k(e,0).mod(t)}};return n}var A=function(){var t=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(){var t=n("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){t.writeString("GIF87a"),t.writeShort(e),t.writeShort(n),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return t}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});
-</script>
 </head>
 <body>
 
@@ -890,29 +902,6 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           </div>
         </div>
       </div>
-      <!-- DUES / PAY-LATER CARD (#3) -->
-      <style>
-      .dues-tab{flex:1;text-align:center;padding:7px 6px;border-radius:9px;border:1.5px solid #f0c0c0;background:white;font-weight:800;font-size:.75rem;color:#b91c1c;cursor:pointer}
-      .dues-tab.active{background:#b91c1c;border-color:#b91c1c;color:white}
-      </style>
-      <div id="custDuesCard" style="display:none;background:#fff4f4;border:1.5px solid #f0a0a0;border-radius:var(--r);padding:14px;margin-bottom:11px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
-          <div style="font-weight:800;font-size:.95rem;color:#b91c1c" id="custDuesHead">💳 Pending Dues</div>
-          <div style="font-weight:900;font-size:1.15rem;color:#b91c1c" id="custDuesTotal">₹0</div>
-        </div>
-        <!-- Item 8: pending aur cleared (archived) alag alag -->
-        <div style="display:flex;gap:6px;margin-bottom:10px">
-          <div class="dues-tab active" id="duesTabPending" onclick="swDuesTab('pending')">⏳ Pending</div>
-          <div class="dues-tab" id="duesTabArchive" onclick="swDuesTab('archive')">📦 Archived<span id="duesArchCount" style="margin-left:4px;opacity:.75"></span></div>
-        </div>
-        <div id="duesMonthNudge" style="display:none;background:#fef3c7;border:1.5px solid #fbbf24;color:#92400e;border-radius:11px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;line-height:1.55"></div>
-      <div id="custDuesList"></div>
-        <div id="custDuesArchive" style="display:none"></div>
-        <div id="duesPayBox">
-          <button onclick="payDuesNow()" style="width:100%;margin-top:10px;background:#25d366;color:white;border:none;padding:12px;border-radius:11px;font-weight:800;font-size:.9rem;cursor:pointer">💳 Pay Dues Now</button>
-          <div style="font-size:.72rem;color:#8a5a5a;margin-top:8px;line-height:1.5">🙏 Pay online above, or clear on your next order / contact the shop.</div>
-        </div>
-      </div>
       <div class="prof-card">
         <div class="pct">Personal Details</div>
         <input class="pi" id="piName" placeholder="Full name" type="text">
@@ -952,130 +941,31 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     <div class="pay-date" id="payDate" style="margin-top:5px;font-size:.72rem;opacity:.85;font-weight:600"></div>
   </div>
 
-  <div class="pm-tabs">
-    <button class="pm-tab on" id="pmTabQRDL" onclick="pmTab('qrdl')"><span class="pm-ic">📥</span>QR Download</button>
-    <button class="pm-tab" id="pmTabSHOW" onclick="pmTab('showqr')"><span class="pm-ic">📱</span>Show QR</button>
-    <button class="pm-tab" id="pmTabUPI" onclick="pmTab('upi')"><span class="pm-ic">📋</span>UPI ID</button>
-    <button class="pm-tab" id="pmTabLater" onclick="pmTab('later')"><span class="pm-ic">🕑</span>Pay Later</button>
-  </div>
+  <!-- S65: PAYMENT REDESIGN — ek hi screen, koi tab nahi. Static QR (admin ka
+       asli PhonePe QR) + amount alag text me + Payment Done/Abhi nahi tick +
+       Confirm Order. Ref number/UPI-app-buttons/Pay-Later sab hata diye. -->
+  <div class="pay-simple">
+    <div class="pqr-card" id="pqrCard">
+      <img class="pqr-img" src="assets/payment-qr.jpg" alt="Kicken Bites Payment QR" loading="eager">
+      <div class="pqr-note">QR scan karke apne UPI app me <b id="pqrAmt">₹0</b> daalein aur pay karein</div>
+      <a class="pqr-dl" href="assets/payment-qr.jpg" download="Kicken-Bites-QR.jpg">📥 Download QR</a>
+    </div>
 
-  <div id="pmUpiWarn" style="display:none;margin:0 14px 8px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:11px;padding:11px;font-size:.78rem;color:#991b1b;line-height:1.5">
-    ⚠️ <b>UPI ID set nahi hai.</b> Admin se Setup me UPI ID save karwayein. Tab tak sirf <b>Pay Later</b> use karein.
-  </div>
+    <div class="pqr-ticks">
+      <div class="pqr-tick" id="pqrYesBox" onclick="setPayTick('yes')">
+        <input type="checkbox" id="pqrYes" onclick="event.stopPropagation();setPayTick(this.checked?'yes':'')">
+        <span>✅ Payment Done</span>
+      </div>
+      <div class="pqr-tick" id="pqrNoBox" onclick="setPayTick('no')">
+        <input type="checkbox" id="pqrNo" onclick="event.stopPropagation();setPayTick(this.checked?'no':'')">
+        <span>❌ Abhi nahi</span>
+      </div>
+    </div>
 
-  <div class="pm-panel on" id="pmP-qrdl">
-    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 3</b> me daalne honge ✍️ <span class="pm-eg">jaise: UPI Transaction ID <span id="pmEg-qrdl">xxxxxxxx<span class="l4">----</span></span></span></div>
-    <div class="pm-acc on" id="pmA-qrdl-1">
-      <div class="pm-hd" onclick="pmAcc('qrdl',1)"><div class="pm-num" id="pmN-qrdl-1">1</div><div class="pm-tt">QR Gallery me save karein</div><span class="pm-chev">⌄</span></div>
-      <div class="pm-bd">
-        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-qrdl" width="180" height="180"></canvas><div class="pm-qramt"><b id="pmAmt-qrdl">₹0</b> — QR me amount already set hai ✅</div></div>
-        <button class="pm-dl" id="pmDlBtn" onclick="pmDownload()">📥 Download QR to Gallery</button>
-      </div>
-    </div>
-    <div class="pm-acc" id="pmA-qrdl-2">
-      <div class="pm-hd" onclick="pmAcc('qrdl',2)"><div class="pm-num" id="pmN-qrdl-2">2</div><div class="pm-tt">UPI App se pay karein</div><span class="pm-chev">⌄</span></div>
-      <div class="pm-bd">
-        <div class="pm-apps">
-          <button class="upi-app-btn gpay" onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
-          <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
-          <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
-          <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
-        </div>
-        <div class="pm-note">Koi bhi UPI app kholein → Gallery se saved QR chunein → amount <b id="pmAmt2-qrdl">₹0</b> auto-fill hoga → pay karein</div>
-        <div class="pm-remind">⚠️ Payment ke baad <b>Transaction ID ke last 4 digit</b> note kar lein — agle Step me daalne honge <span class="pm-eg">jaise: UPI Transaction ID <span id="pmEg2-qrdl">xxxxxxxx<span class="l4">----</span></span></span></div>
-      </div>
-    </div>
-    <div class="pm-acc" id="pmA-qrdl-3">
-      <div class="pm-hd" onclick="pmAcc('qrdl',3)"><div class="pm-num" id="pmN-qrdl-3">3</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
-      <div class="pm-bd">
-        <div class="pm-refnote pm-refnote-big">Enter <b>last 4 digit of UPI Transaction ID</b> to confirm payment 👇</div>
-        <input class="pm-ref" id="pmRef-qrdl" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('qrdl')">
-        <div class="pm-referr" id="pmErr-qrdl">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
-        <div class="pm-refhelp">Transaction ID nahi mili? <u onclick="pmZeros('qrdl')">0000 daal dein</u> — order lag jayega, baaki shop check kar legi 👍</div>
-      </div>
-    </div>
-    <button class="pm-confirm" onclick="pmConfirm('qrdl')">✅ Confirm Payment &amp; Place Order</button>
-  </div>
+    <div class="pqr-nudge" id="pqrNudge">Pehle payment kar lein, upar QR scan karein 👆</div>
 
-  <div class="pm-panel" id="pmP-showqr">
-    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 2</b> me daalne honge ✍️ <span class="pm-eg">jaise: UPI Transaction ID <span id="pmEg-showqr">xxxxxxxx<span class="l4">----</span></span></span></div>
-    <div class="pm-acc on" id="pmA-showqr-1">
-      <div class="pm-hd" onclick="pmAcc('showqr',1)"><div class="pm-num" id="pmN-showqr-1">1</div><div class="pm-tt">Doosre phone se scan karein</div><span class="pm-chev">⌄</span></div>
-      <div class="pm-bd">
-        <div class="pm-qrwrap"><canvas class="pm-qr" id="qrCanvas-showqr" width="230" height="230"></canvas><div class="pm-qramt"><b id="pmAmt-showqr">₹0</b> — QR me amount already set hai ✅</div></div>
-        <div class="pm-note ok">✅ Doosre phone ki kisi bhi UPI app se ye QR scan karein — <b id="pmAmt2-showqr">₹0</b> auto-fill ho jayega</div>
-      </div>
-    </div>
-    <div class="pm-acc" id="pmA-showqr-2">
-      <div class="pm-hd" onclick="pmAcc('showqr',2)"><div class="pm-num" id="pmN-showqr-2">2</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
-      <div class="pm-bd">
-        <div class="pm-refnote pm-refnote-big">Enter <b>last 4 digit of UPI Transaction ID</b> to confirm payment 👇</div>
-        <input class="pm-ref" id="pmRef-showqr" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('showqr')">
-        <div class="pm-referr" id="pmErr-showqr">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
-        <div class="pm-refhelp">Transaction ID nahi mili? <u onclick="pmZeros('showqr')">0000 daal dein</u> — order lag jayega, baaki shop check kar legi 👍</div>
-      </div>
-    </div>
-    <button class="pm-confirm" onclick="pmConfirm('showqr')">✅ Confirm Payment &amp; Place Order</button>
+    <button class="pqr-confirm" id="pqrConfirmBtn" onclick="confirmOrderNow()">Confirm Order</button>
   </div>
-
-  <div class="pm-panel" id="pmP-upi">
-    <div class="pm-remind">💡 <b>UPI Transaction ID</b> ke <b>last 4 digit</b> yaad kar lein — <b>Step 3</b> me daalne honge ✍️ <span class="pm-eg">jaise: UPI Transaction ID <span id="pmEg-upi">xxxxxxxx<span class="l4">----</span></span></span></div>
-    <div class="pm-acc on" id="pmA-upi-1">
-      <div class="pm-hd" onclick="pmAcc('upi',1)"><div class="pm-num" id="pmN-upi-1">1</div><div class="pm-tt">UPI ID copy karein</div><span class="pm-chev">⌄</span></div>
-      <div class="pm-bd">
-        <div class="pm-upibox"><div class="pm-upiid" id="pmUpiId">—</div><button class="pm-copy" id="pmCopyBtn" onclick="pmCopy()">📋 UPI ID Copy karein</button></div>
-        <div class="pm-note">⚠️ Amount <b id="pmAmt-upi">₹0</b> khud bharein — bilkul yahi, kam-zyada par order hold ho sakta hai</div>
-      </div>
-    </div>
-    <div class="pm-acc" id="pmA-upi-2">
-      <div class="pm-hd" onclick="pmAcc('upi',2)"><div class="pm-num" id="pmN-upi-2">2</div><div class="pm-tt">UPI App se pay karein</div><span class="pm-chev">⌄</span></div>
-      <div class="pm-bd">
-        <div class="pm-apps">
-          <button class="upi-app-btn gpay" onclick="openUpiApp('gpay')"><span class="upi-app-ico">G</span>GPay</button>
-          <button class="upi-app-btn phonepe" onclick="openUpiApp('phonepe')"><span class="upi-app-ico">P</span>PhonePe</button>
-          <button class="upi-app-btn paytm" onclick="openUpiApp('paytm')"><span class="upi-app-ico">P</span>Paytm</button>
-          <button class="upi-app-btn bhim" onclick="openUpiApp('bhim')"><span class="upi-app-ico">B</span>BHIM</button>
-        </div>
-        <div class="pm-note">Koi bhi UPI app kholein → UPI ID paste karein → amount <b id="pmAmt2-upi">₹0</b> bharein → pay karein</div>
-        <div class="pm-remind">⚠️ Payment ke baad <b>Transaction ID ke last 4 digit</b> note kar lein — agle Step me daalne honge <span class="pm-eg">jaise: UPI Transaction ID <span id="pmEg2-upi">xxxxxxxx<span class="l4">----</span></span></span></div>
-      </div>
-    </div>
-    <div class="pm-acc" id="pmA-upi-3">
-      <div class="pm-hd" onclick="pmAcc('upi',3)"><div class="pm-num" id="pmN-upi-3">3</div><div class="pm-tt">Transaction ID — last 4</div><span class="pm-chev">⌄</span></div>
-      <div class="pm-bd">
-        <div class="pm-refnote pm-refnote-big">Enter <b>last 4 digit of UPI Transaction ID</b> to confirm payment 👇</div>
-        <input class="pm-ref" id="pmRef-upi" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="_ _ _ _" oninput="pmRefIn('upi')">
-        <div class="pm-referr" id="pmErr-upi">4 digit daalna zaroori hai — tabhi order confirm hoga</div>
-        <div class="pm-refhelp">Transaction ID nahi mili? <u onclick="pmZeros('upi')">0000 daal dein</u> — order lag jayega, baaki shop check kar legi 👍</div>
-      </div>
-    </div>
-    <button class="pm-confirm" onclick="pmConfirm('upi')">✅ Confirm Payment &amp; Place Order</button>
-  </div>
-
-  <div class="pm-panel" id="pmP-later">
-    <div id="pmPlLock" style="display:none;background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:11px;padding:9px 11px;font-size:.75rem;line-height:1.5;margin-bottom:8px"></div>
-    <div class="pl-info-box">
-      <div class="pl-info-sub" style="margin-bottom:11px">Order <b>abhi confirm</b> ho jaayega — paisa baad me cash ya online de dein. Due aapke account me track hoga.</div>
-      <div class="pl-due-row"><span>Is order ka amount</span><span style="font-weight:800;color:#e65c00" id="pmPlAmt">₹0</span></div>
-      <div class="pl-due-row" id="pmPlDueRow" style="display:none"><span>Pehle se baaki (dues)</span><span style="font-weight:800;color:#dc2626" id="pmPlDue">₹0</span></div>
-      <button class="pl-confirm-btn" onclick="payLater()">📋 Pay Later — Order Confirm Karein</button>
-      <div class="pl-note">⚠️ Ye order confirm ho jaayega. Baad me cash ya online — kisi bhi tarike se — pay kar sakte hain.</div>
-    </div>
-  </div>
-
-  <div style="display:none" aria-hidden="true">
-    <input id="payRef4" maxlength="4"><div id="payRefErr"></div><div id="payRefLbl"></div><div id="payRefSub"></div>
-    <span id="upiId"></span><div id="qrAmt"></div><div id="payTo"></div><div id="hintAmt"></div><div id="hintAmt2"></div><div id="procAmt1"></div>
-    <button id="tabMethQR" onclick="switchPayMethod('qr')"></button><button id="tabMethUPI" onclick="switchPayMethod('upi')"></button><button id="tabMethLater" onclick="switchPayMethod('later')"></button>
-    <div id="payNowPanel"></div><div id="payLaterPanel"></div><div id="plLockNote"></div><div id="upiEmptyWarn"></div>
-    <div id="payMethQR"><canvas id="qrCanvas" width="300" height="300"></canvas><div id="qrFallback"></div></div>
-    <div id="payMethUPI"><button id="copyBtn" onclick="copyUpi()"></button></div>
-    <div id="walletSection"><div id="walletBal"></div></div>
-    <span id="plOrderAmt">₹0</span><span id="plPrevDue">₹0</span><div id="plPrevDueRow"></div>
-    <button id="iPaidBtn" onclick="iHavePaid()"></button>
-  </div>
-
-  <button id="payHomeBtn" onclick="closePayScreen()" style="width:calc(100% - 28px);margin:6px 14px 18px;padding:12px;background:#fff;color:#1c1917;border:2px solid #e7e5e4;border-radius:13px;font-weight:800;font-size:.9rem;cursor:pointer;font-family:inherit">🏠 Home par jayein</button>
 </div>
 
 <!-- SUCCESS SCREEN -->
@@ -1746,136 +1636,8 @@ function loadMyOrders(phone) {
       checkDeliveredNotice(orders);
       renderMyOrders(orders);
       renderOrderDateChips(orders);
-      renderMyDues(orders);
     });
   }catch(e){}
-}
-
-// ===== CUSTOMER DUES (#3) — pending pay-later orders in Profile tab =====
-function renderMyDues(orders){
-  const card=document.getElementById('custDuesCard');
-  const list=document.getElementById('custDuesList');
-  const totEl=document.getElementById('custDuesTotal');
-  if(!card||!list)return;
-  // An order is a due only when payLater && not cleared && not cancelled
-  const dues=(orders||[]).filter(o=>o.payLater===true && o.paidCleared!==true && o.status!=='cancelled');
-  // Item 8: jo dues admin ne clear kar diye wo gayab nahi hote — archive me chale jaate hain
-  const cleared=(orders||[]).filter(o=>o.payLater===true && o.paidCleared===true && o.status!=='cancelled');
-  window._myDuesCleared=cleared;
-  renderDuesArchive(cleared);
-  if(!dues.length && !cleared.length){ card.style.display='none'; list.innerHTML=''; return; }
-  card.style.display='block';
-  let total=0, claimedTotal=0;
-  if(!dues.length){
-    list.innerHTML='<div style="text-align:center;padding:16px;color:#999;font-size:.8rem">Koi pending due nahi 🎉</div>';
-    const pb=document.getElementById('duesPayBox'); if(pb)pb.style.display='none';
-  }else{
-    const pb=document.getElementById('duesPayBox'); if(pb)pb.style.display='';
-    list.innerHTML=dues.map(o=>{
-      const amt=Number(o.total)||0; total+=amt;
-      const claimed=(o.customerClaimedPaid===true);
-      if(claimed) claimedTotal+=amt;
-      const items=(o.items||[]).map(i=>esc(i.name)+' ×'+(i.qty||1)).join(', ');
-      let dLbl='';
-      if(o.date){ try{ dLbl=new Date(o.date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}); }catch(e){} }
-      return '<div style="background:white;border-radius:9px;padding:9px 11px;margin-bottom:7px;border:1px solid '+(claimed?'#fde68a':'#f0d0d0')+'">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center">'+
-          '<div style="font-weight:700;font-size:.8rem;color:#333">'+(dLbl?'📅 '+dLbl:'Order')+'</div>'+
-          '<div style="font-weight:800;color:#b91c1c">₹'+amt+'</div>'+
-        '</div>'+
-        (items?'<div style="font-size:.72rem;color:#777;margin-top:2px">'+items+'</div>':'')+
-        (claimed
-          ? '<div style="font-size:.68rem;color:#92400e;background:#fef3c7;border-radius:7px;padding:4px 7px;margin-top:5px;font-weight:700">✅ Payment done · ⏳ shop ke confirm ka intezaar</div>'
-          : '<div style="font-size:.64rem;color:#c88;margin-top:2px">Pay Later · '+esc(o.status||'')+'</div>')+
-      '</div>';
-    }).join('');
-  }
-  if(totEl)totEl.textContent='₹'+total;
-  // Sab kuch claim ho chuka ho to card ka header bhi wahi bataye
-  const hd=document.getElementById('custDuesHead');
-  if(hd) hd.innerHTML = (total>0 && claimedTotal>=total)
-    ? '⏳ Payment Confirmation Pending'
-    : '💳 Pending Dues';
-  window._myDuesTotal=total;
-  window._myDuesOrders=dues.map(o=>o.id);
-  // Session 13: mahine ki 1 tarikh settle-day hai. 1-5 tarikh tak ek narm reminder
-  // dikhta hai taaki customer ko admin ke WhatsApp ka intezaar na karna pade.
-  try{
-    const nb=document.getElementById('duesMonthNudge');
-    if(nb){
-      const d=new Date(), dom=d.getDate();
-      const show=(total>0 && dom<=5);
-      nb.style.display=show?'block':'none';
-      if(show){
-        const mo=d.toLocaleDateString('en-IN',{month:'long'});
-        nb.innerHTML=`📅 <b>${mo} ki 1 tarikh — settle day.</b> Aapke <b>₹${total}</b> baaki hain. Neeche <b>Pay Dues Now</b> se clear kar dijiye — dhanyavaad! 🙏`;
-      }
-    }
-  }catch(e){}
-}
-
-// ---- Item 8: archived dues — ek payment batch ek line, tap par detail ----
-window._duesTab='pending';
-window._duesOpen={};
-window.swDuesTab=function(which){
-  window._duesTab=(which==='archive')?'archive':'pending';
-  const isArch=(window._duesTab==='archive');
-  const l=document.getElementById('custDuesList'), a=document.getElementById('custDuesArchive');
-  const tp=document.getElementById('duesTabPending'), ta=document.getElementById('duesTabArchive');
-  const pb=document.getElementById('duesPayBox');
-  if(l)l.style.display=isArch?'none':'block';
-  if(a)a.style.display=isArch?'block':'none';
-  if(pb)pb.style.display=(isArch||!(window._myDuesOrders||[]).length)?'none':'';
-  if(tp)tp.classList.toggle('active',!isArch);
-  if(ta)ta.classList.toggle('active',isArch);
-};
-window.toggleDuesBatch=function(k){
-  window._duesOpen[k]=!(window._duesOpen[k]===true);
-  renderDuesArchive(window._myDuesCleared||[]);
-};
-function renderDuesArchive(cleared){
-  const box=document.getElementById('custDuesArchive');
-  const cnt=document.getElementById('duesArchCount');
-  if(!box)return;
-  // Ek hi baar me clear hue orders ko ek batch maante hain (paidClearedAt ke minute par)
-  const batches={};
-  (cleared||[]).forEach(o=>{
-    let key='old';
-    const ts=o.paidClearedAt||o.customerClaimedPaidAt||'';
-    if(ts) key=String(ts).slice(0,16);   // YYYY-MM-DDTHH:MM
-    if(!batches[key]) batches[key]={key,ts,orders:[],total:0};
-    batches[key].orders.push(o);
-    batches[key].total+=Number(o.total)||0;
-  });
-  const list=Object.values(batches).sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
-  if(cnt) cnt.textContent=list.length?'('+list.length+')':'';
-  if(!list.length){
-    box.innerHTML='<div style="text-align:center;padding:18px;color:#999;font-size:.8rem">Abhi koi cleared payment nahi</div>';
-    return;
-  }
-  box.innerHTML=list.map(b=>{
-    const open=window._duesOpen[b.key]===true;
-    let dLbl='—';
-    if(b.ts){ try{ dLbl=new Date(b.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }catch(e){} }
-    const detail=b.orders.map(o=>{
-      let od='';
-      if(o.date){ try{ od=new Date(o.date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}); }catch(e){} }
-      const items=(o.items||[]).map(i=>esc(i.name)+' ×'+(i.qty||1)).join(', ');
-      return '<div style="border-top:1px dashed #d8e8d8;padding:6px 0">'+
-        '<div style="display:flex;justify-content:space-between"><span style="font-size:.74rem;color:#555;font-weight:700">'+(od?'📅 '+od:'Order')+'</span>'+
-        '<span style="font-size:.76rem;font-weight:800;color:#166534">₹'+(Number(o.total)||0)+'</span></div>'+
-        (items?'<div style="font-size:.68rem;color:#888;margin-top:1px">'+items+'</div>':'')+
-      '</div>';
-    }).join('');
-    return '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:9px 11px;margin-bottom:7px">'+
-      '<div onclick="toggleDuesBatch(\''+esc(b.key)+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px">'+
-        '<div style="font-weight:700;font-size:.79rem;color:#166534;min-width:0">'+(open?'▾':'▸')+' ✅ '+esc(dLbl)+
-          ' <span style="color:#77a877;font-weight:600">· '+b.orders.length+' order'+(b.orders.length!==1?'s':'')+'</span></div>'+
-        '<div style="font-weight:800;color:#166534;flex-shrink:0">₹'+b.total+'</div>'+
-      '</div>'+
-      (open?'<div style="margin-top:5px">'+detail+'</div>':'')+
-    '</div>';
-  }).join('');
 }
 
 let myOrderDateSet=new Set();
@@ -1964,7 +1726,7 @@ function renderMyOrders(all) {
     const payStrip = claimedPaid
       ? (payVerified
         ? `<div style="background:#dcfce7;color:#166534;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">✅ Payment verified — ₹${o.total}${payMethodLbl?' · '+payMethodLbl:''}</div>`
-        : `<div style="background:#fef3c7;color:#92400e;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">💰 Payment done — ₹${o.total}${payMethodLbl?' · '+payMethodLbl:''}${o.upiRef4?'<br><span style="font-weight:600">Ref: ****'+esc(String(o.upiRef4))+'</span>':''}<br><span style="font-weight:600">${o.refNoProof===true?'🔺 Ref number nahi diya gaya — shop khud check karegi, thoda time lag sakta hai.':'⏳ Shop verify kar raha hai. Order confirm hai.'}</span></div>`)
+        : `<div style="background:#fef3c7;color:#92400e;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">💰 Payment done — ₹${o.total}${payMethodLbl?' · '+payMethodLbl:''}<br><span style="font-weight:600">⏳ Shop verify kar raha hai. Order confirm hai.</span></div>`)
       : '';
     const declStrip = o.paymentDeclined===true
       ? `<div style="background:#fef2f2;color:#991b1b;font-size:.76rem;font-weight:700;padding:8px 9px;border-radius:8px;margin-top:7px;line-height:1.45">⚠️ Payment verify nahi ho paaya — order cancel kar diya gaya. Agar paisa kat gaya hai to shop se sampark karein.</div>`
@@ -3218,9 +2980,6 @@ window.placeOrderClick=async function(){
       const custDoc={name,phone,location:loc,houseNo:addrLine1,addrLine2,updatedAt:new Date().toISOString()};
       if(othersParts) Object.assign(custDoc,othersParts);   // S47: houseNo yahan sirf ghar ka number ho jaata hai
       await setDoc(doc(db,'customers',phone),custDoc,{merge:true});
-      // Create wallet account if not exists
-      const ws=await getDoc(doc(db,'wallets',phone));
-      if(!ws.exists()) await setDoc(doc(db,'wallets',phone),{phone,balance:0,due:0,createdAt:new Date().toISOString()});
     }catch(e){}
   }else{
     name=document.getElementById('cNameTA').value.trim();
@@ -3237,8 +2996,6 @@ window.placeOrderClick=async function(){
     if(currentProfile) currentProfile.name=name;
     try{
       await setDoc(doc(db,'customers',phone),{name,phone,updatedAt:new Date().toISOString()},{merge:true});
-      const ws=await getDoc(doc(db,'wallets',phone));
-      if(!ws.exists()) await setDoc(doc(db,'wallets',phone),{phone,balance:0,due:0,createdAt:new Date().toISOString()});
     }catch(e){}
   }
   const notes=document.getElementById('orderNotes').value.trim();
@@ -3326,7 +3083,7 @@ window.placeOrderClick=async function(){
     lastOrder={name,phone,address,total,delivery,items,notes,orderType,payLater:false,date:ds};
     // Persist to localStorage so WA button works even after page interaction
     try{localStorage.setItem('kb_last_order',JSON.stringify(lastOrder));}catch(e){}
-    showPayScreen(total);
+    openPayScreen(total);
   }catch(e){console.error('Order error:',e);alert('Error placing order: '+(e&&e.message?e.message:'Please try again.'));}
   btn.disabled=false;
   // S47: chipki patti ko wapas chaalu karo — warna order fail hone par button
@@ -3338,707 +3095,62 @@ window.placeOrderClick=async function(){
 // ---- PAYMENT ----
 // ===== PAY DUES (customer) — reuses the payment screen in "dues" mode =====
 window._payMode='order';  // 'order' | 'dues'
-window.payDuesNow=async function(){
-  const total=window._myDuesTotal||0;
-  if(total<=0){showToast('No dues to pay');return;}
-  // Make sure we have UPI config (Profile tab may not have loaded the menu)
-  if(!menuConfig||!menuConfig.upiId){
-    try{ const cs=await getDoc(doc(db,'config','menu')); if(cs.exists()){ const d=cs.data(); menuConfig=Object.assign({},menuConfig,{upiId:d.upiId,upiName:d.upiName}); } }catch(e){}
-  }
-  window._payMode='dues';
-  showPayScreen(total);
+// ══════════ S65: PAYMENT REDESIGN — single simple screen ══════════
+// Static QR (admin ka asli QR, ek file) + amount TEXT (kabhi QR me nahi) +
+// do tick (Payment Done / Abhi nahi) + Confirm Order. Ref number, 4 tabs,
+// UPI-app buttons, Pay Later — sab hata diya gaya (chhota business, jaan-
+// pehchaan wale customer — admin khud PhonePe list se match karke Payment
+// List me Confirm karta hai).
+window._payTick='';
+window.setPayTick=function(which){
+  window._payTick=which;
+  const yesEl=document.getElementById('pqrYes'), noEl=document.getElementById('pqrNo');
+  const yesBox=document.getElementById('pqrYesBox'), noBox=document.getElementById('pqrNoBox');
+  const btn=document.getElementById('pqrConfirmBtn');
+  if(yesEl) yesEl.checked=(which==='yes');
+  if(noEl) noEl.checked=(which==='no');
+  if(yesBox) yesBox.classList.toggle('yes-on', which==='yes');
+  if(noBox) noBox.classList.toggle('no-on', which==='no');
+  if(btn) btn.classList.toggle('ready', which==='yes');
+  const nudge=document.getElementById('pqrNudge');
+  if(which==='yes' && nudge) nudge.classList.remove('show');
 };
-// Q-10: payment procedure samjhane wala popup (Proceed to Pay ke baad, pay screen se pehle).
-window.showPayProcedurePopup=function(total){
-  const old=document.getElementById('payProcPopup'); if(old) old.remove();
-  const ov=document.createElement('div');
-  ov.id='payProcPopup';
-  ov.style.cssText='position:fixed;inset:0;z-index:650;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:18px';
-  ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
-  const step=(n,t)=>'<div style="display:flex;gap:11px;align-items:flex-start;margin:11px 0;text-align:left">'
-    +'<div style="flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:#ea580c;color:#fff;font-weight:900;font-size:1rem;display:flex;align-items:center;justify-content:center">'+n+'</div>'
-    +'<div style="font-size:.92rem;font-weight:600;color:#333;line-height:1.4;padding-top:3px">'+t+'</div></div>';
-  ov.innerHTML='<div style="background:#fff;border-radius:20px;max-width:380px;width:100%;padding:22px;box-shadow:0 14px 44px rgba(0,0,0,.3)">'
-    +'<div style="text-align:center;font-weight:900;font-size:1.15rem;color:#ea580c;margin-bottom:4px">💳 Payment kaise karein</div>'
-    +'<div style="text-align:center;font-size:.8rem;color:#777;margin-bottom:8px">Total: <b style="color:#ea580c">₹'+total+'</b></div>'
-    +step(1,'Selected method se <b>payment karein</b> (QR scan / UPI ID / app).')
-    +step(2,'Kisi bhi UPI app se pay karke <b>wapas is page par aayein</b> aur UPI <b>Transaction ID ke last 4 digit</b> note karke daalein.')
-    +step(3,'<b>"Confirm Payment &amp; Place Order"</b> dabaayein — aapka order lag jayega ✅')
-    +'<button onclick="ackPayProcedure('+total+')" style="width:100%;margin-top:14px;padding:13px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:13px;font-weight:800;font-size:.95rem;cursor:pointer;font-family:inherit">Samajh gaya, aage badhein →</button>'
-  +'</div>';
-  document.body.appendChild(ov);
-};
-window.ackPayProcedure=function(total){
-  // pay screen pehle se khuli hai — sirf popup band karo.
-  const pop=document.getElementById('payProcPopup'); if(pop) pop.remove();
-};
-function showPayScreen(total){
-  // Q-10 (revised): popup ab pay screen ke UPAR dikhta hai — pehle payScreen khulti hai,
-  // phir uske upar procedure popup (neeche show('payScreen') ke baad call hota hai).
-  const _isDuesMode=(window._payMode==='dues');
-  // Session 28: running-total bar (1 item · ₹X · Order Now) sirf order/menu page par —
-  // payment screen par usse chhupa do, warna wo pay button ke upar float karta hai.
+function openPayScreen(total){
+  // Session 28: running-total bar sirf order/menu page par — pay screen par chhupa do.
   try{ const rb=document.getElementById('runTotalBar'); if(rb) rb.style.display='none'; document.body.style.paddingBottom=''; }catch(e){}
-  const uid=menuConfig.upiId||'';const uname=menuConfig.upiName||'Kicken Bites';
-  // B-3: agar UPI ID set nahi hai to warning dikhao
-  try{
-    const upiWarn=document.getElementById('upiEmptyWarn');
-    if(upiWarn) upiWarn.style.display=uid?'none':'block';
-  }catch(e){}
-  const isDues=(window._payMode==='dues');
   {const el=document.getElementById('payAmt');if(el)el.textContent='₹'+total;}
-  {const el=document.getElementById('payTo');if(el)el.textContent='Pay to '+uname;}
-  // Header line: dues vs order
+  {const el=document.getElementById('pqrAmt');if(el)el.textContent='₹'+total;}
   const pd=document.getElementById('payDate');
   if(pd){
-    if(isDues){
-      pd.textContent='💳 Baaki (Dues) Clear Kar Rahe Hain';
-    }else{
-      const ds=selectedDate||getTodayDate();
-      const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
-      const t=getTodayDate();
-      const d2=new Date(t+'T00:00:00');d2.setDate(d2.getDate()+1);
-      const tm=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
-      const rel=ds===t?'Today · ':ds===tm?'Tomorrow · ':'';
-      pd.textContent='📅 Order for '+rel+disp;
-    }
+    const ds=selectedDate||getTodayDate();
+    const disp=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+    const t=getTodayDate();
+    const d2=new Date(t+'T00:00:00');d2.setDate(d2.getDate()+1);
+    const tm=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+    const rel=ds===t?'Today · ':ds===tm?'Tomorrow · ':'';
+    pd.textContent='📅 Order for '+rel+disp;
   }
-  // Confirm button + warn note text depend on mode (dues vs new order)
-  const ipb=document.getElementById('iPaidBtn');
-  // S50: yahi wo jagah hai jahan order asli maayne me pakka hota hai, isliye
-  // "Place Order" ab yahan likha hai (bar par nahi — wahan sirf "Proceed to Pay").
-  // Dues chukane wale mode me koi naya order nahi banta, isliye wahan alag text.
-  if(ipb) ipb.textContent=isDues
-    ? '✅ Confirm Payment'
-    : '✅ Confirm Payment & Place Order';
-  // Session 37: ref-gate. Har baar pay screen khulne par input khaali ho.
-  {
-    const ri=document.getElementById('payRef4');
-    if(ri){ ri.value=''; ri.classList.remove('bad'); }
-    const re=document.getElementById('payRefErr'); if(re){ re.style.display='none'; re.textContent=''; }
-    const rs=document.getElementById('payRefSub');
-    if(rs) rs.textContent=isDues
-      ? 'Ye aapke UPI app ki payment-success screen par likha hota hai. Iske bina dues clear nahi honge.'
-      : 'Ye aapke UPI app ki payment-success screen par likha hota hai. Iske bina order confirm nahi hoga.';
-  }
-  {const el=document.getElementById('upiId');if(el)el.textContent=uid;}
-  {const h1=document.getElementById('hintAmt');if(h1)h1.textContent=total;}
-  {const h2=document.getElementById('hintAmt2');if(h2)h2.textContent=total;}
-  {const el=document.getElementById('qrAmt');if(el)el.textContent='₹'+total;}
-  const pa1=document.getElementById('procAmt1'); if(pa1)pa1.textContent=total;
-  const cb=document.getElementById('copyBtn'); cb.textContent='📋 Copy UPI ID'; cb.classList.remove('copied');
-  const ud=`upi://pay?pa=${encodeURIComponent(uid)}&pn=${encodeURIComponent(uname)}&am=${total}&cu=INR&tn=${encodeURIComponent(isDues?'Kicken Bites Dues':'Kicken Bites')}`;
-  window._payUpiStr=ud; window._payQrName='KickenBites-Pay-'+total+'.png'; window._payTotal=total;
-  renderQrCanvas(ud);
-  // populate Pay Later panel amounts
-  {const el=document.getElementById('plOrderAmt'); if(el)el.textContent='₹'+total;}
-  // show previous dues if any
-  try{
-    const ph=localStorage.getItem('custPhone')||'';
-    if(ph){
-      getDoc(doc(db,'wallets',ph)).then(ws=>{
-        const due=ws.exists()?(ws.data().due||0):0;
-        const row=document.getElementById('plPrevDueRow');
-        const val=document.getElementById('plPrevDue');
-        if(row&&val&&due>0){ val.textContent='₹'+due; row.style.display='flex'; }
-        else if(row) row.style.display='none';
-      }).catch(()=>{});
-    }
-  }catch(e){}
-  // dues mode: Pay Later chip bilkul nahi (wahan to dues hi clear ho rahe hain)
-  const laterChip=document.getElementById('tabMethLater');
-  const strip=document.querySelector('.pay-sub-strip');
-  if(laterChip) laterChip.style.display=isDues?'none':'';
-  if(strip) strip.style.gridTemplateColumns=isDues?'1fr 1fr':'1fr 1fr 1fr';
-  if(!isDues){
-    applyPayLaterGate({allowed:true});   // gate aane tak chip neutral rehta hai
-    checkPayLaterEligibility(total).then(applyPayLaterGate).catch(()=>{});
-  }
-  // default to Pay Now tab; dues mode goes straight to Pay Now
-  // S53: legacy state ke liye switchPayMethod, visible layout pmInit se
-  try{ switchPayMethod('qr'); }catch(e){}
-  pmInit(total, isDues);
+  setPayTick('');
+  const nudge=document.getElementById('pqrNudge'); if(nudge) nudge.classList.remove('show');
   show('payScreen');window.scrollTo(0,0);
-  setTimeout(loadWalletBalance,300);
-  // Q-10: pay screen khulne ke BAAD uske upar procedure popup (order-mode me, ek baar).
-  if(!_isDuesMode){ setTimeout(function(){ showPayProcedurePopup(total); },180); }
 }
-// Download the payment QR to the gallery so the customer can upload it in their UPI app
-// Open a specific UPI app (app only — NO amount prefill, since deep-linking the amount
-// caused GPay to decline). Customer then scans/uploads the saved QR inside the app.
-// Session 26b: PAYMENT-SAFE deep-link. User ne bताya deep-link se app to khulta tha
-// par payment FAIL hota tha — isliye QR/gallery wala rasta apnaya gaya tha. Wajah:
-// pehle intent:// ne UPI string ko re-format kiya, jisse app payload ko theek se
-// parse nahi kar paata tha. QR isliye kaam karta hai kyunki wo BILKUL wahi upi://
-// string deta hai bina kisi badlav ke. To ab hum bhi wahi karte hain: har app ko
-// _payUpiStr (= QR ki hu-ba-hu same string) SEEDHA bhejte hain, koi re-format nahi.
-// Ye "gallery se scan" ke barabar hai — amount bhara, aur payment usi tarah complete.
-// App-specific: GPay/PhonePe/Paytm ke apne payment-scheme (jo poori upi query lete
-// hain) taaki wahi app khule; kaam na kare to 1.2s me generic upi:// (phone app-picker).
-// Session 26c REVERT: UPI network deep-link/link payments ko security ke liye DECLINE
-// kar deta hai ("Payment to this receiver was declined by the UPI network") — ye UPI
-// ki policy hai, code se theek nahi hoti. Sirf QR-scan (gallery se) bharosemand chalta
-// hai. Isliye ye buttons ab SIRF app kholte hain; customer QR download karke, app me
-// gallery/scan se wo QR chunkar payment karta hai. Koi amount deep-link nahi bhejte.
-window.openUpiApp=function(app){
-  window._pmPayAttempt=true;   // S55(#7): app button dabaya = payment ki koshish
-  const schemes={ gpay:'tez://upi/', phonepe:'phonepe://', paytm:'paytmmp://', bhim:'upi://' };
-  const url=schemes[app]||'upi://';
-  try{ window.location.href=url; }catch(e){}
-  showToast(app.toUpperCase()+' khul raha hai — ab Gallery/Scan se saved QR chunkar pay karein');
-};
-// Session 16: QR ko canvas par khud banao — koi network call nahi, isliye
-// download hamesha chalta hai. qrcode() global embedded library se aata hai.
-function renderQrCanvas(data){
-  const cv=document.getElementById('qrCanvas');
-  const fb=document.getElementById('qrFallback');
-  if(!cv) return;
-  try{
-    if(typeof qrcode!=='function') throw new Error('qr lib missing');
-    // type 0 = auto-size for the data; 'M' = ~15% error correction (QR fine to scan)
-    const qr=qrcode(0,'M'); qr.addData(data); qr.make();
-    const n=qr.getModuleCount();
-    const quiet=4;                       // 4-module quiet zone (UPI apps ke liye zaroori)
-    const px=Math.max(6, Math.floor(300/(n+quiet*2)));  // module size in device px
-    const dim=(n+quiet*2)*px;
-    cv.width=dim; cv.height=dim;
-    const ctx=cv.getContext('2d');
-    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,dim,dim);
-    ctx.fillStyle='#000000';
-    for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(qr.isDark(r,c))
-      ctx.fillRect((c+quiet)*px,(r+quiet)*px,px,px);
-    cv.style.display='block'; if(fb) fb.style.display='none';
-    window._qrReady=true;
-  }catch(e){
-    if(cv) cv.style.display='none';
-    if(fb) fb.style.display='block';
-    window._qrReady=false;
-    console.error('QR render failed',e);
-  }
-}
-
-// S63(P10): QR ke saath ek band (amount + naam) jodkar ek naya canvas banao,
-// taaki gallery me QR dekhte hi pata chale kis amount ka hai.
-function buildQrWithAmount(srcCv){
-  try{
-    const total=window._payTotal;
-    const pad=24, band=64;
-    const W=srcCv.width+pad*2, H=srcCv.height+pad*2+band;
-    const out=document.createElement('canvas'); out.width=W; out.height=H;
-    const ctx=out.getContext('2d');
-    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
-    ctx.drawImage(srcCv,pad,pad);
-    // amount band ke neeche
-    const cy=srcCv.height+pad*2;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle='#ea580c';
-    ctx.font='900 34px Arial, sans-serif';
-    ctx.fillText((total!=null?('₹'+total):'Kicken Bites'), W/2, cy+22);
-    ctx.fillStyle='#57534e';
-    ctx.font='600 15px Arial, sans-serif';
-    ctx.fillText('Kicken Bites — QR me amount set hai', W/2, cy+46);
-    return out;
-  }catch(e){ return srcCv; }
-}
-window.downloadQR=function(){
-  const src=document.getElementById('qrCanvas');
-  if(!src || !window._qrReady){ showToast('QR ready nahi hai — UPI ID se try karein'); return; }
-  const cv=buildQrWithAmount(src);   // S63(P10): amount-band wala canvas
-  const name=window._payQrName||'KickenBites-QR.png';
-  const finish=()=>showToast('✅ QR gallery me save ho gaya — UPI app me upload karein');
-  try{
-    cv.toBlob(function(blob){
-      if(!blob){ dataUrlDownload(); return; }
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob); a.download=name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-      finish();
-    },'image/png');
-  }catch(e){ dataUrlDownload(); }
-  function dataUrlDownload(){
-    try{
-      const a=document.createElement('a');
-      a.href=cv.toDataURL('image/png'); a.download=name;
-      document.body.appendChild(a); a.click(); a.remove();
-      finish();
-    }catch(err){ showToast('Download nahi hua — QR ka screenshot le lein'); }
-  }
-};
-window.copyUpi=function(){
-  const uid=menuConfig.upiId||'';
-  navigator.clipboard.writeText(uid).then(()=>{const b=document.getElementById('copyBtn');b.textContent='✅ Copied!';b.classList.add('copied');setTimeout(()=>{b.textContent='📋 Copy UPI ID';b.classList.remove('copied');},3000);showToast('UPI ID copied! Open your UPI app and paste.');}).catch(()=>{});
-};
-// ---- WALLET / PAY LATER ----
-async function loadWalletBalance(){
-  const phone=lastOrder?.phone||currentProfile?.phone||localStorage.getItem('custPhone');
-  if(!phone)return;
-  try{
-    const snap=await getDoc(doc(db,'wallets',phone));
-    const data=snap.exists()?snap.data():{balance:0,due:0};
-    const bal=data.balance||0;
-    const due=data.due||0;
-    
-    // Wallet section - show if balance > 0
-    const ws=document.getElementById('walletSection');
-    const wb=document.getElementById('walletBal');
-    if(ws&&wb){
-      ws.style.display=bal>0?'block':'none';
-      wb.textContent='₹'+bal;
-    }
-    
-    // Pay later - always show, but show current dues
-    const dl=document.getElementById('dueAmtLabel');
-    const plBtn=document.querySelector('#payLaterSection button');
-    if(dl){
-      if(due>0){
-        dl.textContent='⚠️ Current due: ₹'+due;
-        dl.style.color='var(--red)';
-        if(plBtn) plBtn.textContent='📋 Add ₹'+currentTotal+' to Tab (Total due will be ₹'+(due+currentTotal)+')';
-      }else{
-        dl.textContent='No current dues';
-        dl.style.color='var(--muted)';
-        if(plBtn) plBtn.textContent='📋 Add to Tab — Pay Later';
-      }
-    }
-    
-    // Show pay later section always
-    const pls=document.getElementById('payLaterSection');
-    if(pls) pls.style.display='block';
-    
-  }catch(e){
-    console.error('Wallet error:',e);
-    // Still show pay later even if wallet fails
-    const pls=document.getElementById('payLaterSection');
-    if(pls) pls.style.display='block';
-  }
-}
-
-window.useWallet=async function(){
-  const phone=lastOrder?.phone||currentProfile?.phone;
-  if(!phone||!currentOrderId)return;
-  try{
-    // BUG-10: this used to read the balance, subtract, then write — two separate
-    // steps. Two tabs paying at the same moment both read the OLD balance and the
-    // second write overwrote the first, so the wallet was charged once for two
-    // orders. One transaction now reads and writes together.
-    const wRef=doc(db,'wallets',phone);
-    await runTransaction(db,async tx=>{
-      const ws=await tx.get(wRef);
-      const bal=ws.exists()?(Number(ws.data().balance)||0):0;
-      if(bal<currentTotal) throw new Error('LOW_BALANCE:'+bal);
-      tx.set(wRef,{phone:phone,balance:bal-currentTotal,updatedAt:new Date().toISOString()},{merge:true});
-    });
-    await confirmPayment(currentOrderId);
-    hide('payScreen');
-    showToast('✅ Paid from wallet!');
-    showSuccess();
-  }catch(e){
-    if(String(e.message||'').startsWith('LOW_BALANCE:')){
-      alert('Insufficient wallet balance (₹'+String(e.message).split(':')[1]+'). Please pay via UPI.');
-    } else alert('Error using wallet: '+e.message);
-  }
-};
-
-window.payLater=async function(){
-  const phone=lastOrder?.phone||currentProfile?.phone||localStorage.getItem('custPhone');
-  if(!phone||!currentOrderId)return;
-  // Session 14: chip locked hone par yahan tak nahi aana chahiye — par defence me
-  if(window._plEligible && window._plEligible.allowed===false){
-    showToast((window._plEligible.short)||'Pay Later abhi available nahi hai');
-    switchPayMethod('qr'); return;
-  }
-  if(!confirm(`Add ₹${currentTotal} to your pay later tab? Please settle before your next order.`))return;
-  try{
-    const snap=await getDoc(doc(db,'wallets',phone));
-    const due=(snap.exists()?snap.data().due||0:0)+currentTotal;
-    await setDoc(doc(db,'wallets',phone),{due,phone,updatedAt:new Date().toISOString()},{merge:true});
-    await setDoc(doc(db,'orders',currentOrderId),{status:'confirmed',payLater:true,customerPaid:true,customerPaidAt:new Date().toISOString(),confirmedAt:new Date().toISOString()},{merge:true});
-    lastOrder.payLater=true;
-    hide('payScreen');
-    showToast('📋 Order confirmed! ₹'+currentTotal+' added to your tab.');
-    showSuccess();
-  }catch(e){alert('Error: '+e.message);}
-};
-
-// Session 12: Pay Now ke andar QR / UPI ID chunna. Jo chuna hai wahi order par
-// payMethod ke roop me save hota hai, taaki admin ko pata rahe paisa kaise aaya.
-window._payMethod='qr';
-// Session 14: teen-way selector — 'qr' | 'upi' | 'later'. QR/UPI pay-now content
-// ke andar switch karte hain; 'later' pura pay-later panel khol deta hai.
-window.switchPayMethod=function(m){
-  // Pay Later locked ho to us chip par jaane hi mat do
-  if(m==='later' && window._plEligible && window._plEligible.allowed===false){
-    // locked chip: note dikhao (yahi wo jagah hai jahan customer ineligible reason dekhega)
-    const note=document.getElementById('plLockNote');
-    if(note){ note.style.display='block'; note.innerHTML=(window._plEligible.msg||''); }
-    showToast((window._plEligible.short)||'Pay Later abhi available nahi hai');
+window.confirmOrderNow=async function(){
+  if(window._payTick!=='yes'){
+    const nudge=document.getElementById('pqrNudge');
+    if(nudge) nudge.classList.add('show');
+    try{ document.getElementById('pqrCard')?.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
     return;
   }
-  window._payMethod=(m==='upi')?'upi':(m==='later'?'later':'qr');
-  if(m!=='later'){ const n=document.getElementById('plLockNote'); if(n){ n.style.display='none'; n.innerHTML=''; } }
-  const isLater=(m==='later');
-  const isQR=(m==='qr'||(!isLater&&m!=='upi'));
-  const q=document.getElementById('payMethQR'), u=document.getElementById('payMethUPI');
-  const payCard=q?q.closest('.pay-card'):null;   // QR+UPI+I-paid sab isi card me hain
-  if(q) q.style.display=(isQR&&!isLater)?'block':'none';
-  if(u) u.style.display=(!isQR&&!isLater)?'block':'none';
-  if(payCard){ payCard.style.display=isLater?'none':'block'; payCard.classList.toggle('qr-mode', isQR&&!isLater); }
-  document.getElementById('tabMethQR')?.classList.toggle('active',isQR&&!isLater);
-  document.getElementById('tabMethUPI')?.classList.toggle('active',!isQR&&!isLater);
-  document.getElementById('tabMethLater')?.classList.toggle('active',isLater);
-  switchPayTab(isLater?'later':'now');
-};
-
-// Session 13: Pay Now hamesha dikhta hai; Pay Later neeche se khulta hai.
-// (Purana naam rakha gaya hai kyunki dues-mode aur openPayScreen ise call karte hain.)
-window.switchPayTab=function(tab){
-  const isNow=(tab!=='later');
-  const np=document.getElementById('payNowPanel');
-  const lp=document.getElementById('payLaterPanel');
-  const bl=document.getElementById('payBackLnk');
-  if(np) np.style.display='block';          // pay-now content kabhi chhupta nahi
-  if(lp) lp.style.display=isNow?'none':'block';
-  if(bl) bl.style.display='block';
-  window._payTab=isNow?'now':'later';
-};
-
-window.togglePayLater=function(){ switchPayMethod('later'); };
-
-// ══════════ S53: PAYMENT PAGE JS (saaf, koi hidden panel leak nahi) ══════════
-// pmInit openPayScreen se call hota hai. 4 tabs + accordion. Order lagane ke liye
-// purani iHavePaid/payLater use hoti hain (hidden legacy elements se). Koi panel toggle nahi.
-window._pmTab='qrdl';
-let _pmWentBg=false, _pmReturned=false;   // S54: hoisted (pmInit resets, handlers set)
-function pmInit(total, isDues){
-  const uid=(menuConfig.upiId||'').trim();
-  const amt='₹'+total;
-  ['pmAmt-qrdl','pmAmt2-qrdl','pmAmt-showqr','pmAmt2-showqr','pmAmt-upi','pmAmt2-upi']
-    .forEach(function(id){ const e=document.getElementById(id); if(e) e.textContent=amt; });
-  // S61: har last-4 note me masked txn-id example — sirf aakhri 4 ank (laal) badalte hain.
-  {
-    const eg=String(Math.floor(1000+Math.random()*8999));   // 1000-9998
-    ['pmEg-qrdl','pmEg-showqr','pmEg-upi','pmEg2-qrdl','pmEg2-upi']
-      .forEach(function(id){ const wrap=document.getElementById(id); if(!wrap) return;
-        const l4=wrap.querySelector('.l4'); if(l4) l4.textContent=eg; else wrap.textContent='xxxxxxxx'+eg; });
-  }
-  {const e=document.getElementById('pmUpiId'); if(e) e.textContent=uid||'—';}
-  {const w=document.getElementById('pmUpiWarn'); if(w) w.style.display=uid?'none':'block';}
-  {const e=document.getElementById('pmPlAmt'); if(e) e.textContent=amt;}
-  if(window._payUpiStr){
-    pmDrawQr('qrCanvas-qrdl', window._payUpiStr, 180);
-    pmDrawQr('qrCanvas-showqr', window._payUpiStr, 230);
-  }
-  ['qrdl','showqr','upi'].forEach(function(t){
-    pmAcc(t,1);
-    const r=document.getElementById('pmRef-'+t); if(r){ r.value=''; r.classList.remove('bad','good'); }
-    const er=document.getElementById('pmErr-'+t); if(er) er.classList.remove('show');
-  });
-  {const b=document.getElementById('pmDlBtn'); if(b){ b.textContent='📥 Download QR to Gallery'; b.classList.remove('done'); }}
-  {const n1=document.getElementById('pmN-qrdl-1'); if(n1){ n1.textContent='1'; n1.classList.remove('done'); }}
-  // S54: har pay-tab ka Kadam 2 numbers reset (background-green wapas normal)
-  ['qrdl','upi'].forEach(function(t){
-    const n2=document.getElementById('pmN-'+t+'-2');
-    if(n2){ n2.textContent='2'; n2.classList.remove('done'); }
-  });
-  // S56: Show QR ka Kadam 1 (scan) bhi reset
-  {const n1s=document.getElementById('pmN-showqr-1'); if(n1s){ n1s.textContent='1'; n1s.classList.remove('done'); }}
-  // S59: UPI ID tab ka Kadam 1 (copy) bhi reset
-  {const n1u=document.getElementById('pmN-upi-1'); if(n1u){ n1u.textContent='1'; n1u.classList.remove('done'); }}
-  _pmWentBg=false; _pmReturned=false;   // S54: naya payScreen, background flags saaf
-  window._pmPayAttempt=false;            // S55(#7): har naye order par payment-confidence reset
-  {const c=document.getElementById('pmCopyBtn'); if(c){ c.textContent='📋 UPI ID Copy karein'; c.classList.remove('done'); }}
-  const laterTab=document.getElementById('pmTabLater');
-  if(laterTab) laterTab.style.display=isDues?'none':'';
-  pmTab('qrdl');
-  setTimeout(pmSyncLater, 60);
-  setTimeout(pmSyncLater, 700);
-}
-function pmDrawQr(canvasId, data, size){
-  const cv=document.getElementById(canvasId); if(!cv) return;
-  try{
-    if(typeof qrcode!=='function') return;
-    const qr=qrcode(0,'M'); qr.addData(data); qr.make();
-    const n=qr.getModuleCount(), quiet=4;
-    const px=Math.max(4,Math.floor(size/(n+quiet*2)));
-    const dim=(n+quiet*2)*px; cv.width=dim; cv.height=dim;
-    const ctx=cv.getContext('2d');
-    ctx.fillStyle='#fff'; ctx.fillRect(0,0,dim,dim);
-    ctx.fillStyle='#000';
-    for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(qr.isDark(r,c)) ctx.fillRect((c+quiet)*px,(r+quiet)*px,px,px);
-  }catch(e){}
-}
-function pmSyncLater(){
-  const lock=document.getElementById('plLockNote'), lockV=document.getElementById('pmPlLock');
-  if(lock&&lockV){ lockV.innerHTML=lock.innerHTML; lockV.style.display=lock.innerHTML.trim()?'block':'none'; }
-  const due=document.getElementById('plPrevDue'), dueV=document.getElementById('pmPlDue');
-  const dueRow=document.getElementById('plPrevDueRow'), dueRowV=document.getElementById('pmPlDueRow');
-  if(due&&dueV) dueV.textContent=due.textContent;
-  if(dueRow&&dueRowV) dueRowV.style.display=dueRow.style.display;
-}
-window.pmTab=function(t){
-  window._pmTab=t;
-  ['qrdl','showqr','upi','later'].forEach(function(id){ const p=document.getElementById('pmP-'+id); if(p) p.classList.toggle('on',id===t); });
-  const map={qrdl:'QRDL',showqr:'SHOW',upi:'UPI',later:'Later'};
-  Object.keys(map).forEach(function(id){ const b=document.getElementById('pmTab'+map[id]); if(b) b.classList.toggle('on',id===t); });
-  const leg={qrdl:'qr',showqr:'qr',upi:'upi',later:'later'}[t]||'qr';
-  try{ window._payMethod=(leg==='upi')?'upi':(leg==='later'?'later':'qr'); }catch(e){}
-  if(t==='later') pmSyncLater();
-};
-window.pmAcc=function(tab,n){
-  const max={qrdl:3,showqr:2,upi:3}[tab]||3;
-  for(let i=1;i<=max;i++){ const a=document.getElementById('pmA-'+tab+'-'+i); if(a) a.classList.toggle('on',i===n); }
-  // S56: Show QR me doosre phone se scan hota hai — ye phone background nahi jaata,
-  // isliye background-green kabhi nahi lagta. Fix: jab customer ref-step (Kadam 2) khole,
-  // scan-step (Kadam 1) ko green+done maan lo (scan ho hi chuka tabhi ref daalega).
-  if(tab==='showqr' && n===2){
-    const n1=document.getElementById('pmN-showqr-1');
-    if(n1){ n1.textContent='✓'; n1.classList.add('done'); }
-  }
-  // wapas Kadam 1 par gaya to green hata do (dobara scan dikhana)
-  if(tab==='showqr' && n===1){
-    const n1=document.getElementById('pmN-showqr-1');
-    if(n1){ n1.textContent='1'; n1.classList.remove('done'); }
-  }
-};
-window.pmRefIn=function(tab){
-  const el=document.getElementById('pmRef-'+tab), er=document.getElementById('pmErr-'+tab);
-  if(!el) return;
-  el.classList.remove('bad','good'); if(er) er.classList.remove('show');
-  if(/^\d{4}$/.test(el.value)){
-    el.classList.add('good');
-    const leg=document.getElementById('payRef4'); if(leg) leg.value=el.value;
-    // S57: 4 digit poore -> keyboard band karo taaki neeche ka green Confirm button dikhe.
-    try{ el.blur(); }catch(e){}
-  }
-};
-window.pmZeros=function(tab){
-  const el=document.getElementById('pmRef-'+tab);
-  if(el){ el.value='0000'; pmRefIn(tab); }
-};
-window.pmDownload=function(){
-  if(typeof downloadQR==='function'){ try{ downloadQR(); }catch(e){} }
-  const b=document.getElementById('pmDlBtn'); if(b){ b.textContent='✅ QR Downloaded!'; b.classList.add('done'); }
-  const n=document.getElementById('pmN-qrdl-1'); if(n){ n.textContent='✓'; n.classList.add('done'); }
-  setTimeout(function(){ pmAcc('qrdl',2); },420);
-};
-window.pmCopy=function(){
-  const id=(document.getElementById('pmUpiId')?.textContent||'').trim();
-  if(id && id!=='—'){ try{ navigator.clipboard.writeText(id); }catch(e){} }
-  const b=document.getElementById('pmCopyBtn'); if(b){ b.textContent='✅ Copied!'; b.classList.add('done'); }
-  // S59: UPI ID copy = Kadam 1 poora -> use green karo (Show QR jaisा), phir Kadam 2 kholo.
-  {const n1=document.getElementById('pmN-upi-1'); if(n1){ n1.textContent='✓'; n1.classList.add('done'); }}
-  setTimeout(function(){ pmAcc('upi',2); },300);
-};
-window.pmConfirm=function(tab){
-  const el=document.getElementById('pmRef-'+tab), er=document.getElementById('pmErr-'+tab);
-  if(!el || !/^\d{4}$/.test(el.value)){
-    // S54: bina 4-ank Pay dabaya — ref wali (aakhri) patti khol do taaki dikhe kyun ruka
-    const last={qrdl:3,showqr:2,upi:3}[tab]||3;
-    pmAcc(tab,last);
-    if(el){ el.classList.add('bad'); el.focus(); }
-    if(er) er.classList.add('show');
-    try{ document.getElementById('pmA-'+tab+'-'+last)?.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
-    return;
-  }
-  if(er) er.classList.remove('show');
-  const leg=document.getElementById('payRef4'); if(leg) leg.value=el.value;
-  if(typeof iHavePaid==='function') iHavePaid();
-};
-
-// ══════════ S54: BACKGROUND → wapas → Kadam 2 GREEN, Kadam 3 khulo ══════════
-// Jab customer UPI app kholta hai (ya kisi wajah se screen background me jaati hai)
-// aur wapas aata hai, to maan lete hain payment ki koshish ho gayi:
-//   - Kadam 2 (UPI App patti) ✅ green + band
-//   - Kadam 3 (ref) khud khule + field par focus (keyboard taiyar)
-// User ne kaha: HAR BAAR background jaane par (sirf app-button nahi).
-// Pay Later tab par kuch nahi (waha ref hai hi nahi). Ek payScreen-khulne me
-// sirf EK baar chale (warna baar-baar notification dekhne par bhi trigger ho).
-function pmMarkBackground(){
-  // sirf jab payScreen khula ho aur ek pay-tab (later nahi) active ho
-  const ps=document.getElementById('payScreen');
-  if(!ps || ps.style.display==='none') return;
-  if(window._pmTab==='later') return;
-  _pmWentBg=true;
-}
-function pmOnReturn(){
-  if(!_pmWentBg || _pmReturned) return;
-  const ps=document.getElementById('payScreen');
-  if(!ps || ps.style.display==='none') return;
-  const tab=window._pmTab;
-  if(tab==='later') return;
-  _pmReturned=true;
-  window._pmPayAttempt=true;   // S55(#7): customer app me gaya = payment ki koshish maani jaayegi
-  // Jo patti "payment karo" wali hai use green+band. Show QR me wo Kadam 1 (scan) hai,
-  // QR Download/UPI me Kadam 2 (UPI app). Ref wali patti (aakhri) khud khulti hai.
-  const payStep={qrdl:2, upi:2, showqr:1}[tab];
-  if(payStep){
-    const nn=document.getElementById('pmN-'+tab+'-'+payStep);
-    if(nn){ nn.textContent='✓'; nn.classList.add('done'); }
-    const aa=document.getElementById('pmA-'+tab+'-'+payStep);
-    if(aa) aa.classList.remove('on');
-  }
-  const last={qrdl:3,showqr:2,upi:3}[tab]||3;
-  pmAcc(tab,last);
-  setTimeout(function(){
-    const r=document.getElementById('pmRef-'+tab);
-    if(r){ try{ r.focus(); }catch(e){} }
-    const stepEl=document.getElementById('pmA-'+tab+'-'+last);
-    try{ stepEl?.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
-    // Q-9: Confirm/ref wali patti ko chamkao + reminder toast, taaki customer confuse na ho.
-    if(stepEl){
-      stepEl.classList.remove('pm-flash'); void stepEl.offsetWidth; stepEl.classList.add('pm-flash');
-      setTimeout(function(){ stepEl.classList.remove('pm-flash'); },2400);
-    }
-    try{ showToast('Payment ho gaya? Neeche Transaction ID ke last 4 digit daal kar Confirm karein 👇'); }catch(e){}
-  },120);
-}
-document.addEventListener('visibilitychange',function(){
-  if(document.hidden) pmMarkBackground(); else setTimeout(pmOnReturn,60);
-});
-window.addEventListener('blur', pmMarkBackground);
-window.addEventListener('focus', function(){ setTimeout(pmOnReturn,60); });
-
-
-// ── Session 13: Pay Later kis ko milega ──
-// Do rule, dono config se badalne yogya (admin Setup tab):
-//   1. Naya customer: pehle N (default 2) orders ka payment poora hona chahiye
-//   2. Total unpaid dues + is order ka amount <= limit (default ₹2000)
-// Ye sirf UI gate hai — asli guarantee nahi — par 99% cases yahin ruk jaate hain,
-// aur dono numbers ek jagah se aate hain taaki baad me badalna aasan ho.
-window._plEligible={allowed:true};
-async function checkPayLaterEligibility(orderTotal){
-  const limit=Number((menuConfig&&menuConfig.duesLimit)||2000);
-  const minOrders=Number((menuConfig&&menuConfig.payLaterMinOrders)||2);
-  let orders=_allMyOrders||[];
-  if(!orders.length){
-    const ph=localStorage.getItem('custPhone')||'';
-    if(ph){
-      try{
-        const {getDocs}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-        const snap=await getDocs(query(collection(db,'orders'),where('phone','==',ph)));
-        orders=snap.docs.map(d=>d.data());
-      }catch(e){}
-    }
-  }
-  const live=orders.filter(o=>o.status!=='cancelled');
-  const dues=live.filter(o=>o.payLater===true&&o.paidCleared!==true)
-                 .reduce((sum,o)=>sum+(Number(o.total)||0),0);
-  // "Paid order" = jiska paisa sach me settle ho chuka hai: ya to admin ne online
-  // payment verify kiya, ya pay-later ka due clear hua. Sirf claim karna kaafi nahi.
-  const paidCount=live.filter(o=>o.paymentConfirmed===true||o.paidCleared===true).length;
-  const after=dues+Number(orderTotal||0);
-  if(paidCount<minOrders) return {allowed:false, reason:'newbie', dues, paidCount, limit, minOrders,
-    short:`Pehle ${minOrders} order ka payment poora karein`,
-    msg:`🔒 <b>Pay Later abhi band hai.</b><br>Naye customer ke liye pehle <b>${minOrders} order</b> ka payment poora hona zaroori hai — abhi ${paidCount} hua hai. Uske baad ye option apne aap khul jayega.`};
-  if(after>limit) return {allowed:false, reason:'limit', dues, paidCount, limit, minOrders,
-    short:`Dues limit ₹${limit} cross ho rahi hai`,
-    msg:`🔒 <b>Pay Later abhi band hai.</b><br>Aapke <b>₹${dues}</b> dues pehle se baaki hain. Is order ke baad ₹${after} ho jayenge, aur limit <b>₹${limit}</b> hai.<br>Profile → <b>Pay Dues Now</b> se clear karein, phir option wapas khul jayega.`};
-  return {allowed:true, dues, paidCount, limit, minOrders};
-}
-
-function applyPayLaterGate(el){
-  window._plEligible=el||{allowed:true};
-  const chip=document.getElementById('tabMethLater');
-  const note=document.getElementById('plLockNote');
-  const ok=(!el||el.allowed!==false);
-  if(chip) chip.classList.toggle('locked',!ok);
-  if(note){
-    // Session 24 fix: note SIRF tab dikhe jab customer Pay Later chip par ho AUR wo
-    // locked ho. Pehle ye locked hote hi hamesha block ho jaata tha — eligible/QR
-    // wale customer ko bhi ganda note dikh jaata tha.
-    const onLater=(window._payMethod==='later');
-    const showNote=(!ok && onLater);
-    note.style.display=showNote?'block':'none';
-    note.innerHTML=showNote?(el.msg||''):'';
-  }
-  // Agar locked ho gaya aur customer Later par tha, to QR par wapas le aao
-  if(!ok && window._payMethod==='later') switchPayMethod('qr');
-}
-window.rtGoToOrder=function(){
-  // agar Order tab par nahi to wahan le aao, phir bill/place-button tak scroll
-  try{ if(typeof switchTab==='function') switchTab('order'); }catch(e){}
-  setTimeout(()=>{ document.getElementById('placeBtn')?.scrollIntoView({behavior:'smooth',block:'center'}); },80);
-};
-window.closePayScreen=function(){
-  hide('payScreen');window._payMode='order';window._payTab='now';
-  // Session 28: pay screen band → running-total bar wapas (updateBill khud dikhayega agar items hain)
-  try{ if(typeof updateBill==='function') updateBill(); }catch(e){}
-};
-// ===== Session 37: UPI REF GATE =====
-// Sirf 4 akshar/anke, apne aap bade. Har app apna ID alag naam se dikhata hai
-// (GPay "UPI transaction ID", Paytm "UPI Ref No."), aur kuchh me letter bhi
-// aa sakta hai — isliye alphanumeric liya, sirf digits nahi.
-window.onRefInput=function(){
-  const ri=document.getElementById('payRef4'); if(!ri)return;
-  ri.value=String(ri.value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(0,4);
-  ri.classList.remove('bad');
-  const re=document.getElementById('payRefErr'); if(re) re.style.display='none';
-};
-window.fillRefZeros=function(){
-  const ri=document.getElementById('payRef4'); if(!ri)return;
-  ri.value='0000'; ri.classList.remove('bad');
-  const re=document.getElementById('payRefErr'); if(re) re.style.display='none';
-  showToast('0000 bhara — shop khud check karegi');
-};
-// Returns the 4-char ref, or '' if invalid (and shows the error inline).
-function readPayRef(){
-  const ri=document.getElementById('payRef4');
-  const re=document.getElementById('payRefErr');
-  const v=ri?String(ri.value||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase():'';
-  if(v.length!==4){
-    if(ri){ ri.classList.add('bad'); try{ri.focus();}catch(e){} try{ri.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){} }
-    if(re){ re.textContent='⚠️ UPI Ref ke last 4 daaliye (nahi mil raha to 0000).'; re.style.display='block'; }
-    return '';
-  }
-  return v;
-}
-
-window.iHavePaid=async function(){
-  // DUES MODE: mark all pending pay-later orders as customer-claimed-paid (admin still confirms)
-  if(window._payMode==='dues'){
-    const ids=window._myDuesOrders||[];
-    if(!ids.length){hide('payScreen');window._payMode='order';showToast('No dues found');return;}
-    const claimAmt=window._myDuesTotal||0;
-    const ref4d=readPayRef(); if(!ref4d) return;   // Session 37: gate
-    try{
-      // Item 8: ek hi baar ke saare dues ko ek batch maante hain, taaki baad me
-      // archive me ek line ke roop me dikh sakein
-      const stamp=new Date().toISOString();
-      await Promise.all(ids.map(id=>setDoc(doc(db,'orders',id),{
-        customerClaimedPaid:true, customerClaimedPaidAt:stamp, duesBatch:stamp.slice(0,16),
-        upiRef4:ref4d, refNoProof:(ref4d==='0000')
-      },{merge:true})));
-      hide('payScreen');
-      window._payMode='order';
-      showToast('✅ Payment noted — shop ke confirm hone tak "pending" dikhega.');
-      // Admin ko WhatsApp — warna use pata hi nahi chalega ki paisa aa gaya
-      sendDuesPaidWA(claimAmt, ids.length);
-    }catch(e){alert('Error. Please try again or contact the shop.');}
-    return;
-  }
-  // ORDER MODE (normal)
   if(!currentOrderId)return;
-  // Session 37: bina UPI ref ke order confirm hoga hi nahi.
-  const ref4=readPayRef(); if(!ref4) return;
   try{
-    // Session 12: customer ka "maine pay kar diya" ab sirf a CLAIM hai.
-    // Order confirm ho jaata hai (customer ko wait nahi karna padta) par payment
-    // tab tak PENDING dikhta hai jab tak admin verify na kare — isliye
-    // paymentConfirmed yahan false rehta hai, sirf admin use true karta hai.
+    // Order turant CONFIRM ho jaata hai (customer ko wait nahi karna padta).
+    // Payment VERIFY alag signal hai — admin Payment List se confirm karega,
+    // tab tak My Orders me peeli patti; delivery boy tabhi assign hota hai.
     await setDoc(doc(db,'orders',currentOrderId),{
       status:'confirmed',
       customerPaid:true,
       paymentConfirmed:false,
-      payMethod:(window._payMethod==='upi'?'upi':'qr'),
-      // Session 37: customer ka diya hua UPI ref ka last-4. 0000 = "mujhe mila
-      // nahi" — us case me refNoProof true hota hai aur admin ko 🔺 dikhta hai.
-      upiRef4:ref4,
-      refNoProof:(ref4==='0000'),
-      // S55(#7): payment-confidence. Agar customer ne UPI ID/QR tab me na to koi
-      // UPI app dabaya, na screen background gaya (yaani app khola hi nahi), phir
-      // bhi 4 digit daal diya — to payment ki sambhaavna kam. Admin ko 🔺 (red) dikhega.
-      lowPayConfidence:(!window._pmPayAttempt && ref4!=='0000'),
+      payMethod:'qr',
       customerPaidAt:new Date().toISOString(),
       confirmedAt:new Date().toISOString()
     },{merge:true});
@@ -4046,28 +3158,16 @@ window.iHavePaid=async function(){
     showSuccess();
   }catch(e){alert('Error confirming. Try again or contact shop.');}
 };
-
-// Item 8: dues claim karne ke baad admin ko WhatsApp. Bina iske admin ko
-// confirm karne ka pata hi nahi chalta tha.
-window.sendDuesPaidWA=function(amount, count){
-  try{
-    var admin=(menuConfig&&menuConfig.adminPhone)?String(menuConfig.adminPhone):'9712951947';
-    admin=admin.replace(/[^0-9]/g,'').slice(-10);
-    if(admin.length!==10) return;
-    var nm=(currentProfile&&currentProfile.name)||localStorage.getItem('custName')||'';
-    var ph=(currentProfile&&currentProfile.phone)||localStorage.getItem('custPhone')||'';
-    var nl='\n';
-    var msg='*💳 DUES PAYMENT KIYA GAYA*'+nl+nl+
-      '👤 *'+nm+'*'+nl+
-      '📞 '+ph+nl+
-      '💰 Amount: *₹'+(Number(amount)||0)+'*'+nl+
-      '🧾 Orders: '+(count||0)+nl+nl+
-      'Maine payment kar di hai. Kripya check karke *Paid ✓* kar dijiye.';
-    var url='https://wa.me/91'+admin+'?text='+encodeURIComponent(msg);
-    setTimeout(function(){ window.open(url,'_blank'); }, 250);
-  }catch(e){}
+window.rtGoToOrder=function(){
+  // agar Order tab par nahi to wahan le aao, phir bill/place-button tak scroll
+  try{ if(typeof switchTab==='function') switchTab('order'); }catch(e){}
+  setTimeout(()=>{ document.getElementById('placeBtn')?.scrollIntoView({behavior:'smooth',block:'center'}); },80);
 };
-
+window.closePayScreen=function(){
+  hide('payScreen');
+  // Session 28: pay screen band → running-total bar wapas (updateBill khud dikhayega agar items hain)
+  try{ if(typeof updateBill==='function') updateBill(); }catch(e){}
+};
 window.sendCustomerConfirmWA=function(){
   // Restore lastOrder from localStorage if empty
   if(!lastOrder.phone){

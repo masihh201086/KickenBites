@@ -315,7 +315,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div class="tab" data-tab="ratings" onclick="sw('ratings')">⭐ Ratings</div>
     <div class="tab" data-tab="wish" onclick="sw('wish')">🌟 Wish</div>
     <div class="tab" data-tab="party" onclick="sw('party')">🎉 Party</div>
-    <div class="tab" data-tab="dues" onclick="sw('dues')">💳 Dues</div>
+    <div class="tab" data-tab="paylist" onclick="sw('paylist')">💰 Payments</div>
     <div class="tab" data-tab="setup" onclick="sw('setup')">⚙️ Setup</div>
     <div class="tab" id="moreTab" onclick="toggleMoreMenu(event)" style="position:relative">⋯ More
       <div id="moreMenu" style="display:none;position:fixed;background:#fff;border:1px solid #eee;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.22);z-index:10001;min-width:160px;overflow:hidden">
@@ -327,19 +327,6 @@ input:checked+.slider:before{transform:translateX(20px);}
 
   <!-- ORDERS -->
   <div class="panel active" id="tab-orders">
-    <!-- Session 38: SMS / bank message paste-and-verify card -->
-    <div class="card sms-card" id="smsVerifyCard">
-      <div class="sct">📋 UPI Payment Verify — SMS Paste karein</div>
-      <div style="font-size:.74rem;color:#6d28d9;margin-bottom:7px;line-height:1.5">
-        Apna bank / UPI SMS yahan paste karein — app khud ref no. + amount match karega
-        aur pending payments auto-verify kar dega.
-      </div>
-      <textarea class="sms-ta" id="smsPasteBox"
-        placeholder="Yahan bank/UPI SMS paste karein…&#10;E.g.: Rs.340.00 debited from a/c …UPI Ref 4821…"></textarea>
-      <div class="sms-res" id="smsResult"></div>
-      <button class="sms-btn" onclick="runSmsVerify()">🔍 Match karo &amp; Verify</button>
-      <button class="sms-clear" onclick="clearSmsVerify()">✕ Saaf karo</button>
-    </div>
     <!-- PIN RESET REQUESTS — hidden until there is at least one pending -->
     <div class="card" id="pinReqCard" style="display:none;padding:11px;border:2px solid #fb923c;background:#fff7ed;margin-bottom:9px">
       <div class="ct" style="margin:0 0 7px 0;color:#9a3412">🔑 PIN Reset Requests <span id="pinReqCount" style="background:#dc2626;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span></div>
@@ -597,26 +584,15 @@ input:checked+.slider:before{transform:translateX(20px);}
   .adues-tab.active{background:var(--r);border-color:var(--r);color:white}
   </style>
   <!-- DUES TAB (#3B) -->
-  <div class="panel" id="tab-dues">
+  <div class="panel" id="tab-paylist">
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <div class="ct" style="margin:0">💳 Customer Pay-Later Dues</div>
-        <div style="font-weight:900;color:var(--r);font-size:1.1rem" id="duesGrandTotal">₹0</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px">
+        <div class="ct" style="margin:0">💰 Payment Match List</div>
+        <div style="font-weight:900;color:var(--r);font-size:1.05rem" id="paylistCount">0 pending</div>
       </div>
-      <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Tap a customer to see their orders, send a WhatsApp reminder, or mark paid.</p>
-      <!-- Customer ko archive dikhta tha par admin ko nahi — cleared payment ka
-           koi record hi nahi bachta tha -->
-      <div id="duesMonthBanner" style="display:none;background:#fff7ed;border:2px solid #f59e0b;border-radius:12px;padding:12px;margin-bottom:11px"></div>
-      <div style="display:flex;gap:6px;margin-bottom:10px">
-        <div class="adues-tab active" id="aDuesTabPending" onclick="swAdminDues('pending')">⏳ Pending</div>
-        <div class="adues-tab" id="aDuesTabArchive" onclick="swAdminDues('archive')">📦 Archived<span id="aDuesArchCount" style="margin-left:4px;opacity:.75"></span></div>
-      </div>
-      <div id="duesList"><p style="font-size:.78rem;color:var(--muted);text-align:center">Loading…</p></div>
-      <div id="duesArchiveList" style="display:none"></div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button onclick="loadDues()" style="flex:1;padding:10px;background:var(--dark);color:white;border:none;border-radius:var(--radius);font-size:.8rem;font-weight:700;cursor:pointer">🔄 Refresh</button>
-        <button onclick="remindAllDues()" style="flex:1;padding:10px;background:#25d366;color:white;border:none;border-radius:var(--radius);font-size:.8rem;font-weight:700;cursor:pointer">💬 Remind All</button>
-      </div>
+      <p style="font-size:.73rem;color:var(--muted);margin-bottom:10px">Apne PhonePe transactions se time ke hisaab se match karein — ek tap Confirm karein.</p>
+      <div id="paylistChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px"></div>
+      <div id="paylistBody"><p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">Loading…</p></div>
     </div>
   </div>
 
@@ -650,9 +626,6 @@ input:checked+.slider:before{transform:translateX(20px);}
           Customer ko dikhega: Menu for Dinner
         </div>
       </div>
-      <!-- Session 13: Pay Later ke do control. Dono customer.html padhta hai. -->
-      <div class="sg2"><label>Pay Later — max dues per customer (₹)</label><input class="si" id="sDuesLimit" type="number" min="0" placeholder="2000"></div>
-      <div class="sg2"><label>Pay Later — kitne paid order ke baad khule</label><input class="si" id="sPayLaterMin" type="number" min="0" placeholder="2"></div>
       <div class="sg2"><label>ImgBB API Key (for image uploads)</label><input class="si" id="sImgbb" placeholder="Get free key from imgbb.com/api"></div>
       <div class="sg2">
         <label>Admin WhatsApp Number (for order notifications)</label>
@@ -1089,7 +1062,6 @@ async function initDash(){
   requestNotificationPermission();
   // Session 13: mahine ke pehle 5 din, Dues tab khole bina bhi laal dot dikhe —
   // isliye ek baar background me dues load kar lete hain (list hidden hai, sasta hai).
-  try{ if(new Date().getDate()<=5 && !duesMonthDone()) setTimeout(()=>{ try{loadDues();}catch(e){} }, 2500); }catch(e){}
   listenPinResetRequests();
   listenCustomerRequests();   // Session 27
   try{ preloadAdminClosedDates(); }catch(e){}   // Session 36
@@ -1895,10 +1867,7 @@ function renderOrders(){
     // next most urgent thing after an un-handled cancellation.
     const _payPend=o=>o.customerPaid===true&&o.paymentConfirmed!==true&&o.payLater!==true
                       &&['confirmed','preparing','ready','out_for_delivery'].includes(o.status||'');
-    // SESSION 37: jis claim ka koi ref hi nahi (0000 ya khaali) wo baaki claims se
-    // zyada urgent hai — usi qatar me asli jhooth chhupta hai.
-    const _noProof=o=>_payPend(o)&&(o.refNoProof===true||!o.upiRef4||String(o.upiRef4)==='0000');
-    const _rank=o=>_needsAtt(o)?0:(_noProof(o)?1.4:(_payPend(o)?1.5:(statusPriority[o.status]??9)));
+    const _rank=o=>_needsAtt(o)?0:(_payPend(o)?1.5:(statusPriority[o.status]??9));
     const aAlert=_rank(a);
     const bAlert=_rank(b);
     if(aAlert!==bAlert) return aAlert-bAlert;
@@ -1906,14 +1875,6 @@ function renderOrders(){
   });
   if(!filtered.length){list.innerHTML='<div class="empty">📭 No orders</div>';return;}
   const sl={pending_payment:'Awaiting Pay',confirmed:'Confirmed',preparing:'Preparing',ready:'Ready',out_for_delivery:'Out for Delivery',delivered:'Delivered',cancelled:'Cancelled'};
-  // Session 37: ek hi UPI ref do orders par = ek payment ko do baar bhunane ki koshish.
-  // 0000 "pata nahi" ka code hai, isliye use duplicate nahi maana jaata.
-  const _refSeen={};
-  (allOrders||[]).forEach(o=>{
-    const r=o.upiRef4?String(o.upiRef4):'';
-    if(!r||r==='0000'||o.status==='cancelled')return;
-    _refSeen[r]=(_refSeen[r]||0)+1;
-  });
   list.innerHTML=filtered.map(o=>{
     const ocDate=o.createdAt?new Date(o.createdAt):null;
     const t=ocDate?ocDate.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
@@ -1926,25 +1887,12 @@ function renderOrders(){
     const payVerified=o.paymentConfirmed===true;
     const payMeth=o.payMethod==='upi'?'UPI ID':(o.payMethod==='qr'?'QR':'');
     const claimWhen=o.customerPaidAt?new Date(o.customerPaidAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-    // Session 37: customer ka diya hua UPI ref last-4.
-    const ref4=o.upiRef4?String(o.upiRef4).replace(/[^A-Za-z0-9]/g,'').slice(0,4):'';
-    const noProof=o.refNoProof===true||ref4==='0000';
-    const dupRef=!!ref4&&!noProof&&(_refSeen[ref4]||0)>1;
-    // S55(#7): low payment-confidence — customer ne UPI ID/QR tab me na app khola
-    // na screen background gaya, phir bhi ref daal diya. Payment sambhaavna kam.
-    const lowConf=o.lowPayConfidence===true && !noProof;
-    const lowConfLine = lowConf
-      ? `<br><span style="font-weight:900;color:#b91c1c">🔺 PAYMENT SHAKI — customer ne UPI app khola hi nahi, khud verify karein</span>`
-      : '';
-    const refLine = ref4
-      ? (noProof
-        ? `<br><span style="font-weight:900;color:#b45309">🔺 REF NAHI DIYA (0000) — khud check karein</span>`
-        : `<br><span style="font-weight:900;font-size:.95rem;letter-spacing:.06em">🔢 Ref: ****${esc(ref4)}</span>${dupRef?'<br><span style="font-weight:900;color:#b91c1c">⚠️ YEHI REF DOOSRE ORDER PAR BHI HAI</span>':''}`)
-      : `<br><span style="font-weight:900;color:#b45309">🔺 Ref number nahi (purana order)</span>`;
+    // S65: ref-number system hataya gaya — admin ab Payments tab ki list se
+    // match karke confirm karta hai. Yahan sirf ek chhota status-indicator.
     const payBox = (claimPaid&&!payVerified)
-      ? `<div style="background:${noProof||dupRef||lowConf?'#fffbeb':'#fef3c7'};color:#92400e;border:${noProof||dupRef||lowConf?'2.5px solid #f59e0b':'1.5px solid #fbbf24'};border-radius:9px;padding:8px 10px;margin-top:7px;font-size:.76rem;font-weight:800;line-height:1.5">💰 CUSTOMER SAYS PAID — ₹${o.total}${payMeth?' · via '+payMeth:''}${refLine}${lowConfLine}${claimWhen?'<br><span style="font-weight:600">'+claimWhen+'</span>':''}<br><span style="font-weight:600">🛑 Verify hone tak delivery boy ko assign nahi hoga.</span></div>`
+      ? `<div style="background:#fef3c7;color:#92400e;border:1.5px solid #fbbf24;border-radius:9px;padding:8px 10px;margin-top:7px;font-size:.76rem;font-weight:800;line-height:1.5">💰 Payment claim — ₹${o.total}${payMeth?' · '+payMeth:''}${claimWhen?'<br><span style="font-weight:600">'+claimWhen+'</span>':''}<br><span style="font-weight:600">⏳ 💰 Payments tab me verify karein.</span></div>`
       : (payVerified&&o.status!=='cancelled'
-        ? `<div style="background:#dcfce7;color:#166534;border-radius:9px;padding:7px 10px;margin-top:7px;font-size:.75rem;font-weight:700">✅ Payment verified — ₹${o.total}${payMeth?' · '+payMeth:''}${ref4?' · Ref ****'+esc(ref4):''}</div>`
+        ? `<div style="background:#dcfce7;color:#166534;border-radius:9px;padding:7px 10px;margin-top:7px;font-size:.75rem;font-weight:700">✅ Payment verified — ₹${o.total}${payMeth?' · '+payMeth:''}</div>`
         : '');
     // SESSION 11 refund state. paidOnline = money actually came in (pay-later/cash never did).
     const paidOnline=(o.customerPaid===true||o.paymentConfirmed===true||o.paid===true)&&o.payLater!==true;
@@ -1971,9 +1919,6 @@ function renderOrders(){
       ${payBox}${refundBox}
       <div class="sr">
         ${o.status==='pending_payment'?`<button class="sb2 sb-conf" onclick="verifyPayment('${o.id}')">✅ Confirm Pay</button>`:''}
-        ${claimPaid&&!payVerified?`<button class="sb2" onclick="verifyPayment('${o.id}')" style="background:#16a34a;color:white">✅ Confirm Payment</button>`:''}
-        ${claimPaid&&!payVerified?`<button class="sb2" onclick="showManualVerify('${o.id}')" style="background:#7c3aed;color:white">✏️ Ref fix + Confirm</button>`:''}
-        ${claimPaid&&!payVerified?`<button class="sb2" onclick="declinePayment('${o.id}')" style="background:#dc2626;color:white">✖ Decline — Cancel</button>`:''}
         ${o.status==='confirmed'?`<button class="sb2 sb-prep" onclick="chgStatus('${o.id}','preparing')">👨‍🍳 Preparing</button>`:''}
         ${o.status==='preparing'?`<button class="sb2 sb-ready" onclick="chgStatus('${o.id}','ready')">📦 Ready</button>`:''}
         ${o.status==='ready'&&o.orderType==='delivery'?`<button class="sb2 sb-out" onclick="startDelivery('${o.id}')">🛵 Start Delivery</button>`:''}
@@ -2154,152 +2099,6 @@ window.ackCancel=async function(orderId){
 // wo sirf admin dekh sakta hai — isliye paymentConfirmed yahin se set hota hai.
 // ===== Session 38: SMS PASTE VERIFY =====
 //
-// 1. PARSER: SMS se amount + last-4 ref nikalo.
-//    Har bank/UPI app ka SMS alag format hota hai — RegEx broad hain taaki
-//    SBI, ICICI, GPay, PhonePe, Paytm, BHIM, HDFC sab chalein.
-//    Return: [{amount:Number, ref4:String}, ...]
-function parseSmsPayments(text){
-  const out=[];
-  if(!text||!text.trim()) return out;
-  const refPats=[
-    /UPI[\s]*Ref(?:erence)?(?:[\s]*No\.?)?[\s:#]*([A-Za-z0-9]{4,20})/gi,
-    /UPI[^A-Za-z\d]*[A-Z0-9]{1,5}[^A-Za-z\d]*([0-9]{6,20})[^A-Za-z\d]/gi,
-    /Txn[\s]*(?:Id|No|Ref)[\s:#]*([A-Za-z0-9]{4,20})/gi,
-    /Transaction[\s]*(?:Id|No)?[\s:#]*([A-Za-z0-9]{4,20})/gi,
-    /Ref(?:erence)?(?:[\s]*No\.?)?[\s:#]*([A-Za-z0-9]{4,20})/gi,
-    /UTR[\s:#]*([A-Za-z0-9]{4,20})/gi,
-  ];
-  const refs=[],refSpans=[];
-  for(const re of refPats){
-    re.lastIndex=0; let m;
-    while((m=re.exec(text))!==null){
-      const r=m[1].replace(/[^A-Za-z0-9]/g,'').toUpperCase();
-      if(r.length>=4){const r4=r.slice(-4);if(!refs.includes(r4))refs.push(r4);refSpans.push([m.index,m.index+m[0].length]);}
-    }
-  }
-  let clean=text
-    .replace(/(?:a\/c|account)[\s#*X]*[\dX]{4}/gi,'XXXACCT')
-    .replace(/(?:available|closing|opening)[\s\w]*bal(?:ance)?[^\n]*/gi,'BALANCELINE');
-  const sorted=[...refSpans].sort((a,b)=>b[0]-a[0]);
-  for(const[s,e]of sorted)clean=clean.slice(0,s)+' '.repeat(e-s)+clean.slice(e);
-  const amounts=[];
-  let m;
-  const dp=/(?:debit(?:ed)?|paid|sent|transferred)[^0-9]{0,5}([\d,]+(?:\.\d{1,2})?)/gi;
-  dp.lastIndex=0;
-  while((m=dp.exec(clean))!==null){const v=parseFloat(m[1].replace(/,/g,''));if(v>0&&v<1000000)amounts.push(v);}
-  if(!amounts.length){
-    const rp=/(?:Rs|INR|₹)[.\s]*([\d,]+(?:\.\d{1,2})?)/gi;
-    rp.lastIndex=0;
-    while((m=rp.exec(clean))!==null){const v=parseFloat(m[1].replace(/,/g,''));if(v>0&&v<1000000)amounts.push(v);}
-  }
-  if(!amounts.length||!refs.length)return out;
-  for(let i=0;i<refs.length;i++){
-    const ref4=refs[i],a=amounts[Math.min(i,amounts.length-1)];
-    if(!out.find(x=>x.ref4===ref4&&x.amount===a))out.push({amount:a,ref4});
-  }
-  return out;
-}
-
-window.runSmsVerify=async function(){
-  const box=document.getElementById('smsPasteBox');
-  const res=document.getElementById('smsResult');
-  const txt=box?box.value.trim():'';
-  if(!txt){ if(res)res.innerHTML='<div class="sms-mismatch">⚠️ Pehle SMS paste karein.</div>'; return; }
-  if(res) res.innerHTML='<div style="color:#6d28d9;font-size:.78rem">🔍 Match kar raha hai…</div>';
-
-  const parsed=parseSmsPayments(txt);
-  if(!parsed.length){
-    if(res) res.innerHTML='<div class="sms-mismatch">⚠️ Is SMS mein amount ya UPI Ref nahi mila. Doosra SMS try karein ya manually verify karein.</div>';
-    return;
-  }
-
-  // Session 38b: sirf aaj ka view nahi — pichle 7 din ke SAARE unverified orders Firestore se fetch karo.
-  // Admin kisi bhi chip par baitha ho, dono SMS match sahi tarah hoga.
-  if(res) res.innerHTML='<div style="color:#6d28d9;font-size:.78rem">📅 7 din ke orders check kar raha hai…</div>';
-  let pending=[];
-  try{
-    const dates=next7Days().map(d=>d.date);
-    const snaps=await Promise.all(dates.map(ds=>getDocs(query(collection(db,'orders'),where('date','==',ds)))));
-    const all7=[];
-    snaps.forEach(snap=>snap.docs.forEach(d=>all7.push({id:d.id,...d.data()})));
-    // Dedupe (today might already be in allOrders but that's fine — Set by id)
-    const seen=new Set();
-    all7.forEach(o=>{ if(!seen.has(o.id)){seen.add(o.id);pending.push(o);} });
-    pending=pending.filter(o=>o.payLater!==true&&o.customerPaid===true&&o.paymentConfirmed!==true&&o.status!=='cancelled');
-  }catch(e){
-    if(res) res.innerHTML='<div class="sms-mismatch">⚠️ Orders load nahi hue: '+esc(e.message||'')+'</div>'; return;
-  }
-
-  let html='';
-  let autoVerified=0;
-
-  for(const {amount,ref4} of parsed){
-    // Try to match: ref4 last-4 must match AND amount must match (±1 rupee for float)
-    const matched=pending.filter(o=>{
-      const r=String(o.upiRef4||'').toUpperCase().slice(-4);
-      const diff=Math.abs(Number(o.total||0)-amount);
-      return r===ref4 && diff<=1;
-    });
-    // ref match but amount differs
-    const refOnly=pending.filter(o=>{
-      const r=String(o.upiRef4||'').toUpperCase().slice(-4);
-      return r===ref4 && !matched.find(m=>m.id===o.id);
-    });
-    // amount match but ref differs or is 0000
-    const amtOnly=pending.filter(o=>{
-      const diff=Math.abs(Number(o.total||0)-amount);
-      return diff<=1 && !matched.find(m=>m.id===o.id);
-    });
-
-    if(matched.length){
-      for(const o of matched){
-        try{
-          await window.verifyPayment(o.id, true);   // force=true skips the confirm dialog
-          autoVerified++;
-          html+=`<div class="sms-match">✅ Auto-verified — ${esc(o.name)} ₹${o.total} · Ref ****${ref4}</div>`;
-        }catch(e){
-          html+=`<div class="sms-mismatch">⚠️ ${esc(o.name)} ₹${o.total} verify karne mein error: ${esc(e.message||'')}</div>`;
-        }
-      }
-    } else if(refOnly.length){
-      html+=`<div class="sms-noref">🔺 Ref ****${ref4} mila par amount ₹${amount} alag hai — `+
-        refOnly.map(o=>`${esc(o.name)} ne ₹${o.total} claim kiya`).join('; ')+`. Manually check karein.</div>`;
-    } else if(amtOnly.length){
-      html+=`<div class="sms-noref">🔺 ₹${amount} match karta hai par ref nahi mila — `+
-        amtOnly.map(o=>`${esc(o.name)} (Ref: ${o.upiRef4||'?'})`).join('; ')+`. Manually check karein.</div>`;
-    } else {
-      html+=`<div class="sms-mismatch">❌ Ref ****${ref4} · ₹${amount} — koi pending order nahi mila. Paisa kisi aur ne bheja ya already verified ho chuka hai.</div>`;
-    }
-  }
-  if(autoVerified>0) html=`<div style="font-weight:900;color:#166534;font-size:.82rem;margin-bottom:5px">🎉 ${autoVerified} payment auto-verify ho gayi!</div>`+html;
-  if(res) res.innerHTML=html;
-};
-
-window.clearSmsVerify=function(){
-  const b=document.getElementById('smsPasteBox'); if(b) b.value='';
-  const r=document.getElementById('smsResult'); if(r) r.innerHTML='';
-};
-
-// ─── Per-order manual verify with OPTIONAL ref override ───────────────────
-// Admin can fix a 0000 / wrong ref here before confirming.
-window.showManualVerify=function(orderId){
-  const o=allOrders.find(x=>x.id===orderId)||(todayOrders||[]).find(x=>x.id===orderId);
-  if(!o) return;
-  const existing=String(o.upiRef4||'');
-  const newRef=window.prompt(
-    `Order: ${o.name} — ₹${o.total}
-
-UPI Ref ke last 4 (ya full) daalein.
-Abhi: ${existing||'khaali'}
-
-(Sirf confirm karna hai to Cancel dabayein — wahi ref save rahegi)`,
-    existing==='0000'?'':existing
-  );
-  if(newRef===null) return;   // admin cancelled the prompt — still verify below
-  const ref4=String(newRef||existing||'').replace(/[^A-Za-z0-9]/g,'').toUpperCase().slice(-4)||existing.slice(-4);
-  window.verifyPayment(orderId, true, ref4);
-};
-
 window.verifyPayment=async function(orderId, force, overrideRef4){
   try{
     const snap=await getDoc(doc(db,'orders',orderId));
@@ -3357,9 +3156,8 @@ window.sw=function(t){
   // close the More dropdown after any pick
   const md=document.getElementById('moreMenu'); if(md) md.style.display='none';
   const mt=document.getElementById('moreTab'); if(mt) mt.classList.toggle('active',(t==='print'||t==='ai'));
-  if(t==='orders') try{ clearSmsVerify(); }catch(e){}
   if(t==='setup'){loadDeliveryBoys();}
-  if(t==='dues'){loadDues();}
+  if(t==='paylist'){startPaymentListListener();renderPaymentList();}
   if(t==='ratings')loadRatings();
   if(t==='wish')loadAdminWish();
   if(t==='orders'&&adminMap)setTimeout(()=>adminMap.invalidateSize(),100);
@@ -4124,324 +3922,63 @@ window.assignBoy=async function(orderId){
   }catch(e){alert('Error: '+e.message);}
 };
 
-window.loadDues=async function(){
-  const list=document.getElementById('duesList');
-  if(!list)return;
-  list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">⏳ Loading…</p>';
+// ══════════ S65: PAYMENT REDESIGN — Payment Match List ══════════
+// Replaces the whole old Dues/Pay-Later system + the scattered per-order
+// claim boxes. Ek saaf list — time ke hisaab se (jaise PhonePe me aata hai),
+// admin apne PhonePe se match karke ek tap Confirm karta hai. verifyPayment()
+// (already exists, unchanged below) hi asli kaam karta hai — hold-release +
+// auto-assign-boy sab wahi purana tested logic hai.
+let paylistUnsub=null, paylistAll=[], paylistFilter='all';
+function startPaymentListListener(){
+  if(paylistUnsub) return;
   try{
-    // Compute dues from actual UNSETTLED Pay-Later orders (reliable source of truth),
-    // not the wallet counter which can drift.
-    const snap=await getDocs(query(collection(db,'orders'),where('payLater','==',true)));
-    const byPhone={};
-    const clearedAll=[];
-    snap.docs.forEach(d=>{
-      const o=d.data();
-      if(o.status==='cancelled')return;
-      if(o.paidCleared===true){ clearedAll.push({id:d.id,...o}); return; }
-      const ph=o.phone;if(!ph)return;
-      if(!byPhone[ph])byPhone[ph]={phone:ph,total:0,count:0,name:o.name||'',latest:'',claimed:0,claimedAmt:0};
-      byPhone[ph].total+=Number(o.total)||0;
-      byPhone[ph].count++;
-      // Item 8: customer ne "maine payment kar di" daba diya hai — admin ko ye
-      // sabse upar aur alag dikhna chahiye, warna confirm karna bhool jayega
-      if(o.customerClaimedPaid===true){ byPhone[ph].claimed++; byPhone[ph].claimedAmt+=Number(o.total)||0; }
-      if((o.date||'')>byPhone[ph].latest)byPhone[ph].latest=o.date||'';
-      if(o.name)byPhone[ph].name=o.name;
+    const q=query(collection(db,'orders'), where('customerPaid','==',true));
+    paylistUnsub=onSnapshot(q, snap=>{
+      paylistAll = snap.docs.map(d=>({id:d.id,...d.data()}))
+        .filter(o=>o.paymentConfirmed!==true && o.status!=='cancelled' && o.payLater!==true);
+      renderPaymentList();
     });
-    const dues=Object.values(byPhone).filter(d=>d.total>0)
-      .sort((a,b)=>(b.claimed>0?1:0)-(a.claimed>0?1:0) || b.total-a.total);
-    window._duesCache=dues;
-    window._duesCleared=clearedAll;
-    renderAdminDuesArchive(clearedAll);
-    const gt=document.getElementById('duesGrandTotal'); if(gt)gt.textContent='₹'+dues.reduce((s,d)=>s+d.total,0);
-    renderDuesMonthBanner(dues);
-    if(!dues.length){list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">No pending dues 🎉</p>';const gt2=document.getElementById('duesGrandTotal');if(gt2)gt2.textContent='₹0';return;}  // archive upar hi render ho chuka hai
-    // Fill any missing names from customers collection
-    await Promise.all(dues.filter(d=>!d.name).map(async d=>{
-      try{const cs=await getDoc(doc(db,'customers',d.phone));if(cs.exists())d.name=cs.data().name||'';}catch(e){}
-    }));
-    list.innerHTML=dues.map(d=>{
-      const nm=d.name||'Unknown';
-      const claimBadge = d.claimed>0
-        ? `<div style="font-size:.68rem;font-weight:800;color:#92400e;background:#fef3c7;border-radius:7px;padding:2px 7px;margin-top:3px;display:inline-block">💰 Customer ne ₹${d.claimedAmt} pay karne ka claim kiya — check karke confirm karein</div>`
-        : '';
-      return `<div onclick="viewDues('${d.phone}')" style="display:flex;justify-content:space-between;align-items:center;padding:10px 8px;border-bottom:1px solid #eee;cursor:pointer;border-radius:9px;${d.claimed>0?'background:#fffbeb':''}">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:800;font-size:.86rem">${esc(nm)}</div>
-          <div style="font-size:.72rem;color:var(--muted)">📞 ${esc(d.phone)} · ${d.count} order${d.count!==1?'s':''}${d.latest?' · latest '+new Date(d.latest+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</div>
-          ${claimBadge}
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-          <span style="font-weight:800;color:var(--r);font-size:.92rem">₹${d.total}</span>
-          <div style="display:flex;gap:6px">
-            <button onclick="event.stopPropagation();remindOneDue('${d.phone}','${(nm||'').replace(/'/g,'')}',${d.total})" style="padding:5px 10px;background:#25d366;color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">💬 Remind</button>
-            <button onclick="event.stopPropagation();clearDue('${d.phone}')" style="padding:5px 10px;background:var(--g);color:white;border:none;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">${d.claimed>0?'Confirm ✓':'Paid ✓'}</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }catch(e){console.error(e);list.innerHTML='<p style="font-size:.78rem;color:var(--muted)">Error loading dues: '+e.message+'</p>';}
-};
-
-// ---- Session 13: har mahine ki 1 tarikh = settle day ----
-// Browser me koi scheduler nahi hai, isliye "auto-send" jhooth hota. Iske badle
-// admin ke Dues tab par 1-5 tarikh tak ek banner + tab par laal dot rehta hai jab
-// tak us mahine ki reminder bhej na di jaaye. Ho gaya ya nahi, ye localStorage me
-// per-month save hota hai (kb_duesRemind_YYYY-MM).
-function duesMonthKey(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
-window.duesMonthDone=function(){ try{ return localStorage.getItem('kb_duesRemind_'+duesMonthKey())==='1'; }catch(e){ return false; } };
-window.markDuesMonthDone=function(){
-  try{ localStorage.setItem('kb_duesRemind_'+duesMonthKey(),'1'); }catch(e){}
-  renderDuesMonthBanner(window._duesCache||[]);
-};
-window.renderDuesMonthBanner=function(dues){
-  const box=document.getElementById('duesMonthBanner');
-  const tab=document.querySelector('.tab[data-tab="dues"]');
-  const list=(dues||[]).filter(d=>d.total>0);
-  const dom=new Date().getDate();
-  const due=(dom<=5 && list.length>0 && !duesMonthDone());
-  if(box){
-    box.style.display=due?'block':'none';
-    if(due){
-      const tot=list.reduce((s,d)=>s+d.total,0);
-      const mo=new Date().toLocaleDateString('en-IN',{month:'long'});
-      box.innerHTML=`<div style="font-weight:800;font-size:.88rem;color:#92400e">📅 ${mo} ki dues reminder abhi tak nahi bheji</div>`+
-        `<div style="font-size:.78rem;color:#78350f;margin-top:4px;line-height:1.5"><b>${list.length}</b> customer · kul <b>₹${tot}</b> baaki. Mahine ki pehli tarikh settle day hai.</div>`+
-        `<div style="display:flex;gap:8px;margin-top:10px">`+
-          `<button onclick="remindAllDues()" style="flex:1;padding:10px;background:#25d366;color:#fff;border:none;border-radius:9px;font-size:.8rem;font-weight:800;cursor:pointer">💬 Sabko Reminder Bhejein</button>`+
-          `<button onclick="markDuesMonthDone()" style="padding:10px 12px;background:#fff;color:#92400e;border:1.5px solid #f59e0b;border-radius:9px;font-size:.8rem;font-weight:700;cursor:pointer">Ho gaya</button>`+
-        `</div>`;
-    }
-  }
-  if(tab){
-    let dot=tab.querySelector('.dues-dot');
-    if(due){
-      if(!dot){ dot=document.createElement('span'); dot.className='dues-dot'; dot.style.cssText='display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-left:4px;vertical-align:middle'; tab.appendChild(dot); }
-    } else if(dot){ dot.remove(); }
-  }
-};
-
-// ---- Cleared dues ka record: customer + payment batch ke hisaab se ek line ----
-window._aDuesOpen={};
-window.swAdminDues=function(which){
-  const isArch=(which==='archive');
-  const l=document.getElementById('duesList'), a=document.getElementById('duesArchiveList');
-  const tp=document.getElementById('aDuesTabPending'), ta=document.getElementById('aDuesTabArchive');
-  if(l)l.style.display=isArch?'none':'block';
-  if(a)a.style.display=isArch?'block':'none';
-  if(tp)tp.classList.toggle('active',!isArch);
-  if(ta)ta.classList.toggle('active',isArch);
-};
-window.toggleAdminDuesBatch=function(k){
-  window._aDuesOpen[k]=!(window._aDuesOpen[k]===true);
-  renderAdminDuesArchive(window._duesCleared||[]);
-};
-window.renderAdminDuesArchive=function(cleared){
-  const box=document.getElementById('duesArchiveList');
-  const cnt=document.getElementById('aDuesArchCount');
-  if(!box)return;
-  const batches={};
-  (cleared||[]).forEach(o=>{
-    const ts=o.paidClearedAt||o.customerClaimedPaidAt||'';
-    const key=(o.phone||'?')+'|'+(ts?String(ts).slice(0,16):'old');
-    if(!batches[key])batches[key]={key,ts,phone:o.phone||'',name:o.name||'',orders:[],total:0};
-    batches[key].orders.push(o);
-    batches[key].total+=Number(o.total)||0;
-    if(o.name)batches[key].name=o.name;
-  });
-  const list=Object.values(batches).sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
-  if(cnt)cnt.textContent=list.length?'('+list.length+')':'';
-  if(!list.length){
-    box.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:14px">Abhi koi cleared payment nahi</p>';
-    return;
-  }
-  box.innerHTML=list.map(b=>{
-    const open=window._aDuesOpen[b.key]===true;
-    let dLbl='—';
-    if(b.ts){ try{ dLbl=new Date(b.ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }catch(e){} }
-    const detail=b.orders.map(o=>{
-      let od='';
-      if(o.date){ try{ od=new Date(o.date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}); }catch(e){} }
-      const its=(o.items||[]).map(i=>esc(i.name)+' ×'+(i.qty||1)).join(', ');
-      return '<div style="border-top:1px dashed #cde8cd;padding:5px 0">'+
-        '<div style="display:flex;justify-content:space-between"><span style="font-size:.73rem;color:#555;font-weight:700">'+(od?'📅 '+od:'Order')+'</span>'+
-        '<span style="font-size:.75rem;font-weight:800;color:#166534">₹'+(Number(o.total)||0)+'</span></div>'+
-        (its?'<div style="font-size:.67rem;color:#888">'+its+'</div>':'')+
-      '</div>';
-    }).join('');
-    return '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:9px 11px;margin-bottom:7px">'+
-      '<div onclick="toggleAdminDuesBatch(\''+esc(b.key)+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px">'+
-        '<div style="min-width:0">'+
-          '<div style="font-weight:800;font-size:.82rem;color:#166534">'+(open?'▾':'▸')+' '+esc(b.name||b.phone||'Unknown')+'</div>'+
-          '<div style="font-size:.69rem;color:#77a877">📞 '+esc(b.phone)+' · ✅ '+esc(dLbl)+' · '+b.orders.length+' order'+(b.orders.length!==1?'s':'')+'</div>'+
-        '</div>'+
-        '<div style="font-weight:800;color:#166534;flex-shrink:0">₹'+b.total+'</div>'+
-      '</div>'+
-      (open?'<div style="margin-top:5px">'+detail+'</div>':'')+
-    '</div>';
-  }).join('');
-};
-
-// Send a WhatsApp reminder to every customer with dues, one at a time (#3B)
-// Send a dues reminder to ONE specific customer (from the dues row) (#REG-DUES-REMIND-INDIVIDUAL)
-window.remindOneDue=async function(phone,name,total){
-  let cfg={};
-  try{const cs=await getDoc(doc(db,'config','menu'));if(cs.exists())cfg=cs.data();}catch(e){}
-  const upi=cfg.upiId||''; const shop=cfg.shopName||'Kicken Bites';
-  const nl='\n';
-  const payLink=window.location.href.replace('admin.html','customer.html');
-  let msg='🔔 *'+shop+' — Payment Reminder*'+nl+nl+
-    'Hi '+wab(name||'Customer')+','+nl+
-    'You have a pending Pay-Later balance of *₹'+total+'*.'+nl+nl+
-    (upi?('📲 Pay via UPI: '+wab(upi)+nl+nl):'')+
-    '💳 Or pay online → Profile → Pay Dues Now:'+nl+payLink+nl+nl+
-    'Kindly clear it at your earliest. Thank you! 🙏';
-  const ph=phone.toString().replace(/[^0-9]/g,'').slice(-10);
-  window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
-  showToast('Opening reminder for '+(name||ph));
-};
-
-// Remind ALL: opens ONE reminder per confirm/tap (browsers block multiple auto window.open,
-// which is why the old stagger only opened the first). Each customer is a fresh user gesture.
-let _remindQueue=[], _remindCfg={};
-window.remindAllDues=async function(){
-  const dues=window._duesCache||[];
-  if(!dues.length){showToast('No dues to remind');return;}
-  let cfg={};
-  try{const cs=await getDoc(doc(db,'config','menu'));if(cs.exists())cfg=cs.data();}catch(e){}
-  _remindCfg={upi:cfg.upiId||'', shop:cfg.shopName||'Kicken Bites'};
-  _remindQueue=dues.slice();
-  markDuesMonthDone();   // reminder bhej di — is mahine ka banner ab nahi dikhega
-  remindNextInQueue();
-};
-function remindNextInQueue(){
-  if(!_remindQueue.length){showToast('✅ All reminders sent');return;}
-  const d=_remindQueue.shift();
-  const nl='\n';
-  const payLink=window.location.href.replace('admin.html','customer.html');
-  const upi=_remindCfg.upi, shop=_remindCfg.shop;
-  let msg='🔔 *'+shop+' — Payment Reminder*'+nl+nl+
-    'Hi '+wab(d.name||'Customer')+','+nl+
-    'You have a pending Pay-Later balance of *₹'+d.total+'* ('+d.count+' order'+(d.count!==1?'s':'')+').'+nl+nl+
-    (upi?('📲 Pay via UPI: '+wab(upi)+nl+nl):'')+
-    '💳 Or pay online → Profile → Pay Dues Now:'+nl+payLink+nl+nl+
-    'Kindly clear it at your earliest. Thank you! 🙏';
-  const ph=d.phone.toString().replace(/[^0-9]/g,'').slice(-10);
-  window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
-  if(_remindQueue.length){
-    setTimeout(()=>{
-      if(confirm('Reminder opened for '+(d.name||ph)+'.\n\n'+_remindQueue.length+' customer(s) left. Send the next one?')) remindNextInQueue();
-    }, 400);
-  }else{
-    showToast('✅ Last reminder opened');
-  }
+  }catch(e){}
 }
-// ---- DUES DETAIL + REMINDER ----
-window.viewDues=async function(phone){
-  const modal=document.getElementById('duesModal');
-  const header=document.getElementById('dmHeader');
-  const body=document.getElementById('dmBody');
-  modal.style.display='block';
-  header.innerHTML='<div style="font-weight:800;font-size:1rem">Loading…</div>';
-  body.innerHTML='<div style="text-align:center;padding:25px;color:#999">⏳ Fetching unpaid orders…</div>';
-  try{
-    let name='';
-    try{const cs=await getDoc(doc(db,'customers',phone));if(cs.exists())name=cs.data().name||'';}catch(e){}
-    const oSnap=await getDocs(query(collection(db,'orders'),where('phone','==',phone)));
-    // Unpaid = ONLY Pay-Later orders that haven't been settled yet.
-    // payLater:true is set when the customer chooses "Pay Later in Cash";
-    // paidCleared:true is set by admin when the dues are marked received.
-    const unpaid=oSnap.docs.map(d=>({id:d.id,...d.data()}))
-      .filter(o=>o.status!=='cancelled'&&o.payLater===true&&o.paidCleared!==true)
-      .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-    const orderTotal=unpaid.reduce((s,o)=>s+(Number(o.total)||0),0);
-    const amount=orderTotal;
-
-    header.innerHTML='<div style="font-weight:800;font-size:1.05rem">'+esc(name||'Unknown')+'</div>'+
-      '<div style="font-size:.76rem;opacity:.9;margin-top:2px">📞 '+esc(phone)+'</div>'+
-      '<div style="font-size:.9rem;font-weight:800;margin-top:4px">Total Due: ₹'+amount+'</div>';
-
-    const upi=cfg.upiId||'';
-    const upiName=cfg.upiName||cfg.shopName||'Kicken Bites';
-    let h='';
-    if(!unpaid.length){
-      h+='<div style="background:#f0fdf4;border-radius:10px;padding:10px;font-size:.76rem;color:#166534;margin-bottom:12px">✅ No pending Pay-Later dues for this customer.</div>';
-    }else{
-      h+='<div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Unpaid Orders ('+unpaid.length+')</div>';
-      unpaid.forEach(o=>{
-        const items=(o.items||[]).map(i=>i.name+' ×'+i.qty).join(', ');
-        h+='<div style="padding:8px 0;border-bottom:1px solid #f3f3f3;font-size:.76rem">'+
-          '<div style="display:flex;justify-content:space-between;font-weight:700"><span>'+(o.date||'—')+'</span><span style="color:var(--r)">₹'+(o.total||0)+'</span></div>'+
-          '<div style="color:#888;font-size:.72rem">'+items+' · #'+o.id.slice(-5).toUpperCase()+(o.payLater?' · Pay Later':'')+'</div>'+
-        '</div>';
-      });
-      h+='<div style="display:flex;justify-content:space-between;padding:10px 0;font-weight:900;font-size:.9rem"><span>Total</span><span style="color:var(--r)">₹'+orderTotal+'</span></div>';
-    }
-    // Plain UPI ID for the exact due amount (no QR — Session 4 #10)
-    if(upi&&amount>0){
-      h+='<div style="text-align:center;background:#f9fafb;border-radius:12px;padding:12px;margin:12px 0">'+
-        '<div style="font-size:.72rem;font-weight:800;color:var(--muted);margin-bottom:7px">PAY ₹'+amount+' VIA UPI</div>'+
-        '<div style="font-size:.9rem;font-weight:800;margin-top:2px">'+upi+'</div>'+
-        '<button onclick="copyUpiId(\''+upi+'\')" style="margin-top:8px;padding:6px 14px;background:var(--dark);color:white;border:none;border-radius:9px;font-size:.72rem;font-weight:700;cursor:pointer">📋 Copy UPI ID</button>'+
-      '</div>';
-    }else if(!upi){
-      h+='<div style="background:#fffbeb;border-radius:10px;padding:10px;font-size:.74rem;color:#92400e;margin:12px 0">⚠️ Set your UPI ID in Setup to show a payment QR here.</div>';
-    }
-    h+='<div style="display:flex;gap:8px;margin-top:8px">'+
-      '<button onclick="sendDueReminder(\''+phone+'\')" style="flex:1;background:#25d366;color:white;border:none;padding:11px;border-radius:11px;font-weight:800;font-size:.82rem;cursor:pointer">💬 Send Reminder</button>'+
-      '<button onclick="clearDue(\''+phone+'\');document.getElementById(\'duesModal\').style.display=\'none\'" style="flex:1;background:var(--g);color:white;border:none;padding:11px;border-radius:11px;font-weight:800;font-size:.82rem;cursor:pointer">✓ Mark Paid</button>'+
-    '</div>';
-    body.innerHTML=h;
-    window._dueCtx={phone,name,unpaid,amount,upi,upiName};
-  }catch(e){
-    console.error(e);
-    body.innerHTML='<div style="text-align:center;padding:20px;color:#e33">Error: '+e.message+'</div>';
-  }
+window.setPaylistFilter=function(f){
+  paylistFilter=f;
+  renderPaymentList();
 };
-
-window.copyUpiId=function(upi){
-  if(navigator.clipboard)navigator.clipboard.writeText(upi).then(()=>showToast('📋 UPI ID copied')).catch(()=>{});
-  else showToast('UPI: '+upi);
-};
-
-window.sendDueReminder=function(phone){
-  const ctx=window._dueCtx;
-  if(!ctx||ctx.phone!==phone){alert('Please reopen the customer to send a reminder');return;}
-  const nl='\n';
-  let msg='🍗 *KICKEN BITES*'+nl+'━━━━━━━━━━━━━━━'+nl;
-  msg+='Hello *'+(ctx.name||'')+'* 🙏'+nl+nl+'This is a friendly reminder for your pending payment:'+nl+nl;
-  if(ctx.unpaid.length){
-    ctx.unpaid.forEach(o=>{
-      const items=(o.items||[]).map(i=>i.name+' ×'+i.qty).join(', ');
-      msg+='  • '+(o.date||'')+' — *'+items+'* — ₹'+(o.total||0)+nl;
-    });
-    msg+=nl;
-  }
-  msg+='💰 *Total Due: ₹'+ctx.amount+'*'+nl+nl;
-  if(ctx.upi){
-    msg+='📲 *Pay via UPI:* '+ctx.upi+' ('+ctx.upiName+')'+nl+nl;
-  }
-  const payLink=window.location.href.replace('admin.html','customer.html');
-  msg+='💳 *Pay online here → Profile → Pay Dues Now:*'+nl+payLink+nl+nl;
-  msg+='Thank you for ordering with us! 🙏';
-  location.href='https://wa.me/91'+phone+'?text='+encodeURIComponent(msg);
-};
-
-window.clearDue=async function(phone){
-  if(!confirm('Mark all Pay-Later dues as received for '+phone+'?'))return;
-  try{
-    // Zero the wallet
-    await setDoc(doc(db,'wallets',phone),{due:0,clearedAt:new Date().toISOString()},{merge:true});
-    // Mark every outstanding pay-later order as settled so it leaves the unpaid list
-    const snap=await getDocs(query(collection(db,'orders'),where('phone','==',phone)));
-    const pending=snap.docs.filter(d=>{const o=d.data();return o.payLater===true&&o.paidCleared!==true&&o.status!=='cancelled';});
-    // Item 8: ek hi timestamp sab par, taaki customer ke archive me ye sab
-    // ek hi batch (ek line) ban kar dikhein
-    const clearStamp=new Date().toISOString();
-    await Promise.all(pending.map(d=>setDoc(doc(db,'orders',d.id),{paidCleared:true,paidClearedAt:clearStamp},{merge:true})));
-    showToast('✅ Cleared '+pending.length+' order'+(pending.length!==1?'s':'')+' for '+phone);
-    loadDues();
-  }catch(e){console.error(e);alert('Error: '+e.message);}
+function renderPaylistChips(){
+  const wrap=document.getElementById('paylistChips');
+  if(!wrap)return;
+  const days=next7Days();
+  let html='<button onclick="setPaylistFilter(\'all\')" style="flex-shrink:0;padding:8px 14px;border-radius:10px;border:1.5px solid '+(paylistFilter==='all'?'var(--dark)':'#ddd')+';background:'+(paylistFilter==='all'?'var(--dark)':'#fff')+';color:'+(paylistFilter==='all'?'#fff':'#333')+';font-weight:800;font-size:.78rem;cursor:pointer">All</button>';
+  html+=days.map(function(d,i){
+    const sel=paylistFilter===d.date;
+    const lbl=i===0?'Today':(i===1?'Tomorrow':d.wd);
+    return '<button onclick="setPaylistFilter(\''+d.date+'\')" style="flex-shrink:0;padding:8px 12px;border-radius:10px;border:1.5px solid '+(sel?'var(--orange)':'#ddd')+';background:'+(sel?'var(--orange)':'#fff')+';color:'+(sel?'#fff':'#333')+';font-weight:800;font-size:.74rem;cursor:pointer;text-align:center">'+lbl+'<br><span style="font-weight:600;font-size:.68rem">'+d.wd+' '+d.dayNum+'</span></button>';
+  }).join('');
+  wrap.innerHTML=html;
+}
+window.renderPaymentList=function(){
+  renderPaylistChips();
+  const body=document.getElementById('paylistBody');
+  const cnt=document.getElementById('paylistCount');
+  if(!body)return;
+  let rows=paylistFilter==='all'?paylistAll.slice():paylistAll.filter(o=>o.date===paylistFilter);
+  rows.sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));   // oldest first, jaise PhonePe me
+  if(cnt) cnt.textContent=rows.length+' pending';
+  if(!rows.length){ body.innerHTML='<div class="empty">✅ Sab match ho gaya</div>'; return; }
+  body.innerHTML=rows.map(function(o){
+    const t=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+    const items=(o.items||[]).map(i=>esc(i.name)+' ×'+i.qty).join(', ');
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #eee">'
+      +'<div style="min-width:0">'
+        +'<div style="font-size:.85rem;font-weight:800">'+esc(o.name||'')+'</div>'
+        +'<div style="font-size:.72rem;color:var(--muted)">'+t+' · '+items+'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:9px;flex-shrink:0">'
+        +'<span style="font-size:.92rem;font-weight:800">₹'+(o.total||0)+'</span>'
+        +'<button onclick="verifyPayment(\''+o.id+'\')" style="border:none;border-radius:var(--radius);padding:8px 14px;font-size:.76rem;font-weight:800;background:var(--g);color:#fff;cursor:pointer">✅ Confirm</button>'
+      +'</div>'
+    +'</div>';
+  }).join('');
 };
 
 // FIX 7: Admin live tracking modal
