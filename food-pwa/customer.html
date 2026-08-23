@@ -309,7 +309,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .i-paid-btn{width:100%;padding:13px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:12px;font-weight:800;font-size:.92rem;cursor:pointer;box-shadow:0 3px 12px rgba(22,163,74,.35);margin-top:4px}
 /* Session 14: procedure ab numbering ke bajaye arrow-steps, ek compact row */
 
-#payScreen{display:none;position:fixed;inset:0;min-height:100dvh;z-index:200;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#fdf6ee;background-attachment:fixed;}
+#payScreen{display:none;position:fixed;inset:0;height:100vh;height:100dvh;min-height:100dvh;z-index:200;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#fdf6ee;background-attachment:fixed;}
 .pay-bar{padding:5px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#f97316,#ea580c);}
 .pay-logo{color:white;font-weight:800;font-size:.76rem;}
 .pay-x{width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:white;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
@@ -317,6 +317,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .pay-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px 15px 4px;}
 /* S65: PAYMENT REDESIGN — single-screen: static QR + amount text + tick + confirm */
 .pay-simple{padding:8px 16px 16px;display:flex;flex-direction:column;min-height:calc(100dvh - 150px);}
+.pqr-headline{text-align:center;font-size:1.15rem;font-weight:900;color:#ea580c;letter-spacing:-.01em;margin-bottom:10px;line-height:1.3;}
 .pqr-card{background:#fff;border:1.5px solid #e7e5e4;border-radius:16px;padding:12px;text-align:center;}
 .pqr-img{width:100%;max-width:min(64vw,300px);border-radius:10px;border:1px solid #e7e5e4;display:block;margin:0 auto;}
 .pqr-note{font-size:.78rem;color:#57534e;margin-top:9px;line-height:1.4;}
@@ -946,6 +947,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
        asli PhonePe QR) + amount alag text me + Payment Done/Abhi nahi tick +
        Confirm Order. Ref number/UPI-app-buttons/Pay-Later sab hata diye. -->
   <div class="pay-simple">
+    <div class="pqr-headline">📲 Scan QR to Pay &amp; Confirm Order</div>
     <div class="pqr-card" id="pqrCard">
       <img class="pqr-img" src="assets/payment-qr.png" alt="Kicken Bites Payment QR" loading="eager">
       <div class="pqr-note">QR scan karke apne UPI app me <b id="pqrAmt">₹0</b> daalein aur pay karein</div>
