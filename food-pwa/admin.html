@@ -3439,7 +3439,10 @@ function renderPartyBookings(all){
          '<div style="margin-top:7px">'
          +(b.occasion?'<div style="font-size:.75rem;color:#666;margin-bottom:3px">🎊 '+esc(b.occasion)+'</div>':'')
          +'<div style="font-size:.75rem;color:#444;margin-bottom:3px">🍽️ '+items+'</div>'
+         +(b.orderType?'<div style="font-size:.75rem;color:#666;margin-bottom:3px">🚚 '+esc(b.orderType==='delivery'?'Delivery':'Takeaway')+'</div>':'')
          +'<div style="font-size:.75rem;color:#666;margin-bottom:8px">📍 '+esc(b.address||'')+'</div>'
+         +(b.paymentConfirmed===true?'<div style="font-size:.75rem;font-weight:700;color:#166534;margin-bottom:8px">✅ Payment verified</div>'
+           :b.customerPaid===true?'<div style="font-size:.75rem;font-weight:700;color:#92400e;margin-bottom:8px">💰 Customer says paid — verify karke bata dein</div>':'')
          +'</div>') : '<div style="margin-bottom:8px"></div>')
       +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
         +'<a href="https://wa.me/91'+esc(b.phone)+'" target="_blank" style="flex:1;text-align:center;background:#25d366;color:#fff;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;text-decoration:none">💬 WhatsApp</a>'

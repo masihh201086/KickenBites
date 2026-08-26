@@ -546,7 +546,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .refund-btn{margin-top:7px;margin-left:6px;padding:6px 12px;background:#25d366;color:white;border:none;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;}
 
 /* PROFILE */
-.prof-hdr{background:linear-gradient(135deg,var(--orange),var(--ol));padding:22px 16px;text-align:center;color:white;}
+.prof-hdr{background:linear-gradient(135deg,var(--orange),var(--ol));padding:14px 16px;text-align:center;color:white;}
 .prof-av{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:1.7rem;margin:0 auto 9px;}
 .prof-name{font-size:1.05rem;font-weight:700;}
 .prof-ph{font-size:.78rem;opacity:.85;margin-top:2px;}
@@ -574,6 +574,20 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .kb-ta{width:100%;border:2px solid #eee;border-radius:12px;padding:11px;font-family:inherit;font-size:.9rem;resize:vertical;min-height:84px;box-sizing:border-box;}
 .kb-send{width:100%;padding:13px;margin-top:10px;border:none;border-radius:12px;background:var(--ograd);color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;font-family:inherit;}
 .kb-star{font-size:1.7rem;cursor:pointer;color:#ddd;}
+/* Item 11: helpdesk/invoice/feedback ko thoda colourful banaya — har modal ka
+   apna theme (top accent + heading + send button + profile-tab button border) */
+.kb-sheet.th-blue{border-top:6px solid #3b82f6}
+.kb-sheet.th-blue h4{color:#1d4ed8}
+.kb-sheet.th-blue .kb-send{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+.kb-sheet.th-green{border-top:6px solid #16a34a}
+.kb-sheet.th-green h4{color:#15803d}
+.kb-sheet.th-green .kb-send{background:linear-gradient(135deg,#22c55e,#15803d)}
+.kb-sheet.th-purple{border-top:6px solid #8b5cf6}
+.kb-sheet.th-purple h4{color:#6d28d9}
+.kb-sheet.th-purple .kb-send{background:linear-gradient(135deg,#a855f7,#6d28d9)}
+.kb-prof-act.th-blue{border-left:4px solid #3b82f6}
+.kb-prof-act.th-green{border-left:4px solid #16a34a}
+.kb-prof-act.th-purple{border-left:4px solid #8b5cf6}
 .kb-star.on{color:#f59e0b;}
 
 /* CLOSED */
@@ -896,11 +910,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
           <div style="display:flex;justify-content:space-between;font-size:.68rem;opacity:.65;margin-bottom:4px"><span>Progress to next level</span><span id="loyaltyNext"></span></div>
           <div style="background:rgba(255,255,255,.2);border-radius:20px;height:7px"><div id="loyaltyBar" style="background:var(--orange);height:7px;border-radius:20px;transition:width .5s;width:0%"></div></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px">
-          <div style="background:rgba(255,255,255,.1);border-radius:9px;padding:8px;text-align:center">
-            <div style="font-size:1rem;font-weight:800" id="loyaltySpend">₹0</div>
-            <div style="font-size:.65rem;opacity:.7">Total Spent</div>
-          </div>
+        <div style="margin-top:11px">
           <div style="background:rgba(255,255,255,.1);border-radius:9px;padding:8px;text-align:center">
             <div style="font-size:1rem;font-weight:800" id="loyaltyFav">—</div>
             <div style="font-size:.65rem;opacity:.7">Favourite Item</div>
@@ -927,9 +937,9 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
       <button class="save-prof" onclick="saveProfile()">💾 Save Profile</button>
       <button class="chg-pin" onclick="changePinPrompt()">🔐 Change PIN</button>
       <!-- Session 27: Helpdesk / Feedback / Invoice -->
-      <button class="kb-prof-act" onclick="openHelpdesk()">📞 Helpdesk / Sampark karein</button>
-      <button class="kb-prof-act" onclick="openInvoiceReq()">🧾 Invoice / Bill chahiye</button>
-      <button class="kb-prof-act" onclick="openFeedback()">💬 App Feedback dein</button>
+      <button class="kb-prof-act th-blue" onclick="openHelpdesk()">📞 Helpdesk / Sampark karein</button>
+      <button class="kb-prof-act th-green" onclick="openInvoiceReq()">🧾 Invoice / Bill chahiye</button>
+      <button class="kb-prof-act th-purple" onclick="openFeedback()">💬 App Feedback dein</button>
       <button class="logout-btn" onclick="logoutCust()">Logout</button>
     </div>
   </div>
@@ -1013,7 +1023,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 </div>
 <!-- Session 27: Helpdesk / Invoice / Feedback modals -->
 <div class="kb-modal" id="helpdeskModal" onclick="kbModalBackdrop(event,'helpdeskModal')">
-  <div class="kb-sheet">
+  <div class="kb-sheet th-blue">
     <h4>📞 Helpdesk / Sampark <button class="kb-x" onclick="closeKbModal('helpdeskModal')">✕</button></h4>
     <p class="sub">Kisi bhi madad ke liye shop se seedhe baat karein.</p>
     <div class="kb-row">
@@ -1027,17 +1037,17 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 </div>
 
 <div class="kb-modal" id="invoiceModal" onclick="kbModalBackdrop(event,'invoiceModal')">
-  <div class="kb-sheet">
+  <div class="kb-sheet th-green">
     <h4>🧾 Invoice / Bill chahiye <button class="kb-x" onclick="closeKbModal('invoiceModal')">✕</button></h4>
     <p class="sub">Shop ko request bhej dein — wo aapko GST invoice bhej denge. (App khud invoice nahi banata.)</p>
-    <input class="pi" id="invOrderId" placeholder="Order number (agar pata ho) — optional" type="text" style="width:100%;box-sizing:border-box;margin-bottom:8px">
+    <select class="pi" id="invOrderSel" style="width:100%;box-sizing:border-box;margin-bottom:8px"><option value="">Order chunein (jiska invoice chahiye)</option></select>
     <textarea class="kb-ta" id="invNote" placeholder="Koi detail (optional) — jaise kis order ka invoice chahiye"></textarea>
     <button class="kb-send" onclick="sendInvoiceReq()">Invoice request bhejein</button>
   </div>
 </div>
 
 <div class="kb-modal" id="feedbackModal" onclick="kbModalBackdrop(event,'feedbackModal')">
-  <div class="kb-sheet">
+  <div class="kb-sheet th-purple">
     <h4>💬 App Feedback <button class="kb-x" onclick="closeKbModal('feedbackModal')">✕</button></h4>
     <p class="sub">Aapki raay se app behtar banegi. Bataiye kaisा laga:</p>
     <div id="fbStars" style="text-align:center;margin-bottom:8px">
@@ -1701,7 +1711,7 @@ function renderMyOrders(all) {
       :'No orders on '+formatDate(myOrdFilter)+'.';
     el.innerHTML='<div class="closed-box"><div style="font-size:2.5rem;margin-bottom:10px">🍽️</div><p>'+msg+'</p></div>';return;
   }
-  const sl={pending_payment:'⏳ Awaiting Pay',confirmed:'✅ Confirmed',preparing:'👨‍🍳 Preparing',ready:'📦 Ready',out_for_delivery:'🛵 On the way',delivered:'🎉 Delivered',cancelled:'❌ Cancelled'};
+  const sl={pending_payment:'⏳ Awaiting Pay',confirmed:'✅ Order Confirmed',preparing:'👨‍🍳 Preparing',ready:'📦 Ready',out_for_delivery:'🛵 On the way',delivered:'🎉 Delivered',cancelled:'❌ Cancelled'};
   el.innerHTML=orders.map(o=>{
     const time=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
     const items=(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ');
@@ -1713,7 +1723,9 @@ function renderMyOrders(all) {
         : `<div style="width:34px;height:34px;border-radius:7px;background:#fff3e6;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex:0 0 auto">${emo}</div>`;
       return `<div style="display:flex;align-items:center;gap:8px;margin:3px 0">${pic}<span style="font-size:.84rem;font-weight:600">${esc(i.name)}<span class="vnv ${ft}" style="margin-left:5px"></span> ×${i.qty}</span></div>`;
     }).join('');
-    const isActive=['confirmed','preparing','ready','out_for_delivery'].includes(o.status);
+    // Item 3: track button only for today/future-dated orders — a past-date order
+    // that never got marked delivered/cancelled must not offer stale tracking.
+    const isActive=['confirmed','preparing','ready','out_for_delivery'].includes(o.status) && (o.date||'')>=getTodayDate();
     const canRate = o.status==='delivered';
     // A1: customer may cancel only BEFORE the order goes out for delivery.
     const canCancel = ['pending_payment','confirmed','preparing','ready'].includes(o.status);
@@ -1758,7 +1770,6 @@ function renderMyOrders(all) {
       ${o.status==='cancelled'&&o.cancelledBy==='admin'?`<div style="background:var(--rp);color:var(--red);font-size:.76rem;font-weight:600;padding:7px 9px;border-radius:8px;margin-top:7px">⚠️ This order was cancelled by the shop${o.cancelReason?': '+esc(o.cancelReason):'.'}</div>`:''}
       ${payStrip}${declStrip}${refundStrip}
       <div>
-        <button class="reorder-btn" onclick="reorder('${o.id}')">🔁 Reorder</button>
         ${isActive&&o.orderType!=='takeaway'?`<button class="track-order-btn" onclick="openTrackingFor('${o.id}','${o.phone||''}',${o.total||0},'${encodeURIComponent(o.address||'')}','${encodeURIComponent(items)}')">📍 Track</button>`:''}
         ${canRate?`<button class="rate-order-btn" onclick="openRating('${o.id}')">⭐ Rate</button>`:''}
         ${canCancel?`<button class="cancel-order-btn" onclick="cancelMyOrder('${o.id}')">✖ Cancel</button>`:''}
@@ -3316,10 +3327,14 @@ window.shareWA=function(){
 
 window.openTracking=function(){
   const items=lastOrder.items.map(i=>`${i.name} ×${i.qty}`).join(', ');
-  window.open(`track.html?order=${currentOrderId}&total=${currentTotal}&addr=${encodeURIComponent(lastOrder.address)}&items=${encodeURIComponent(items)}`,'_blank');
+  // Item 4: meal-type track.html ko URL se milta hai — track.html khud dobara
+  // config fetch nahi karta, isliye order-time ka meal yahin se bhej dete hain.
+  const meal=mealLabelFrom(_masterCfg);
+  window.open(`track.html?order=${currentOrderId}&total=${currentTotal}&addr=${encodeURIComponent(lastOrder.address)}&items=${encodeURIComponent(items)}&meal=${encodeURIComponent(meal)}`,'_blank');
 };
 window.openTrackingFor=function(id,ph,tot,addr,items){
-  window.open(`track.html?order=${id}&total=${tot}&addr=${addr}&items=${items}`,'_blank');
+  const meal=mealLabelFrom(_masterCfg);
+  window.open(`track.html?order=${id}&total=${tot}&addr=${addr}&items=${items}&meal=${encodeURIComponent(meal)}`,'_blank');
 };
 
 // Session 25: item ke saare reviews ek modal me (card se comment hatane ke baad).
@@ -3356,17 +3371,27 @@ window.sendHelpdeskMsg=async function(){
   }catch(e){ showToast('Nahi bheja gaya — dobara try karein'); }
 };
 
-window.openInvoiceReq=function(){ openKbModal('invoiceModal'); };
+// Item 10: order number type karne ke bajaye customer apne orders me se select
+// kare — dropdown Order#/date/total dikhata hai, sabse naya order sabse upar.
+window.openInvoiceReq=function(){
+  const sel=document.getElementById('invOrderSel');
+  if(sel){
+    const mine=[...(window._myOrdersAll||[])].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    sel.innerHTML='<option value="">Order chunein (jiska invoice chahiye)</option>'
+      + mine.map(o=>`<option value="${esc(o.id)}">#${esc(o.id.slice(-6).toUpperCase())} · ${esc(formatDate(o.date))} · ₹${o.total||0}</option>`).join('');
+  }
+  openKbModal('invoiceModal');
+};
 window.sendInvoiceReq=async function(){
   const u=kbCustInfo();
   if(!u.phone){ showToast('Pehle profile me phone save karein'); return; }
-  const oid=(document.getElementById('invOrderId').value||'').trim();
+  const oid=(document.getElementById('invOrderSel').value||'').trim();
   const note=(document.getElementById('invNote').value||'').trim();
   try{
     await setDoc(doc(db,'invoiceRequests', u.phone+'_'+Date.now()), {
       type:'invoice', phone:u.phone, name:u.name, orderId:oid, note:note, status:'new', at:Date.now()
     });
-    document.getElementById('invOrderId').value=''; document.getElementById('invNote').value='';
+    document.getElementById('invOrderSel').value=''; document.getElementById('invNote').value='';
     closeKbModal('invoiceModal');
     showToast('✅ Invoice request bhej di — shop aapko bhej denge');
   }catch(e){ showToast('Nahi bheja gaya — dobara try karein'); }
@@ -3763,8 +3788,14 @@ function renderWishList(){
 let _wishSaveTimer=null;
 window.setWishQty=function(id,qty){
   qty=Math.max(0,Math.min(99,Number(qty)||0));
+  const wasVoted=(Number(wishVotes[id])||0)>0;
   if(qty<=0)delete wishVotes[id];
   else wishVotes[id]=qty;
+  const nowVoted=qty>0;
+  // Item 9: apna vote turant bar/count me bhi jhalke — pehle sirf apni qty
+  // update hoti thi, "🔥 N votes" bar refresh/date-switch tak purana hi rehta tha.
+  if(nowVoted&&!wasVoted) wishCounts[id]=(wishCounts[id]||0)+1;
+  else if(!nowVoted&&wasVoted) wishCounts[id]=Math.max(0,(wishCounts[id]||0)-1);
   renderWishList();
   saveWishlistInstant();
 };
@@ -3821,7 +3852,6 @@ async function loadLoyalty(){
       document.getElementById('loyaltyLevel').textContent=level;
       document.getElementById('loyaltyScore').textContent=`Score: ${score}/100`;
       document.getElementById('loyaltyOrders').textContent=totalOrders;
-      document.getElementById('loyaltySpend').textContent='₹'+totalSpend;
       document.getElementById('loyaltyFav').textContent=fav?fav[0]:'—';
       document.getElementById('loyaltyNext').textContent=`→ ${nextLevel}`;
       document.getElementById('loyaltyBar').style.width=pct+'%';
@@ -3867,6 +3897,20 @@ if('serviceWorker' in navigator){
     if(!_kbReloaded){ _kbReloaded=true; location.reload(); }
   });
 }
+// Item 12: PC par mouse ka vertical wheel horizontal date-chip scroll me convert —
+// touch par swipe pehle se chalta tha, mouse-only desktop par chips atki rehti thi.
+(function(){
+  ['orderDayChips','myOrdDayChips','wishDayChips'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('wheel', function(e){
+      if(Math.abs(e.deltaY)>Math.abs(e.deltaX) && el.scrollWidth>el.clientWidth){
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    }, {passive:false});
+  });
+})();
 </script>
 
 <!-- Session 19: Install-app affordance (PWA). Chrome/Edge par beforeinstallprompt

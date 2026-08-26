@@ -105,6 +105,14 @@ const orderId = p.get('order');
 const orderTotal = p.get('total')||'';
 const orderAddr = decodeURIComponent(p.get('addr')||'');
 const orderItems = decodeURIComponent(p.get('items')||'');
+// Item 4: meal-time-specific "delivery not started" message.
+const orderMeal = decodeURIComponent(p.get('meal')||'') || 'Dinner';
+const MEAL_START_TIME = { Dinner:'7:30 PM', Lunch:'12:30 PM', Breakfast:'7:30 AM' };
+function notStartedMsg(){
+  const t = MEAL_START_TIME[orderMeal];
+  if (t) return `Your order is being freshly prepared!<br>${orderMeal} delivery will start by <b>${t}</b>.<br>Page updates automatically.`;
+  return 'Your order is being freshly prepared!<br>Tracking appears when delivery starts.<br>Page updates automatically.';
+}
 
 let map=null, boyMarker=null, custMarker=null, routeLine=null;
 let boyLat=null, boyLng=null;
@@ -348,7 +356,7 @@ function showNotStarted(msg) {
       <div class="ns-icon">🍳</div>
       <div class="prep-badge">📦 Preparing Your Order</div>
       <div class="ns-title">Delivery not started yet</div>
-      <div class="ns-sub">${msg||'Your order is being freshly prepared!<br>Tracking appears when delivery starts.<br>Page updates automatically.'}</div>
+      <div class="ns-sub">${msg||notStartedMsg()}</div>
       <button class="refresh-btn" onclick="location.reload()">🔄 Refresh</button>
     </div>
     ${orderItems||orderTotal?`<div class="oinfo">
