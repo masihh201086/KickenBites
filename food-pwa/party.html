@@ -102,8 +102,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
         <div class="fg"><label class="fl">Name</label><input class="fi" id="pName" placeholder="Full name"></div>
         <div class="fg"><label class="fl">Mobile</label><input class="fi" id="pPhone" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit"></div>
       </div>
-      <label class="fl">Delivery Address / Venue</label>
-      <input class="fi" id="pAddr" placeholder="Party venue address">
     </div>
 
     <!-- PARTY DETAILS -->
@@ -116,36 +114,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
       </div>
       <input type="date" class="fi" id="pDate" style="position:absolute;opacity:0;pointer-events:none;height:0;padding:0;border:0" onchange="customDatePicked()">
       <div id="dateShow" style="font-size:.78rem;color:var(--p);font-weight:700;margin-bottom:9px"></div>
-      <label class="fl">Food Type</label>
-      <div class="date-chips" style="margin-bottom:10px">
-        <div class="dchip" id="ftVeg" onclick="setFoodType('veg')">🥬 Veg</div>
-        <div class="dchip" id="ftNonveg" onclick="setFoodType('nonveg')">🍗 Non-Veg</div>
-        <div class="dchip active" id="ftBoth" onclick="setFoodType('both')">🍗🥬 Both</div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label class="fl">👨 Total Adults</label><input class="fi" id="pAdults" type="number" inputmode="numeric" min="0" placeholder="e.g. 15" oninput="suggestQty()"></div>
-        <div class="fg"><label class="fl">🧒 Total Children</label><input class="fi" id="pChildren" type="number" inputmode="numeric" min="0" placeholder="e.g. 5" oninput="suggestQty()"></div>
-      </div>
-      <div id="vegOnlyRow" class="frow">
-        <div class="fg"><label class="fl">🥬 Veg-Only Adults</label><input class="fi" id="pVegAdults" type="number" inputmode="numeric" min="0" placeholder="e.g. 3" oninput="suggestQty()"></div>
-        <div class="fg"><label class="fl">🥬 Veg-Only Children</label><input class="fi" id="pVegChildren" type="number" inputmode="numeric" min="0" placeholder="e.g. 1" oninput="suggestQty()"></div>
-      </div>
-      <div id="guestSplit" style="font-size:.75rem;font-weight:600;color:var(--p);background:#f5f3ff;border-radius:9px;padding:8px 10px;margin-bottom:9px;display:none"></div>
       <label class="fl">Occasion (optional)</label>
       <input class="fi" id="pOccasion" placeholder="Birthday, Anniversary, etc.">
-    </div>
-
-    <!-- SMART SUGGESTION -->
-    <div class="sugg-box" id="suggBox">
-      <div class="sugg-title">🤖 Smart Suggestion</div>
-      <div class="sugg-text" id="suggText"></div>
-      <button class="sugg-apply" onclick="applySuggestion()">✨ Apply Suggested Quantities</button>
     </div>
 
     <!-- MENU ITEMS -->
     <div class="card">
       <div class="ct">🍗 Select Items & Quantity</div>
-      <div class="note-box">💡 All menu items shown. Select quantities for your party.</div>
+      <div class="note-box">💡 Party order ke liye har item ki minimum quantity 6 plate hai.</div>
       <div id="menuList"></div>
     </div>
 
@@ -344,152 +320,6 @@ window.customDatePicked=function(){
   updateDateShow();
 };
 
-// ---- SMART AI-STYLE SUGGESTION ENGINE ----
-// Categorize items: starter / main / dessert + veg / nonveg
-function categorizeItem(item){
-  const n=(item.name||'').toLowerCase();
-  const d=(item.desc||'').toLowerCase();
-  const all=n+' '+d;
-  let course='main';
-  if(/tikka|kebab|kabab|pakora|pakoda|65|lollipop|wings|fry|roll|cutlet|starter|snack|manchurian|chilli|chilly|spring/i.test(all)&&!/rice|biryani|pulao|curry|masala|korma/i.test(n)) course='starter';
-  if(/kheer|halwa|gulab|jamun|rasgulla|barfi|laddu|ladoo|sweet|dessert|custard|ice cream|kulfi|phirni|sewai|shahi tukda/i.test(all)) course='dessert';
-  let type='nonveg';
-  if(/paneer|veg|dal|aloo|gobi|bhindi|matar|chana|rajma|mushroom|sabzi|salad|raita|naan|roti|kheer|halwa|gulab|jamun|rasgulla|barfi|laddu|custard|kulfi|phirni|sewai/i.test(all)&&!/chicken|mutton|fish|egg|prawn|keema|meat/i.test(all)) type='veg';
-  return {course,type};
-}
-
-let foodType='both';
-window.setFoodType=function(t){
-  foodType=t;
-  document.getElementById('ftVeg').classList.toggle('active',t==='veg');
-  document.getElementById('ftNonveg').classList.toggle('active',t==='nonveg');
-  document.getElementById('ftBoth').classList.toggle('active',t==='both');
-  // Veg-only fields only make sense for "both"
-  document.getElementById('vegOnlyRow').style.display=t==='both'?'flex':'none';
-  suggestQty();
-};
-
-window.suggestQty=function(){
-  const adults=parseInt(document.getElementById('pAdults').value)||0;
-  const children=parseInt(document.getElementById('pChildren').value)||0;
-  let vegAdults=0, vegChildren=0;
-  if(foodType==='both'){
-    vegAdults=Math.min(parseInt(document.getElementById('pVegAdults').value)||0,adults);
-    vegChildren=Math.min(parseInt(document.getElementById('pVegChildren').value)||0,children);
-  }else if(foodType==='veg'){
-    vegAdults=adults; vegChildren=children;
-  }
-  const nvAdults=adults-vegAdults;
-  const nvChildren=children-vegChildren;
-  const box=document.getElementById('suggBox');
-  const totalGuests=adults+children;
-
-  // Live split display (only for "both")
-  const splitEl=document.getElementById('guestSplit');
-  if(splitEl){
-    if(foodType==='both'&&totalGuests>0){
-      splitEl.style.display='block';
-      splitEl.innerHTML='🍗 Non-Veg eaters: <b>'+nvAdults+' adults + '+nvChildren+' children</b> &nbsp;|&nbsp; 🥬 Veg-only: <b>'+vegAdults+' adults + '+vegChildren+' children</b>';
-    }else{
-      splitEl.style.display='none';
-    }
-  }
-
-  if(totalGuests<2){box.style.display='none';return;}
-
-  // Effective appetites (child = 0.6 adult)
-  const totalEff=adults+children*0.6;
-  const nvEff=nvAdults+nvChildren*0.6;
-  const vegOnlyEff=vegAdults+vegChildren*0.6;
-
-  let items=masterItems.map(i=>({...i,...categorizeItem(i)}));
-  // Filter by food type
-  if(foodType==='veg') items=items.filter(i=>i.type==='veg'||i.course==='dessert');
-  // nonveg: keep all (nonveg parties still want some veg sides? No - pure nonveg selected)
-  if(foodType==='nonveg') items=items.filter(i=>i.type==='nonveg'||i.course==='dessert');
-
-  function pickBulk(arr, count, needVeg){
-    const picked=[];
-    if(needVeg){
-      const veg=arr.filter(i=>i.type==='veg');
-      if(veg.length)picked.push(veg[0]);
-    }
-    arr.filter(i=>!picked.includes(i)).slice(0, count-picked.length).forEach(i=>picked.push(i));
-    return picked.slice(0,count);
-  }
-
-  const needVeg=foodType==='both'&&vegOnlyEff>0;
-  const mainCount=totalGuests<15?2:totalGuests<=30?3:4;
-
-  const starters=pickBulk(items.filter(i=>i.course==='starter'),2,needVeg);
-  const mains=pickBulk(items.filter(i=>i.course==='main'),mainCount,needVeg);
-  const desserts=pickBulk(items.filter(i=>i.course==='dessert'),2,false);
-
-  window._suggestion={};
-  let text='For <b>'+adults+' adults + '+children+' children</b>';
-  if(foodType==='both'&&vegAdults+vegChildren>0)text+='<br>(🍗 '+(nvAdults+nvChildren)+' non-veg eaters, 🥬 '+(vegAdults+vegChildren)+' veg-only)';
-  if(foodType==='veg')text+=' (Pure Veg 🥬)';
-  if(foodType==='nonveg')text+=' (Non-Veg 🍗)';
-  text+=':<br><br>';
-
-  function calcPlates(item, course, itemsInCourse){
-    const divisor=course==='starter'?2.5:course==='main'?1.3:1;
-    const sameTypeCount=itemsInCourse.filter(x=>x.type===item.type).length||1;
-    if(foodType==='veg'||foodType==='nonveg'){
-      // Single type: everyone eats everything
-      return Math.max(1,Math.ceil(totalEff/divisor/itemsInCourse.length));
-    }
-    if(item.type==='veg'){
-      const demand=vegOnlyEff+(nvEff*0.5);
-      return Math.max(1,Math.ceil(demand/divisor/sameTypeCount));
-    }else{
-      return Math.max(1,Math.ceil(nvEff/divisor/sameTypeCount));
-    }
-  }
-
-  if(starters.length){
-    text+='🥟 <b>Starters:</b><br>';
-    starters.forEach(i=>{
-      const p=calcPlates(i,'starter',starters);
-      window._suggestion[i.id]=p;
-      text+='&nbsp;&nbsp;'+i.name+' ×'+p+' '+(i.type==='veg'?'🥬':'🍗')+'<br>';
-    });
-  }
-  if(mains.length){
-    text+='🍛 <b>Main Course:</b><br>';
-    mains.forEach(i=>{
-      const p=calcPlates(i,'main',mains);
-      window._suggestion[i.id]=p;
-      text+='&nbsp;&nbsp;'+i.name+' ×'+p+' '+(i.type==='veg'?'🥬':'🍗')+'<br>';
-    });
-  }
-  if(desserts.length){
-    text+='🍮 <b>Desserts:</b><br>';
-    desserts.forEach(i=>{
-      const p=Math.max(1,Math.ceil(totalGuests/desserts.length));
-      window._suggestion[i.id]=p;
-      text+='&nbsp;&nbsp;'+i.name+' ×'+p+'<br>';
-    });
-  }
-
-  let estCost=0;
-  Object.entries(window._suggestion).forEach(([id,qty])=>{
-    const item=masterItems.find(i=>i.id===id);
-    if(item)estCost+=item.price*qty;
-  });
-  text+='<br>💰 Estimated: <b>₹'+estCost+'</b> (~₹'+Math.round(estCost/totalGuests)+'/guest)';
-
-  document.getElementById('suggText').innerHTML=text;
-  box.style.display='block';
-};
-
-window.applySuggestion=function(){
-  if(!window._suggestion)return;
-  quantities={...window._suggestion};
-  renderMenu();
-  updateBill();
-};
-
 // ---- MENU ----
 function renderMenu(){
   const list=document.getElementById('menuList');
@@ -515,7 +345,13 @@ function renderMenu(){
 }
 
 window.chQty=function(id,delta){
-  quantities[id]=Math.max(0,(quantities[id]||0)+delta);
+  const cur=quantities[id]||0;
+  // Party order: minimum 6 plate per item. + se pehli baar seedhe 6 par jaata hai;
+  // − se 6 se neeche jaate hi item hata (0 par) — beech ke 1-5 kabhi nahi rukte.
+  let next;
+  if(delta>0){ next = cur===0 ? 6 : cur+1; }
+  else{ next = cur<=6 ? 0 : cur-1; }
+  quantities[id]=Math.max(0,next);
   document.getElementById('q_'+id).textContent=quantities[id];
   updateBill();
 };
@@ -539,24 +375,10 @@ function updateBill(){
 window.sendPartyWA=async function(){
   const name=document.getElementById('pName').value.trim();
   const phone=document.getElementById('pPhone').value.trim();
-  const addr=document.getElementById('pAddr').value.trim();
-  const adults=document.getElementById('pAdults').value.trim();
-  const children=document.getElementById('pChildren').value.trim();
-  let vegAdults='0', vegChildren='0';
-  if(foodType==='both'){
-    vegAdults=document.getElementById('pVegAdults').value.trim()||'0';
-    vegChildren=document.getElementById('pVegChildren').value.trim()||'0';
-  }else if(foodType==='veg'){
-    vegAdults=adults||'0'; vegChildren=children||'0';
-  }
-  const nvAdultsC=(parseInt(adults)||0)-(parseInt(vegAdults)||0);
-  const nvChildrenC=(parseInt(children)||0)-(parseInt(vegChildren)||0);
-  const ftLabel=foodType==='veg'?'Pure Veg 🥬':foodType==='nonveg'?'Non-Veg 🍗':'Both 🍗🥬';
   const occasion=document.getElementById('pOccasion').value.trim();
 
   if(!name){alert('Please enter your name');return;}
   if(phone.length!==10||isNaN(phone)){alert('Enter valid 10-digit mobile');return;}
-  if(!addr){alert('Please enter party venue address');return;}
   if(!partyDate){alert('Select party date');return;}
 
   // Save profile
@@ -583,12 +405,7 @@ window.sendPartyWA=async function(){
     '👤 Name: '+name+nl+
     '📞 Phone: '+phone+nl+
     '📅 Party Date: '+dateDisp+nl+
-    '👨 Adults: '+(adults||0)+' | 🧒 Children: '+(children||0)+nl+
-    '🍽️ Food Type: '+ftLabel+nl+
-    '🍗 Non-Veg: '+nvAdultsC+' adults, '+nvChildrenC+' children'+nl+
-    '🥬 Veg-Only: '+vegAdults+' adults, '+vegChildren+' children'+nl+
     (occasion?'🎊 Occasion: '+occasion+nl:'')+
-    '📍 Venue: '+addr+nl+
     '━━━━━━━━━━━━━━━━━━━'+nl+
     '*Items Requested:*'+nl+
     itemLines+nl+
@@ -605,10 +422,8 @@ window.sendPartyWA=async function(){
   try{
     const bookingId = partyDate+'_'+phone;
     await setDoc(doc(db,'partyBookings',bookingId),{
-      bookingId, name, phone, address:addr, partyDate,
-      adults:parseInt(adults)||0, children:parseInt(children)||0,
-      vegAdults:parseInt(vegAdults)||0, vegChildren:parseInt(vegChildren)||0,
-      foodType, occasion, items:selected, total,
+      bookingId, name, phone, partyDate,
+      occasion, items:selected, total,
       status:'pending', createdAt:new Date().toISOString(), at:Date.now()
     },{merge:true});
     savedOk=true;

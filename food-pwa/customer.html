@@ -582,8 +582,11 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* TOAST */
 #toast{position:fixed;bottom:75px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:9px 18px;border-radius:50px;font-size:.78rem;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center;pointer-events:none;}
 @media(min-width:600px){#mainApp{max-width:900px;margin:0 auto;}
-  #payScreen,#successScreen{max-width:560px;margin:0 auto;}
-  #payScreen{left:50%;right:auto;transform:translateX(-50%);}}
+  /* S67: payScreen/successScreen ka BACKGROUND poori desktop width cover kare
+     (warna piche wala order-page peeking dikhta tha) — sirf ANDAR ka content
+     ek saaf column me centered ho, jaisa mobile par lagta hai. */
+  .pay-bar,.pay-hero,.pay-simple{max-width:560px;margin-left:auto;margin-right:auto;}
+}
 /* S64(Q6): bade screen par menu zyada columns le — poori width use ho */
 @media(min-width:760px){.menu-grid{grid-template-columns:1fr 1fr 1fr;}}
 @media(min-width:1040px){.menu-grid{grid-template-columns:1fr 1fr 1fr 1fr;}}
@@ -950,7 +953,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
     <div class="pqr-headline">📲 Scan QR to Pay &amp; Click Confirm Order</div>
     <div class="pqr-card" id="pqrCard">
       <img class="pqr-img" src="assets/payment-qr.png" alt="Kicken Bites Payment QR" loading="eager">
-      <a class="pqr-dl" href="assets/payment-qr.png" download="Kicken-Bites-QR.png">📥 Download QR</a>
+      <a class="pqr-dl" href="assets/payment-qr.png" download="Kicken-Bites-QR.png">📥 Download QR to Gallery</a>
     </div>
 
     <div class="pqr-bottom">
@@ -1998,13 +2001,20 @@ async function loadItemRatings() {
     const {getDocs:firestoreGetDocs} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap = await firestoreGetDocs(collection(db,'ratings'));
     const ratings = snap.docs.map(d=>({id:d.id,...d.data()}));
-    // Session 34: jin orders ka feedback aa chuka hai unka set — naye order ke baad
-    // "pichle order ka feedback dein" prompt isi se decide hota hai.
+    // S66: per-ITEM dedup — ek item ek baar rate ho gaya to phir kabhi nahi poochna,
+    // chahe wo item kisi bhi naye order me phir se aaye. orderId globally unique hai,
+    // isliye check kar sakte hain ye rating HAMARE customer ki hai ya kisi aur ki.
     try{
-      const done=new Set();
-      ratings.forEach(r=>{ const oid=r.orderId||String(r.id||'').split('_')[0]; if(oid) done.add(oid); });
-      window._ratedOrders=done;
-    }catch(e){ window._ratedOrders=window._ratedOrders||new Set(); }
+      const myOrderIds=new Set((window._myOrdersAll||[]).map(o=>o.id));
+      const doneItems=new Set();
+      ratings.forEach(r=>{
+        const oid=r.orderId||String(r.id||'').split('_')[0];
+        if(!oid || !myOrderIds.has(oid)) return;
+        const iid=r.itemId||String(r.id||'').split('_')[1];
+        if(iid) doneItems.add(iid);
+      });
+      window._ratedItemIds=doneItems;
+    }catch(e){ window._ratedItemIds=window._ratedItemIds||new Set(); }
 // console.log('Total ratings in DB:',ratings.length);
 
     // Clear existing
@@ -3436,7 +3446,7 @@ window.setModalStar=function(itemId,val){
 };
 
 window.submitModalRating=async function(orderId,items){
-  let submitted=0,total=items.length;
+  let submitted=0,total=items.length,gotFive=false;
   for(const item of items){
     const r=modalStars[item.id];
     if(r){
@@ -3448,12 +3458,15 @@ window.submitModalRating=async function(orderId,items){
           createdAt:new Date().toISOString()
         });
         submitted++;
+        if(r===5) gotFive=true;
       }catch(e){console.error(e);}
     }
   }
   document.getElementById('rateModal')?.remove();
   if(submitted>0){showToast('✅ Thank you for your ratings! They help other customers.');loadItemRatings().then(()=>renderMenu(menuConfig.items||[]));}
   else showToast('Please select at least one star rating');
+  // S66: 5-star diya to Google review ke liye poochein — har baar (koi limit nahi)
+  if(gotFive){ try{ showGoogleReviewPopup(); }catch(e){} }
 };
 
 window.goMyOrders=function(){
@@ -3515,27 +3528,27 @@ window.prevFbSetStar=function(itemId,val){
 };
 async function maybeShowPrevFeedback(){
   try{ await loadItemRatings(); }catch(e){}
-  const rated=window._ratedOrders||new Set();
+  const ratedItems=window._ratedItemIds||new Set();
   const mine=window._myOrdersAll||[];
-  // saare un-rated delivered orders (just-placed order chhodkar), newest pehle -> queue
-  const queue=mine
-    .filter(o=>o.status==='delivered' && o.id!==currentOrderId && !rated.has(o.id))
-    .sort((a,b)=>String(b.deliveredAt||b.createdAt||'').localeCompare(String(a.deliveredAt||a.createdAt||'')));
-  if(!queue.length)return;
+  // S66: sabse recent delivered order dhoondo jisme KAM SE KAM ek item abhi tak
+  // rate nahi hua (per-ITEM check, order-wise nahi) — sirf USI ek order ka popup.
+  const cand=mine
+    .filter(o=>o.status==='delivered' && o.id!==currentOrderId)
+    .sort((a,b)=>String(b.deliveredAt||b.createdAt||'').localeCompare(String(a.deliveredAt||a.createdAt||'')))
+    .find(o=>(o.items||[]).some(i=>!ratedItems.has(i.id)));
+  if(!cand)return;
   const ss=document.getElementById('successScreen');
   if(!ss || ss.style.display==='none') return;
-  showPrevFbQueue(queue,0);
+  showPrevFb(cand,ratedItems);
 }
-function showPrevFbQueue(queue,idx){
+function showPrevFb(cand,ratedItems){
   const old=document.getElementById('prevFbPopup'); if(old) old.remove();
-  if(idx>=queue.length) return;   // sab ho gaye
-  const cand=queue[idx];
-  const items=(cand.items||[]);
+  const items=(cand.items||[]).filter(i=>!ratedItems.has(i.id));   // sirf ABHI-TAK-na-rate-hue items
+  if(!items.length)return;
   const ov=document.createElement('div');
   ov.id='prevFbPopup';
   ov.style.cssText='position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px';
   ov.onclick=function(e){ if(e.target===ov) dismissPrevFb(); };
-  const more=(queue.length-idx-1);
   const itemsHtml=items.map(function(i){
     const img=_imgForItem(i.id), emo=_emojiForItem(i.id);
     const pic=img
@@ -3555,18 +3568,17 @@ function showPrevFbQueue(queue,idx){
   ov.innerHTML='<div style="background:#fff;border-radius:20px;max-width:400px;width:100%;max-height:88vh;overflow-y:auto;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,.3)">'
     +'<div style="text-align:center;margin-bottom:4px"><span style="font-size:2rem">⭐</span></div>'
     +'<div style="font-weight:900;font-size:1.1rem;color:#b45309;text-align:center">Pichle order ka feedback</div>'
-    +'<div style="font-size:.76rem;color:#777;text-align:center;margin-bottom:6px">Order #'+String(cand.id).slice(-5).toUpperCase()+(cand.date?' · '+esc(cand.date):'')+(more>0?(' · '+more+' aur baaki'):'')+'</div>'
+    +'<div style="font-size:.76rem;color:#777;text-align:center;margin-bottom:6px">Order #'+String(cand.id).slice(-5).toUpperCase()+(cand.date?' · '+esc(cand.date):'')+'</div>'
     +itemsHtml
     +'<div style="display:grid;grid-template-columns:1fr 2fr;gap:9px;margin-top:15px">'
       +'<button onclick="dismissPrevFb()" style="padding:12px;background:#eee;color:#555;border:none;border-radius:12px;font-weight:700;font-size:.86rem;cursor:pointer">Baad me</button>'
-      +'<button id="pfbSubmitBtn" style="padding:12px;background:#f59e0b;color:#fff;border:none;border-radius:12px;font-weight:800;font-size:.86rem;cursor:pointer">⭐ Submit'+(more>0?' & agla':'')+'</button>'
+      +'<button id="pfbSubmitBtn" style="padding:12px;background:#f59e0b;color:#fff;border:none;border-radius:12px;font-weight:800;font-size:.86rem;cursor:pointer">⭐ Submit</button>'
     +'</div></div>';
   document.body.appendChild(ov);
-  document.getElementById('pfbSubmitBtn').onclick=function(){ submitPrevFb(cand,queue,idx); };
+  document.getElementById('pfbSubmitBtn').onclick=function(){ submitPrevFb(cand,items); };
 }
-async function submitPrevFb(cand,queue,idx){
-  const items=(cand.items||[]);
-  let submitted=0;
+async function submitPrevFb(cand,items){
+  let submitted=0, gotFive=false;
   for(const item of items){
     const r=prevFbStars[item.id];
     if(r){
@@ -3577,17 +3589,36 @@ async function submitPrevFb(cand,queue,idx){
           rating:r,review:rev,hidden:false,createdAt:new Date().toISOString()
         });
         submitted++;
+        if(r===5) gotFive=true;
+        window._ratedItemIds=window._ratedItemIds||new Set(); window._ratedItemIds.add(item.id);
       }catch(e){console.error(e);}
     }
   }
   if(!submitted){ showToast('Kam se kam ek star to dein 🙂'); return; }
-  // is order ke stars saaf karo, rated set me daalo, agla popup kholo
   items.forEach(function(i){ delete prevFbStars[i.id]; });
-  try{ window._ratedOrders=window._ratedOrders||new Set(); window._ratedOrders.add(cand.id); }catch(e){}
   showToast('✅ Shukriya! Aapka feedback mil gaya.');
   try{ loadItemRatings().then(()=>renderMenu(menuConfig.items||[])); }catch(e){}
-  showPrevFbQueue(queue,idx+1);   // agla un-rated order (queue)
+  const pop=document.getElementById('prevFbPopup'); if(pop) pop.remove();
+  // S66: 5-star diya to Google review ke liye poochein — har baar (koi limit nahi)
+  if(gotFive){ try{ showGoogleReviewPopup(); }catch(e){} }
 }
+// ===== S66: GOOGLE REVIEW ASK — jab bhi kisi item ko 5-star mile =====
+window.showGoogleReviewPopup=function(){
+  const old=document.getElementById('googleRevPopup'); if(old) old.remove();
+  const ov=document.createElement('div');
+  ov.id='googleRevPopup';
+  ov.style.cssText='position:fixed;inset:0;z-index:610;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+  ov.innerHTML='<div style="background:#fff;border-radius:20px;max-width:360px;width:100%;padding:22px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)">'
+    +'<div style="font-size:2.2rem;margin-bottom:6px">⭐🎉</div>'
+    +'<div style="font-weight:900;font-size:1.1rem;color:#b45309">Wah! 5-star ke liye shukriya</div>'
+    +'<div style="font-size:.83rem;color:#555;margin-top:6px;line-height:1.5">Kya aap Google par bhi hamein ek chhota review de sakte hain? Isse aur logon tak Kicken Bites pahunchega 🙏</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 2fr;gap:9px;margin-top:16px">'
+      +'<button onclick="document.getElementById(\'googleRevPopup\').remove()" style="padding:12px;background:#eee;color:#555;border:none;border-radius:12px;font-weight:700;font-size:.84rem;cursor:pointer">Baad me</button>'
+      +'<a href="https://g.page/r/CSE9dKqCaD0rEBI/review" target="_blank" rel="noopener" onclick="document.getElementById(\'googleRevPopup\').remove()" style="padding:12px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border-radius:12px;font-weight:800;font-size:.84rem;text-decoration:none;display:flex;align-items:center;justify-content:center">⭐ Google Review</a>'
+    +'</div></div>';
+  document.body.appendChild(ov);
+};
 
 window.placeNext=function(){
   quantities={};currentOrderId=null;currentTotal=0;
