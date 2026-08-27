@@ -80,6 +80,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 .ig input:focus,.ig select:focus,.ig textarea:focus{border-color:var(--p);}
 .ig textarea{resize:none;height:58px;}
 .ckwrap{max-width:520px;margin:0 auto;}
+/* Point 1: PC par party page baaki tabs (customer.html #mainApp max-width:900px)
+   jitni chaudi ho — pehle sirf 520px fixed thi, isliye aadhi chaudi lagti thi. */
+@media(min-width:600px){
+  .ptabs,.wrap,.bill-in,.ckwrap{max-width:800px;}
+}
 .ckstrip{background:#fff;border:2px solid #eee;border-radius:var(--rd);margin-bottom:9px;overflow:hidden;}
 .ckstrip.on{border-color:var(--p);}
 .ckhd{display:flex;align-items:center;gap:9px;padding:12px 12px;cursor:pointer;}
@@ -101,12 +106,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 .place-btn{width:100%;margin:4px 0 6px;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--p),#ff8c42);color:white;font-size:1.05rem;font-weight:700;letter-spacing:.01em;cursor:pointer;box-shadow:0 5px 18px rgba(230,92,0,.32);transition:transform .12s;}
 .place-btn:active:not(:disabled){transform:translateY(1px);}
 .place-btn:disabled{opacity:.4;cursor:not-allowed;}
-#partyRunBar{position:fixed;left:0;right:0;bottom:0;z-index:400;display:none;
-  background:#fff;border-top:1px solid #eee;box-shadow:0 -4px 16px rgba(0,0,0,.1);
-  padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));}
-#partyRunBar .rt-go{width:100%;padding:14px 18px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--p),#ff8c42);
-  color:#fff;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 5px 18px rgba(230,92,0,.32);font-family:inherit;letter-spacing:.01em;}
-#partyRunBar .rt-go:disabled{opacity:.75;cursor:default}
 
 /* Item 8: PAYMENT SCREEN — order.html ke pay-simple design se hu-bahu match */
 /* Point 5: booking-submitted full-screen — order.html ke successScreen jaisa */
@@ -285,11 +284,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
       </div>
       <div id="pdPrevFb" style="display:none;margin-top:22px;background:#fff;border:2px solid #ffe8d0;border-radius:16px;padding:18px;text-align:left"></div>
     </div>
-  </div>
-
-  <!-- Item 8: floating "Proceed to Book Menu" bar — order.html ke runTotalBar jaisa -->
-  <div id="partyRunBar">
-    <button class="rt-go" id="partyRtGoBtn" onclick="partyBarAction()">➡️ Proceed to Book Menu</button>
   </div>
 
   <!-- Item 8: BOOKING SUMMARY SCREEN — order.html jaisa review-before-submit -->
@@ -599,10 +593,9 @@ function updateBill(){
       if(item){count+=q;total+=item.price*q;}
     }
   });
-  const ckWrap=document.getElementById('ckWrap'), bar=document.getElementById('partyRunBar');
+  const ckWrap=document.getElementById('ckWrap');
   const has=count>0;
   if(ckWrap) ckWrap.style.display=has?'block':'none';
-  if(bar) bar.style.display=has?'flex':'none';
   if(!has){ _pckReviewed=false; }
 
   document.getElementById('pckBillCnt').textContent=count+' items';
@@ -620,8 +613,17 @@ function updateBill(){
 
   const cbtn=document.getElementById('confirmBookingBtn');
   if(cbtn){ cbtn.disabled=!has; cbtn.textContent=has?'✅ Confirm Your Booking':'Select items to book'; }
-  const rt=document.getElementById('partyRtGoBtn');
-  if(rt){ rt.disabled=!has; rt.textContent=_pckReviewed?'✅ Confirm Your Booking':'➡️ Proceed to Book Menu'; }
+  // Point 3: floating bar ab iframe ke ANDAR position:fixed nahi hai — mobile
+  // browsers me iframe ke andar fixed elements screen se chipakte nahi hain (PC
+  // par chalta tha, mobile par bottom me chhupa reh jaata tha, scroll karna padta
+  // tha). Ab customer.html (outer page, jahan fixed reliably kaam karta hai) ko
+  // postMessage se state bhej dete hain, wahi bar render karta hai.
+  try{
+    if(window.top && window.top!==window){
+      window.top.postMessage({type:'kbPartyBar', show:has, disabled:!has,
+        label:_pckReviewed?'✅ Confirm Your Booking':'➡️ Proceed to Book Menu'}, '*');
+    }
+  }catch(e){}
   try{ pckPaint(); }catch(e){}
 }
 
@@ -724,6 +726,11 @@ window.partyBarAction=function(){
   }
   confirmBookingClick();
 };
+// Point 3: outer (customer.html) floating bar ka click yahan tak postMessage se
+// pahunchta hai — wahi partyBarAction() chalti hai jo pehle local button chalata tha.
+window.addEventListener('message', function(e){
+  if(e.data && e.data.type==='kbPartyBarClick'){ try{ partyBarAction(); }catch(err){} }
+});
 
 // ---- Item 1/4: CONFIRM → full SUMMARY screen (payment nahi, sirf review + submit) ----
 window.confirmBookingClick=function(){

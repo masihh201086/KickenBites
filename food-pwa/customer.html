@@ -223,6 +223,17 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
   color:#fff;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:var(--sh-brand);font-family:inherit;
   letter-spacing:.01em;transition:opacity .15s}
 #runTotalBar .rt-go:disabled{opacity:.75;cursor:default}
+
+/* Point 3: Party ka floating bar — #runTotalBar jaisa hi, alag id taaki dono
+   independently show/hide ho sakein (Order tab aur Party tab kabhi ek saath active nahi hote,
+   par safe rehne ke liye alag rakha). */
+#partyOuterBar{position:fixed;left:0;right:0;bottom:0;z-index:400;display:none;
+  background:#fff;border-top:1px solid #eee;box-shadow:0 -4px 16px rgba(0,0,0,.1);
+  padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));align-items:center;gap:11px}
+#partyOuterBar .rt-go{flex:1;width:100%;padding:14px 18px;border:none;border-radius:12px;background:var(--ograd);
+  color:#fff;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:var(--sh-brand);font-family:inherit;
+  letter-spacing:.01em;transition:opacity .15s}
+#partyOuterBar .rt-go:disabled{opacity:.75;cursor:default}
 .place-btn{width:calc(100% - 26px);margin:13px 13px 26px;padding:16px;border-radius:var(--r-lg);border:none;background:var(--ograd);color:white;font-family:var(--font-head);font-size:1.05rem;font-weight:700;letter-spacing:.01em;cursor:pointer;box-shadow:var(--sh-brand);transition:transform .12s,box-shadow .2s;}
 .place-btn:active:not(:disabled){transform:translateY(1px);box-shadow:0 3px 12px rgba(230,92,0,.3);}
 .place-btn:disabled{opacity:.4;cursor:not-allowed;}
@@ -884,6 +895,15 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
   <!-- PARTY TAB -->
   <div class="panel" id="tab-party" style="padding:0">
     <iframe id="partyFrame" src="party.html" style="width:100%;height:calc(100vh - 130px);border:none;display:block" title="Party Planner"></iframe>
+  </div>
+
+  <!-- Point 3: Party's "Proceed to Book Menu" floating bar — iske andar party.html
+       ke iframe me position:fixed rakhne se mobile browsers par ye screen se
+       chipakta nahi tha (PC par chalta tha), isliye ab OUTER page (yahan, jahan
+       fixed reliably chalta hai) par render hota hai, iframe postMessage se state
+       bhejta hai. -->
+  <div id="partyOuterBar">
+    <button class="rt-go" id="partyOuterBarBtn" onclick="partyOuterBarClick()">➡️ Proceed to Book Menu</button>
   </div>
 
   <div class="panel" id="tab-profile">
@@ -3704,12 +3724,32 @@ window.switchTab=function(t){
       const fr=document.getElementById('partyFrame');
       if(fr && fr.contentWindow && typeof fr.contentWindow.recheckProfile==='function') fr.contentWindow.recheckProfile();
     }catch(e){}
+  } else {
+    // Party tab se hatte hi uska floating bar bhi hata do
+    try{ const pb=document.getElementById('partyOuterBar'); if(pb) pb.style.display='none'; }catch(e){}
   }
   // Item 1: Install App button sirf Order tab par dikhe — baaki tabs par nahi
   // (payment/checkout jaise overlays alag se hide karte hain, ye sirf tab switch ke liye hai).
   try{ const ib=document.getElementById('kbInstallBtn'); if(ib) ib.style.display=(t==='order')?'':'none'; }catch(e){}
   // Persist tab so refresh stays on same tab
   try{localStorage.setItem('kb_cust_tab',t);}catch(e){}
+};
+
+// Point 3: party.html (iframe) apne cart-state ki khabar postMessage se bhejta
+// hai — yahan (outer page, jahan position:fixed mobile par bhi reliably chalta
+// hai) us state se floating bar dikhaate/badalte hain.
+window.addEventListener('message', function(e){
+  if(!e.data || e.data.type!=='kbPartyBar') return;
+  const bar=document.getElementById('partyOuterBar'), btn=document.getElementById('partyOuterBarBtn');
+  const partyActive = document.getElementById('tab-party')?.classList.contains('active');
+  if(bar) bar.style.display=(e.data.show && partyActive)?'flex':'none';
+  if(btn){ btn.disabled=!!e.data.disabled; if(e.data.label) btn.textContent=e.data.label; }
+});
+window.partyOuterBarClick=function(){
+  try{
+    const fr=document.getElementById('partyFrame');
+    if(fr && fr.contentWindow) fr.contentWindow.postMessage({type:'kbPartyBarClick'},'*');
+  }catch(e){}
 };
 
 // ---- WISHLIST ----
