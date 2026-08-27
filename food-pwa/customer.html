@@ -539,7 +539,6 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .sp-cancelled{background:var(--rp);color:var(--red);}
 .oh-items{font-size:.79rem;color:var(--muted);margin:3px 0;}
 .oh-total{font-weight:700;color:var(--orange);font-size:.83rem;}
-.reorder-btn{margin-top:7px;padding:6px 12px;background:var(--orange);color:white;border:none;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;}
 .track-order-btn{margin-top:7px;margin-left:6px;padding:6px 12px;background:var(--dark);color:white;border:none;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;}
 .rate-order-btn{margin-top:7px;margin-left:6px;padding:6px 12px;background:#f59e0b;color:white;border:none;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;}
 .cancel-order-btn{margin-top:7px;margin-left:6px;padding:6px 12px;background:white;color:var(--red);border:1.5px solid var(--red);border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;}
@@ -565,7 +564,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .kb-modal.show{display:flex;}
 .kb-sheet{background:#fff;border-radius:18px 18px 0 0;padding:17px 17px 24px;width:100%;max-width:460px;max-height:84vh;overflow-y:auto;}
 .kb-sheet h4{margin:0 0 4px;font-size:1.05rem;font-weight:800;display:flex;justify-content:space-between;align-items:center;}
-.kb-sheet .kb-x{background:none;border:none;font-size:1.3rem;cursor:pointer;line-height:1;}
+.kb-sheet .kb-x{background:none;border:none;font-size:1.3rem;cursor:pointer;line-height:1;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;}
 .kb-sheet p.sub{color:var(--muted);font-size:.8rem;margin:.2rem 0 .8rem;}
 .kb-row{display:flex;gap:9px;margin-bottom:9px;}
 .kb-row .kb-opt{flex:1;padding:13px 8px;border-radius:12px;border:2px solid #eee;background:#fff;font-weight:800;font-size:.86rem;cursor:pointer;text-align:center;color:var(--dark);}
@@ -574,16 +573,19 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .kb-ta{width:100%;border:2px solid #eee;border-radius:12px;padding:11px;font-family:inherit;font-size:.9rem;resize:vertical;min-height:84px;box-sizing:border-box;}
 .kb-send{width:100%;padding:13px;margin-top:10px;border:none;border-radius:12px;background:var(--ograd);color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;font-family:inherit;}
 .kb-star{font-size:1.7rem;cursor:pointer;color:#ddd;}
-/* Item 11: helpdesk/invoice/feedback ko thoda colourful banaya — har modal ka
-   apna theme (top accent + heading + send button + profile-tab button border) */
-.kb-sheet.th-blue{border-top:6px solid #3b82f6}
-.kb-sheet.th-blue h4{color:#1d4ed8}
+/* Item 11: pehle sirf 6px top-border tha jo "halka" lag raha tha — ab poori
+   modal header patti hi color se bhari hai, saath heading white ho gaya. */
+.kb-sheet.th-blue{border-top:none}
+.kb-sheet.th-blue h4{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;margin:-17px -17px 14px;padding:16px 17px;border-radius:18px 18px 0 0}
+.kb-sheet.th-blue h4 .kb-x{color:#fff;background:rgba(255,255,255,.2)}
 .kb-sheet.th-blue .kb-send{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
-.kb-sheet.th-green{border-top:6px solid #16a34a}
-.kb-sheet.th-green h4{color:#15803d}
+.kb-sheet.th-green{border-top:none}
+.kb-sheet.th-green h4{background:linear-gradient(135deg,#22c55e,#15803d);color:#fff;margin:-17px -17px 14px;padding:16px 17px;border-radius:18px 18px 0 0}
+.kb-sheet.th-green h4 .kb-x{color:#fff;background:rgba(255,255,255,.2)}
 .kb-sheet.th-green .kb-send{background:linear-gradient(135deg,#22c55e,#15803d)}
-.kb-sheet.th-purple{border-top:6px solid #8b5cf6}
-.kb-sheet.th-purple h4{color:#6d28d9}
+.kb-sheet.th-purple{border-top:none}
+.kb-sheet.th-purple h4{background:linear-gradient(135deg,#a855f7,#6d28d9);color:#fff;margin:-17px -17px 14px;padding:16px 17px;border-radius:18px 18px 0 0}
+.kb-sheet.th-purple h4 .kb-x{color:#fff;background:rgba(255,255,255,.2)}
 .kb-sheet.th-purple .kb-send{background:linear-gradient(135deg,#a855f7,#6d28d9)}
 .kb-prof-act.th-blue{border-left:4px solid #3b82f6}
 .kb-prof-act.th-green{border-left:4px solid #16a34a}
@@ -3143,6 +3145,8 @@ window.setPayTick=function(which){
 function openPayScreen(total){
   // Session 28: running-total bar sirf order/menu page par — pay screen par chhupa do.
   try{ const rb=document.getElementById('runTotalBar'); if(rb) rb.style.display='none'; document.body.style.paddingBottom=''; }catch(e){}
+  // Item 1: Install App button payment screen par bhi jhankta tha — yahan bhi chhupa do.
+  try{ const ib=document.getElementById('kbInstallBtn'); if(ib) ib.style.display='none'; }catch(e){}
   {const el=document.getElementById('payAmt');if(el)el.textContent='₹'+total;}
   {const el=document.getElementById('pqrAmt');if(el)el.textContent='₹'+total;}
   const pd=document.getElementById('payDate');
@@ -3190,6 +3194,8 @@ window.rtGoToOrder=function(){
 };
 window.closePayScreen=function(){
   hide('payScreen');
+  // Item 1: order tab par ho to Install button wapas dikha do
+  try{ const ib=document.getElementById('kbInstallBtn'); if(ib) ib.style.display=(document.getElementById('tab-order')?.classList.contains('active'))?'':'none'; }catch(e){}
   // Session 28: pay screen band → running-total bar wapas (updateBill khud dikhayega agar items hain)
   try{ if(typeof updateBill==='function') updateBill(); }catch(e){}
 };
@@ -3277,6 +3283,8 @@ function showSuccess(){
   }
   if(lastOrder.notes)s+=`<br>📝 ${esc(lastOrder.notes)}`;
   document.getElementById('succDetails').innerHTML=s;
+  // Item 1: Install button success screen par bhi nahi jhankna chahiye.
+  try{ const ib=document.getElementById('kbInstallBtn'); if(ib) ib.style.display='none'; }catch(e){}
   // S62(P6): takeaway par Track Delivery button chhupa do (koi delivery nahi).
   {const tb=document.getElementById('trackBtn'); if(tb) tb.style.display=isTA?'none':'flex';}
   // S62(P5): takeaway pickup line async bharo
@@ -3371,14 +3379,26 @@ window.sendHelpdeskMsg=async function(){
   }catch(e){ showToast('Nahi bheja gaya — dobara try karein'); }
 };
 
-// Item 10: order number type karne ke bajaye customer apne orders me se select
-// kare — dropdown Order#/date/total dikhata hai, sabse naya order sabse upar.
+// Item 10: order sirf date+amount se nahi, item-summary se bhi pehchana ja sake —
+// dropdown me har order ke items bhi dikhte hain taaki sahi order select ho.
 window.openInvoiceReq=function(){
   const sel=document.getElementById('invOrderSel');
-  if(sel){
-    const mine=[...(window._myOrdersAll||[])].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  const fillSel=()=>{
+    if(!sel)return;
+    const mine=[...(window._myOrdersAll||[])].sort((a,b)=>String(b.createdAt||b.date||'').localeCompare(String(a.createdAt||a.date||'')));
     sel.innerHTML='<option value="">Order chunein (jiska invoice chahiye)</option>'
-      + mine.map(o=>`<option value="${esc(o.id)}">#${esc(o.id.slice(-6).toUpperCase())} · ${esc(formatDate(o.date))} · ₹${o.total||0}</option>`).join('');
+      + mine.map(o=>{
+          const itemsTxt=(o.items||[]).map(i=>i.name+(i.qty>1?' ×'+i.qty:'')).join(', ');
+          const summary=itemsTxt?(itemsTxt.length>46?itemsTxt.slice(0,46)+'…':itemsTxt):'(no items)';
+          return `<option value="${esc(o.id)}">${esc(formatDate(o.date))} · ${esc(summary)} · ₹${o.total||0}</option>`;
+        }).join('');
+  };
+  fillSel();
+  // Agar orders abhi tak load hi nahi hue (profile tab pehli baar khula), to
+  // load karke kuch der baad dropdown dobara bhar do.
+  if(!(window._myOrdersAll||[]).length){
+    const u=kbCustInfo();
+    if(u.phone){ try{ loadMyOrders(u.phone); }catch(e){} setTimeout(fillSel,900); }
   }
   openKbModal('invoiceModal');
 };
@@ -3667,6 +3687,9 @@ window.switchTab=function(t){
   if(t==='profile') loadLoyalty();
   if(t==='wish') initWishTab();
   if(t==='myorders') showDeliveredBannerIfPending();
+  // Item 1: Install App button sirf Order tab par dikhe — baaki tabs par nahi
+  // (payment/checkout jaise overlays alag se hide karte hain, ye sirf tab switch ke liye hai).
+  try{ const ib=document.getElementById('kbInstallBtn'); if(ib) ib.style.display=(t==='order')?'':'none'; }catch(e){}
   // Persist tab so refresh stays on same tab
   try{localStorage.setItem('kb_cust_tab',t);}catch(e){}
 };
@@ -3899,6 +3922,7 @@ if('serviceWorker' in navigator){
 }
 // Item 12: PC par mouse ka vertical wheel horizontal date-chip scroll me convert —
 // touch par swipe pehle se chalta tha, mouse-only desktop par chips atki rehti thi.
+// Saath hi click-and-drag se bhi scroll ho sake (jaise scrollbar ko pakad kar khinchna).
 (function(){
   ['orderDayChips','myOrdDayChips','wishDayChips'].forEach(function(id){
     var el=document.getElementById(id);
@@ -3909,6 +3933,29 @@ if('serviceWorker' in navigator){
         e.preventDefault();
       }
     }, {passive:false});
+    var isDown=false, startX=0, startScroll=0, moved=false;
+    el.style.cursor='grab';
+    el.addEventListener('mousedown', function(e){
+      isDown=true; moved=false; el.style.cursor='grabbing';
+      startX=e.pageX; startScroll=el.scrollLeft;
+    });
+    window.addEventListener('mousemove', function(e){
+      if(!isDown) return;
+      var dx=e.pageX-startX;
+      if(Math.abs(dx)>3) moved=true;
+      el.scrollLeft=startScroll-dx;
+      e.preventDefault();
+    });
+    window.addEventListener('mouseup', function(){
+      if(!isDown) return;
+      isDown=false; el.style.cursor='grab';
+      // Agar khinchte waqt hi click par bhi chip select ho jaata (drag ke baad tap
+      // jaisa event), thoda click-suppress kar dete hain taaki galti se date badle nahi.
+      if(moved){
+        var suppress=function(ev){ ev.stopPropagation(); el.removeEventListener('click',suppress,true); };
+        el.addEventListener('click',suppress,true);
+      }
+    });
   });
 })();
 </script>

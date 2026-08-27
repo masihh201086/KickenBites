@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#8b5cf6">
+<meta name="theme-color" content="#e65c00">
 <link rel="manifest" href="manifest.json">
 <title>Party Planner — Kicken Bites</title>
 <style>
-:root{--o:#e65c00;--p:#8b5cf6;--g:#22c55e;--r:#ef4444;--dark:#1a1a2e;--muted:#666;--rd:14px;--cream:#fff8f0;}
+:root{--o:#e65c00;--p:#e65c00;--g:#22c55e;--r:#ef4444;--dark:#1a1a2e;--muted:#666;--rd:14px;--cream:#fff8f0;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160deg,#faf5ff,#f3e8ff);min-height:100vh;padding-bottom:26px;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160deg,#fff8f0,#ffe8d0);min-height:100vh;padding-bottom:26px;}
 
-.hdr{background:linear-gradient(135deg,var(--p),#6d28d9);color:white;padding:9px 14px;text-align:center;border-radius:0 0 16px 16px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.hdr{background:linear-gradient(135deg,var(--p),#ff8c42);color:white;padding:9px 14px;text-align:center;border-radius:0 0 16px 16px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .hdr h1{font-size:1rem;font-weight:800;}
 .hdr p{font-size:.68rem;opacity:.8;}
 /* Item 7: banner ab chhota hai, isliye tab bar uske neeche chipka rehta hai */
 .ptabs{display:flex;gap:6px;max-width:520px;margin:0 auto;padding:10px 14px 0;}
-.ptab{flex:1;text-align:center;padding:9px 6px;border-radius:11px;border:2px solid #e9d5ff;background:white;font-weight:800;font-size:.8rem;color:#7c3aed;cursor:pointer;position:relative;}
+.ptab{flex:1;text-align:center;padding:9px 6px;border-radius:11px;border:2px solid #ffd8b0;background:white;font-weight:800;font-size:.8rem;color:#c94f00;cursor:pointer;position:relative;}
 .ptab.active{background:var(--p);border-color:var(--p);color:white;}
 .ptab .pbadge{position:absolute;top:2px;right:6px;background:var(--r);color:#fff;border-radius:10px;font-size:.6rem;padding:0 5px;font-weight:800;}
 .mi-stars{font-size:.72rem;color:#f59e0b;font-weight:700;margin-top:2px;}
@@ -35,9 +35,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 
 .date-chips{display:flex;gap:7px;margin-bottom:8px;}
 .dchip{flex:1;padding:10px;border:2px solid #eee;border-radius:11px;background:white;text-align:center;font-size:.8rem;font-weight:700;cursor:pointer;transition:.15s;}
-.dchip.active{border-color:var(--p);background:#f5f3ff;color:var(--p);}
+.dchip.active{border-color:var(--p);background:#ffe8d0;color:var(--p);}
 
-.sugg-box{background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:2px solid var(--p);border-radius:12px;padding:12px;margin-bottom:11px;display:none;}
+.sugg-box{background:linear-gradient(135deg,#ffe8d0,#ffe8d0);border:2px solid var(--p);border-radius:12px;padding:12px;margin-bottom:11px;display:none;}
 .sugg-title{font-weight:800;font-size:.85rem;color:var(--p);margin-bottom:6px;}
 .sugg-text{font-size:.78rem;line-height:1.6;color:#444;}
 .sugg-apply{width:100%;padding:10px;background:var(--p);color:white;border:none;border-radius:10px;font-weight:700;font-size:.82rem;cursor:pointer;margin-top:8px;}
@@ -49,12 +49,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 .mi-name{font-weight:700;font-size:.9rem;}
 .mi-price{color:var(--o);font-weight:800;font-size:.85rem;margin-top:1px;}
 .mi-qty{display:flex;align-items:center;gap:8px;}
-.qbtn{width:32px;height:32px;border-radius:9px;border:none;background:#f3e8ff;color:var(--p);font-size:1.1rem;font-weight:800;cursor:pointer;}
+.qbtn{width:32px;height:32px;border-radius:9px;border:none;background:#ffe8d0;color:var(--p);font-size:1.1rem;font-weight:800;cursor:pointer;}
 .qbtn:active{background:var(--p);color:white;}
 .qval{min-width:26px;text-align:center;font-weight:800;font-size:.95rem;}
 
 /* Item 7: ye ab fixed nahi — scroll ke aakhir me baithta hai */
-.bill{background:white;border-radius:var(--rd);border:2px solid #ede9fe;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(139,92,246,.08);}
+.bill{background:white;border-radius:var(--rd);border:2px solid #ffe8d0;padding:14px;margin-bottom:12px;box-shadow:0 2px 10px rgba(139,92,246,.08);}
 .bill-in{max-width:520px;margin:0 auto;}
 .brow{display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px;}
 .btotal{font-size:1.05rem;font-weight:900;}
@@ -65,6 +65,71 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 
 #loadBox{text-align:center;padding:40px 20px;color:var(--muted);}
 .note-box{background:#fffbeb;border-radius:10px;padding:10px;font-size:.74rem;color:#92400e;line-height:1.5;margin-bottom:11px;}
+
+/* Item 8: CHECKOUT patti — order.html jaisa hi accordion (Order Type → Booking Summary)
+   phir Confirm button, aur neeche floating "Proceed to Book Menu" bar. */
+.ig{margin-bottom:9px;}
+.ig label{font-size:.74rem;font-weight:600;color:var(--muted);display:block;margin-bottom:3px;}
+.ig input,.ig select,.ig textarea{width:100%;padding:10px 11px;border-radius:var(--rd);border:2px solid #eee;background:white;font-size:.88rem;font-family:inherit;outline:none;transition:border-color .2s;}
+.ig input:focus,.ig select:focus,.ig textarea:focus{border-color:var(--p);}
+.ig textarea{resize:none;height:58px;}
+.ckwrap{max-width:520px;margin:0 auto;}
+.ckstrip{background:#fff;border:2px solid #eee;border-radius:var(--rd);margin-bottom:9px;overflow:hidden;}
+.ckstrip.on{border-color:var(--p);}
+.ckhd{display:flex;align-items:center;gap:9px;padding:12px 12px;cursor:pointer;}
+.cknum{width:22px;height:22px;border-radius:50%;background:#e7e5e4;color:var(--muted);font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ckstrip.on .cknum{background:var(--p);color:#fff;}
+.cknum.ok{background:#15803d;color:#fff;}
+.cktt{font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.ckstrip.on .cktt{color:var(--p);}
+.cksub{font-size:.8rem;font-weight:600;color:var(--dark);margin-top:2px;line-height:1.35;word-break:break-word;}
+.ckchg{margin-left:auto;font-size:.72rem;font-weight:800;color:var(--p);flex-shrink:0;}
+.ckbd{padding:0 12px 12px;}
+.ckbilltot{margin-left:auto;font-size:1rem;font-weight:900;color:var(--dark);flex-shrink:0;letter-spacing:-.02em;}
+.ckchev{flex-shrink:0;margin-left:7px;font-size:.9rem;font-weight:900;color:var(--muted);line-height:1;transition:transform .18s ease;}
+.ckstrip.on .ckchev{transform:rotate(180deg);color:var(--p);}
+.ckerr{font-size:.78rem;font-weight:700;color:#b91c1c;background:#fef2f2;border-radius:9px;padding:8px 10px;margin-top:8px;display:none;}
+.cksave{width:100%;margin-top:11px;padding:12px;border:none;border-radius:var(--rd);background:linear-gradient(135deg,var(--p),#ff8c42);color:#fff;font-weight:800;font-size:.88rem;cursor:pointer;font-family:inherit;}
+.pck-br{display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px;}
+.pck-br.tot{font-size:1.05rem;font-weight:900;border-top:1px solid #eee;padding-top:7px;margin-top:5px;}
+.place-btn{width:100%;margin:4px 0 6px;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--p),#ff8c42);color:white;font-size:1.05rem;font-weight:700;letter-spacing:.01em;cursor:pointer;box-shadow:0 5px 18px rgba(230,92,0,.32);transition:transform .12s;}
+.place-btn:active:not(:disabled){transform:translateY(1px);}
+.place-btn:disabled{opacity:.4;cursor:not-allowed;}
+#partyRunBar{position:fixed;left:0;right:0;bottom:0;z-index:400;display:none;
+  background:#fff;border-top:1px solid #eee;box-shadow:0 -4px 16px rgba(0,0,0,.1);
+  padding:9px 14px calc(9px + env(safe-area-inset-bottom,0px));}
+#partyRunBar .rt-go{width:100%;padding:14px 18px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--p),#ff8c42);
+  color:#fff;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 5px 18px rgba(230,92,0,.32);font-family:inherit;letter-spacing:.01em;}
+#partyRunBar .rt-go:disabled{opacity:.75;cursor:default}
+
+/* Item 8: PAYMENT SCREEN — order.html ke pay-simple design se hu-bahu match */
+#partyPayScreen{display:none;position:fixed;inset:0;height:100vh;height:100dvh;min-height:100dvh;z-index:600;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#fdf6ee;background-attachment:fixed;}
+#partyPayScreen.show{display:block}
+.pay-bar{padding:5px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#f97316,#ea580c);}
+.pay-logo{color:white;font-weight:800;font-size:.76rem;}
+.pay-x{width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:white;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.pay-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px 15px 4px;}
+.pay-simple{padding:8px 16px 16px;display:flex;flex-direction:column;min-height:calc(100dvh - 150px);}
+.pqr-headline{text-align:center;font-size:1.15rem;font-weight:900;color:#ea580c;letter-spacing:-.01em;margin-bottom:10px;line-height:1.3;}
+.pqr-card{background:#fff;border:1.5px solid #e7e5e4;border-radius:16px;padding:12px;text-align:center;}
+.pqr-img{width:100%;max-width:min(64vw,300px);border-radius:10px;border:1px solid #e7e5e4;display:block;margin:0 auto;}
+.pqr-dl{display:inline-block;margin-top:9px;background:transparent;border:1.5px solid #ea580c;color:#ea580c;border-radius:10px;padding:7px 16px;font-size:.76rem;font-weight:700;text-decoration:none;}
+.pqr-bottom{margin-top:auto;padding-top:18px;}
+.pqr-ticks{display:flex;gap:10px;margin-top:0;}
+.pqr-tick{flex:1;display:flex;align-items:center;gap:8px;border:2px solid #d6d3d1;border-radius:12px;padding:10px;cursor:pointer;background:#fff;transition:border-color .15s,background .15s;}
+.pqr-tick input{width:18px;height:18px;flex-shrink:0;pointer-events:none;}
+.pqr-tick span{font-size:.85rem;font-weight:700;color:#1c1917;}
+.pqr-tick.yes-on{border-color:#16a34a;background:#f0fdf4;}
+.pqr-tick.no-on{border-color:#dc2626;background:#fef2f2;}
+.pqr-nudge{display:none;margin-top:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:11px;font-size:.78rem;color:#991b1b;line-height:1.5;}
+.pqr-nudge.show{display:block;}
+.pqr-confirm{margin-top:12px;width:100%;padding:14px;border:none;border-radius:13px;background:#e7e5e4;color:#a8a29e;font-size:.95rem;font-weight:800;cursor:pointer;font-family:inherit;transition:background .15s,color .15s;}
+.pqr-confirm.ready{background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;}
+.pay-amt-pill{display:inline-flex;align-items:baseline;gap:9px;background:linear-gradient(135deg,#f97316,#ea580c);
+  border:none;border-radius:999px;padding:7px 20px;box-shadow:0 4px 16px rgba(234,88,12,.45);}
+.pay-lbl{color:rgba(255,255,255,.92);font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;}
+.pay-amt{color:#fff;font-size:1.45rem;font-weight:900;line-height:1;letter-spacing:-.01em;}
+.pay-date{color:#57534e!important;}
 </style>
 </head>
 <body>
@@ -76,7 +141,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 
 <!-- Item 7: "Meri Party Bookings" ab collapsible card nahi, apna alag tab hai -->
 <div class="ptabs">
-  <div class="ptab active" id="ptabPlan" onclick="swParty('plan')">📝 Nayi Party</div>
+  <div class="ptab active" id="ptabPlan" onclick="swParty('plan')">📅 Plan/Book Menu</div>
   <div class="ptab" id="ptabMine" onclick="swParty('mine')">🎉 Meri Bookings<span class="pbadge" id="ptabMineBadge" style="display:none"></span></div>
 </div>
 
@@ -109,19 +174,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
       <div id="dateShow" style="font-size:.78rem;color:var(--p);font-weight:700;margin-bottom:9px"></div>
     </div>
 
-    <!-- Item 8: ORDER TYPE — order.html jaisa -->
-    <div class="card">
-      <div class="ct">🚚 Order Type</div>
-      <div style="display:flex;gap:8px;margin-bottom:9px">
-        <div class="dchip" id="potDelivery" onclick="setPartyOrderType('delivery')" style="flex:1">🛵 Delivery</div>
-        <div class="dchip" id="potTakeaway" onclick="setPartyOrderType('takeaway')" style="flex:1">🏠 Takeaway</div>
-      </div>
-      <div id="partyAddrBox" style="display:none">
-        <label class="fl">Delivery Address</label>
-        <textarea class="fi" id="pAddress" rows="2" placeholder="Full address with landmark" style="resize:vertical;font-family:inherit"></textarea>
-      </div>
-    </div>
-
     <!-- MENU ITEMS -->
     <div class="card">
       <div class="ct">🍗 Select Items & Quantity</div>
@@ -129,35 +181,74 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
       <div id="menuList"></div>
     </div>
 
-    <!-- Item 8: ab seedha WhatsApp nahi — pehle Summary, payment nahi, sirf
-         "Submit — Shop Confirm Karega". Payment shop confirm karne ke baad
-         "Meri Bookings" tab me khulta hai. -->
-    <div class="bill" id="billBar" style="display:none">
-      <div class="bill-in">
-    <div class="brow"><span>Items (<span id="bCount">0</span>)</span><span id="bSub">₹0</span></div>
-    <div class="brow btotal"><span>Estimated Total</span><span id="bTotal">₹0</span></div>
-    <button class="wa-send" id="proceedBtn" onclick="proceedToSummary()" disabled>➡️ Proceed to Order</button>
+    <!-- Item 8: CHECKOUT — order.html jaisa hi accordion: Order Type → Booking Summary → Confirm -->
+    <div class="ckwrap" id="ckWrap" style="display:none">
+      <div class="ckstrip" id="pck1">
+        <div class="ckhd" onclick="pckOpen(1)">
+          <div class="cknum" id="pckn1">1</div>
+          <div style="min-width:0">
+            <div class="cktt">Order Type</div>
+            <div class="cksub" id="pcks1" style="display:none"></div>
+          </div>
+          <div class="ckchg" id="pckc1" style="display:none">Change</div>
+        </div>
+        <div class="ckbd" id="pckb1" style="display:none">
+          <div style="display:flex;gap:8px;margin-bottom:9px">
+            <div class="dchip" id="potDelivery" onclick="setPartyOrderType('delivery')" style="flex:1">🛵 Delivery</div>
+            <div class="dchip" id="potTakeaway" onclick="setPartyOrderType('takeaway')" style="flex:1">🏠 Takeaway</div>
+          </div>
+          <div class="ig" id="partyAddrBox" style="display:none">
+            <label>Delivery Address *</label>
+            <textarea id="pAddress" rows="2" placeholder="Full address with landmark"></textarea>
+          </div>
+          <div class="ckerr" id="pckErr1"></div>
+          <button class="cksave" onclick="pckSaveType()">Save &amp; continue</button>
+        </div>
+      </div>
 
-    <!-- booking save hone ke baad ka confirmation — ab ek hi button -->
+      <div class="ckstrip on" id="pck2">
+        <div class="ckhd" onclick="pckOpen(2)">
+          <div class="cknum" id="pckn2">2</div>
+          <div style="min-width:0">
+            <div class="cktt">Booking Summary</div>
+            <div class="cksub" id="pckBillCnt">0 items</div>
+          </div>
+          <div class="ckbilltot" id="pckBillTot">₹0</div>
+          <div class="ckchev" id="pckChev2">⌄</div>
+        </div>
+        <div class="ckbd" id="pckb2">
+          <div id="pBillDate" style="font-size:.8rem;font-weight:700;color:var(--p);margin:-2px 0 7px"></div>
+          <div id="pBillItems"></div>
+          <div class="pck-br tot"><span>Estimated Total</span><span id="pTotAmt">₹0</span></div>
+        </div>
+      </div>
+
+      <button class="place-btn" id="confirmBookingBtn" onclick="confirmBookingClick()" disabled>Select items to book</button>
+    </div>
+
+    <!-- booking save hone ke baad ka confirmation — ek hi button -->
     <div id="bookedBox" style="display:none;margin-top:11px;background:#f0fdf4;border:2px solid #86efac;border-radius:13px;padding:13px">
       <div id="bookedTxt" style="font-size:.82rem;color:#166534;line-height:1.6;margin-bottom:10px"></div>
       <button class="wa-send" id="bookedWaBtn" style="margin-top:0">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        Send to WhatsApp for early confirmation
+        Send your menu to WhatsApp for early confirmation
       </button>
-        </div>
-      </div>
     </div>
 
     <a class="back-link" href="customer.html">← Back to regular ordering</a>
   </div>
 
+  <!-- Item 8: floating "Proceed to Book Menu" bar — order.html ke runTotalBar jaisa -->
+  <div id="partyRunBar">
+    <button class="rt-go" id="partyRtGoBtn" onclick="partyBarAction()">➡️ Proceed to Book Menu</button>
+  </div>
+
   <!-- Item 8: BOOKING SUMMARY SCREEN — order.html jaisa review-before-submit -->
-  <div id="partySummaryScreen" style="display:none;position:fixed;inset:0;background:#faf5ff;z-index:500;overflow-y:auto;padding:16px">
+  <div id="partySummaryScreen" style="display:none;position:fixed;inset:0;background:#fff8f0;z-index:500;overflow-y:auto;padding:16px">
     <div style="max-width:520px;margin:0 auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="font-weight:800;font-size:1rem;color:#6b21a8">🎉 Booking Summary</div>
-        <button onclick="closePartySummary()" style="background:#f3e8ff;border:none;width:28px;height:28px;border-radius:50%;font-size:.9rem;cursor:pointer;color:#7c3aed">✕</button>
+        <div style="font-weight:800;font-size:1rem;color:#c94f00">🎉 Booking Summary</div>
+        <button onclick="closePartySummary()" style="background:#ffe8d0;border:none;width:28px;height:28px;border-radius:50%;font-size:.9rem;cursor:pointer;color:#c94f00">✕</button>
       </div>
       <div class="card">
         <div class="ct">👤 Booking For</div>
@@ -179,28 +270,49 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
       <div style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:11px;padding:11px;font-size:.76rem;line-height:1.5;margin-bottom:12px">
         💡 Payment ka option shop confirm karne ke baad "Meri Bookings" tab me aayega. Abhi sirf booking request submit hogi.
       </div>
-      <button class="wa-send" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)" onclick="submitPartyBooking()">📩 Submit — Shop Confirm Karega</button>
-      <button onclick="closePartySummary()" style="width:100%;padding:12px;background:transparent;border:none;color:#7c3aed;font-weight:700;font-size:.82rem;margin-top:8px;cursor:pointer">✏️ Edit Order</button>
+      <button class="wa-send" style="background:linear-gradient(135deg,#e65c00,#ff8c42)" onclick="submitPartyBooking()">📩 Submit — Shop Confirm Karega</button>
+      <button onclick="closePartySummary()" style="width:100%;padding:12px;background:transparent;border:none;color:#c94f00;font-weight:700;font-size:.82rem;margin-top:8px;cursor:pointer">✏️ Edit Order</button>
     </div>
   </div>
 
-  <!-- Item 8: PAYMENT SCREEN — sirf shop-confirmed booking par khulta hai -->
-  <div id="partyPayScreen" style="display:none;position:fixed;inset:0;background:#fdf6ee;z-index:600;overflow-y:auto;padding:16px">
-    <div style="max-width:420px;margin:0 auto;text-align:center">
-      <button onclick="closePartyPay()" style="float:right;background:#f3e8ff;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:.85rem">✕</button>
-      <div style="font-weight:900;font-size:1.1rem;color:#ea580c;margin:34px 0 14px">📲 Scan QR to Pay ₹<span id="ppAmt">0</span></div>
-      <img src="assets/payment-qr.png" alt="Payment QR" style="width:70%;max-width:220px;border-radius:12px;border:1px solid #eee;display:block;margin:0 auto">
-      <div style="margin-top:16px">
-        <div id="ppYesBox" onclick="setPartyPayTick()" style="border:2px solid #d6d3d1;border-radius:12px;padding:11px;cursor:pointer;font-weight:700;font-size:.85rem">✅ Payment Done</div>
+  <!-- Item 8: PAYMENT SCREEN — sirf shop-confirmed booking par khulta hai.
+       order.html ke asli payScreen (.pay-simple design) jaisa hi. -->
+  <div id="partyPayScreen">
+    <div class="pay-bar"><div class="pay-logo">🍗 Kicken Bites — Party Booking</div><button class="pay-x" onclick="closePartyPay()">✕</button></div>
+    <div class="pay-hero">
+      <div class="pay-amt-pill">
+        <span class="pay-lbl">Total</span>
+        <span class="pay-amt" id="ppAmt">₹0</span>
       </div>
-      <button id="ppConfirmBtn" onclick="confirmPartyPayment()" style="margin-top:14px;width:100%;padding:13px;border:none;border-radius:12px;background:#e7e5e4;color:#a8a29e;font-weight:800;cursor:pointer;font-size:.92rem">Confirm Payment</button>
+      <div class="pay-date" id="ppDate" style="margin-top:5px;font-size:.72rem;opacity:.85;font-weight:600"></div>
+    </div>
+    <div class="pay-simple">
+      <div class="pqr-headline">📲 Scan QR to Pay &amp; Click Confirm Payment</div>
+      <div class="pqr-card" id="ppQrCard">
+        <img class="pqr-img" src="assets/payment-qr.png" alt="Kicken Bites Payment QR" loading="eager">
+        <a class="pqr-dl" href="assets/payment-qr.png" download="Kicken-Bites-QR.png">📥 Download QR to Gallery</a>
+      </div>
+      <div class="pqr-bottom">
+        <div class="pqr-ticks">
+          <div class="pqr-tick" id="ppYesBox" onclick="setPartyPayTick('yes')">
+            <input type="checkbox" id="ppYes" onclick="event.stopPropagation();setPartyPayTick(this.checked?'yes':'')">
+            <span>✅ Payment Done</span>
+          </div>
+          <div class="pqr-tick" id="ppNoBox" onclick="setPartyPayTick('no')">
+            <input type="checkbox" id="ppNo" onclick="event.stopPropagation();setPartyPayTick(this.checked?'no':'')">
+            <span>❌ Abhi nahi</span>
+          </div>
+        </div>
+        <div class="pqr-nudge" id="ppNudge">Pehle payment kar lein, upar QR scan karein 👆</div>
+        <button class="pqr-confirm" id="ppConfirmBtn" onclick="confirmPartyPayment()">Confirm Payment</button>
+      </div>
     </div>
   </div>
 
   <!-- MERI PARTY BOOKINGS — ab apna tab -->
   <div id="mineTab" style="display:none">
     <div class="card" id="myBookCard">
-      <div style="font-weight:800;font-size:.95rem;color:#6b21a8;margin-bottom:9px">🎉 Meri Party Bookings <span id="myBookCount" style="background:#7c3aed;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem"></span></div>
+      <div style="font-weight:800;font-size:.95rem;color:#c94f00;margin-bottom:9px">🎉 Meri Party Bookings <span id="myBookCount" style="background:#c94f00;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem"></span></div>
       <div id="myBookList"></div>
     </div>
     <div id="myBookEmpty" style="display:none;text-align:center;padding:34px 16px;color:var(--muted)">
@@ -290,7 +402,7 @@ async function init(){
     renderMenu();
     document.getElementById('loadBox').style.display='none';
     document.getElementById('mainForm').style.display='block';
-    document.getElementById('billBar').style.display='block';
+    try{ pckPaint(); updateBill(); }catch(e){}
     // Restore saved profile
     try{
       const p=JSON.parse(localStorage.getItem('kb_profile')||'{}');
@@ -396,6 +508,7 @@ window.chQty=function(id,delta){
 };
 
 // ---- BILL ----
+let _pckReviewed=false;
 function updateBill(){
   let count=0,total=0;
   Object.entries(quantities).forEach(([id,q])=>{
@@ -404,13 +517,32 @@ function updateBill(){
       if(item){count+=q;total+=item.price*q;}
     }
   });
-  document.getElementById('bCount').textContent=count;
-  document.getElementById('bSub').textContent='₹'+total;
-  document.getElementById('bTotal').textContent='₹'+total;
-  document.getElementById('proceedBtn').disabled=count===0;
+  const ckWrap=document.getElementById('ckWrap'), bar=document.getElementById('partyRunBar');
+  const has=count>0;
+  if(ckWrap) ckWrap.style.display=has?'block':'none';
+  if(bar) bar.style.display=has?'flex':'none';
+  if(!has){ _pckReviewed=false; }
+
+  document.getElementById('pckBillCnt').textContent=count+' items';
+  document.getElementById('pckBillTot').textContent='₹'+total;
+  document.getElementById('pTotAmt').textContent='₹'+total;
+  const items=[];
+  Object.entries(quantities).forEach(([id,q])=>{
+    if(q>0){ const item=masterItems.find(i=>i.id===id); if(item) items.push(item.name+' × '+q+' = ₹'+(item.price*q)); }
+  });
+  document.getElementById('pBillItems').innerHTML=items.map(t=>'<div class="pck-br"><span>'+escP(t)+'</span></div>').join('');
+  if(partyDate){
+    const dd=new Date(partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+    document.getElementById('pBillDate').textContent='📅 '+dd;
+  }
+
+  const cbtn=document.getElementById('confirmBookingBtn');
+  if(cbtn){ cbtn.disabled=!has; cbtn.textContent=has?'✅ Confirm Your Booking':'Select items to book'; }
+  const rt=document.getElementById('partyRtGoBtn');
+  if(rt){ rt.disabled=!has; rt.textContent=_pckReviewed?'✅ Confirm Your Booking':'➡️ Proceed to Book Menu'; }
 }
 
-// ---- Item 8: ORDER TYPE ----
+// ---- Item 8: ORDER TYPE checkout strip (order.html jaisa accordion) ----
 let partyOrderType='';
 window.setPartyOrderType=function(t){
   partyOrderType=t;
@@ -420,9 +552,70 @@ window.setPartyOrderType=function(t){
   const box=document.getElementById('partyAddrBox');
   if(box)box.style.display=(t==='delivery')?'block':'none';
 };
+function pckTypeValid(){
+  if(!partyOrderType) return false;
+  if(partyOrderType==='delivery') return !!(document.getElementById('pAddress')?.value||'').trim();
+  return true;
+}
+function pckTypeSummary(){
+  if(!partyOrderType) return '';
+  if(partyOrderType==='delivery') return '🛵 Delivery — '+((document.getElementById('pAddress')?.value||'').trim());
+  return '🏠 Takeaway';
+}
+let _pckOpen=1;
+window.pckOpen=function(n){
+  _pckOpen=(_pckOpen===n)?0:n;
+  pckPaint();
+};
+function pckPaint(){
+  [1,2].forEach(function(i){
+    const st=document.getElementById('pck'+i), bd=document.getElementById('pckb'+i);
+    if(!st||!bd) return;
+    const on=(_pckOpen===i);
+    st.classList.toggle('on',on);
+    bd.style.display=on?'block':'none';
+  });
+  const s1=document.getElementById('pcks1'), c1=document.getElementById('pckc1'), n1=document.getElementById('pckn1');
+  const ok=pckTypeValid();
+  if(s1){ s1.textContent=pckTypeSummary(); s1.style.display=(_pckOpen===1||!ok)?'none':'block'; }
+  if(c1) c1.style.display=(_pckOpen===1||!ok)?'none':'block';
+  if(n1) n1.className='cknum'+(ok?' ok':'');
+  const chev2=document.getElementById('pckChev2');
+  if(chev2) chev2.style.display='block';
+}
+window.pckSaveType=function(){
+  const err=document.getElementById('pckErr1');
+  let msg='';
+  if(!partyOrderType) msg='Delivery ya Takeaway chunein';
+  else if(partyOrderType==='delivery' && !(document.getElementById('pAddress')?.value||'').trim()) msg='Delivery address bharein';
+  if(msg){ if(err){err.textContent=msg;err.style.display='block';} return; }
+  if(err) err.style.display='none';
+  _pckOpen=2; pckPaint(); updateBill();
+};
 
-// ---- Item 8: PROCEED → SUMMARY (payment nahi, sirf review + submit) ----
-window.proceedToSummary=function(){
+// ---- Item 8: floating bar — order.html jaisa DO-TAP CTA ----
+// Pehla tap: details poori na ho to Order Type strip par le jaata hai; poori ho to
+// Booking Summary tak scroll karke button "Confirm Your Booking" ban jaata hai.
+// Doosra tap: booking Summary screen khulti hai.
+window.partyBarAction=function(){
+  const hasItems=Object.values(quantities).some(q=>q>0);
+  if(!hasItems) return;
+  if(!pckTypeValid()){
+    _pckOpen=1; pckPaint(); updateBill();
+    setTimeout(function(){ document.getElementById('pck1')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
+    return;
+  }
+  if(!_pckReviewed){
+    _pckReviewed=true;
+    _pckOpen=2; pckPaint(); updateBill();
+    setTimeout(function(){ document.getElementById('pck2')?.scrollIntoView({behavior:'smooth',block:'center'}); },80);
+    return;
+  }
+  confirmBookingClick();
+};
+
+// ---- Item 8: CONFIRM → SUMMARY (payment nahi, sirf review + submit) ----
+window.confirmBookingClick=function(){
   const name=document.getElementById('pName').value.trim();
   const phone=document.getElementById('pPhone').value.trim();
   const address=(document.getElementById('pAddress')||{}).value||'';
@@ -463,7 +656,6 @@ window.submitPartyBooking=async function(){
   const name=document.getElementById('pName').value.trim();
   const phone=document.getElementById('pPhone').value.trim();
   const address=(document.getElementById('pAddress')||{}).value||'';
-
   // Save profile
   try{localStorage.setItem('kb_profile',JSON.stringify({name,phone}));localStorage.setItem('custName',name);localStorage.setItem('custPhone',phone);}catch(e){}
   try{applyWhoBox();}catch(e){}
@@ -513,6 +705,13 @@ window.submitPartyBooking=async function(){
   }catch(e){ /* net na ho to bhi WhatsApp to chale */ }
 
   closePartySummary();
+  // Item 8: booking submit ho gayi — form ko clean slate par le aao (naya item
+  // select karne par checkout/floating-bar dobara sahi state se shuru ho).
+  quantities={};
+  try{ renderMenu(); }catch(e){}
+  _pckReviewed=false; _pckOpen=1;
+  try{ pckPaint(); }catch(e){}
+  try{ updateBill(); }catch(e){}
   const waUrl='https://wa.me/91'+shopWA+'?text='+encodeURIComponent(msg);
   showBookingSaved(waUrl, savedOk);
 };
@@ -579,15 +778,15 @@ function renderMyBookings(list){
     const past=String(b.partyDate||'')<getTodayDate();
     // Ek line me booking; detail tap par khulti hai taaki page na bhare.
     const bid=escP(b.bookingId||(b.partyDate+'_'+b.phone)), open=_myBookOpen[bid]===true;
-    return '<div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:11px;padding:11px;margin-bottom:8px'+(past?';opacity:.6':'')+'">'
+    return '<div style="background:#fff8f0;border:1px solid #ffd8b0;border-radius:11px;padding:11px;margin-bottom:8px'+(past?';opacity:.6':'')+'">'
       +'<div onclick="toggleMyBook(\''+bid+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px">'
-        +'<div style="font-weight:800;font-size:.88rem;color:#6b21a8">'+(open?'▾':'▸')+' 📅 '+escP(d)+'</div>'
+        +'<div style="font-weight:800;font-size:.88rem;color:#c94f00">'+(open?'▾':'▸')+' 📅 '+escP(d)+'</div>'
         +bookStatusChip(b.status)
       +'</div>'
       +(open?(
         '<div style="margin-top:6px">'
         +'<div style="font-size:.78rem;color:#555;margin-bottom:3px">🍽️ '+items+'</div>'
-        +'<div style="font-size:.82rem;font-weight:800;color:#6b21a8">Estimated: ₹'+(Number(b.total)||0)+'</div>'
+        +'<div style="font-size:.82rem;font-weight:800;color:#c94f00">Estimated: ₹'+(Number(b.total)||0)+'</div>'
         +(b.status==='confirmed'?'<div style="font-size:.75rem;color:#166534;margin-top:5px">Shop ne aapki booking confirm kar di hai. 🎉</div>':'')
         +(b.status==='dismissed'?'<div style="font-size:.75rem;color:#991b1b;margin-top:5px">Ye booking shop ne cancel kar di hai. Baat karne ke liye WhatsApp kijiye.</div>':'')
         +(b.status==='confirmed'?partyPayCta(b):'')
@@ -609,26 +808,41 @@ function partyPayCta(b){
   return '<button onclick="event.stopPropagation();openPartyPay(\''+bid+'\','+(Number(b.total)||0)+')" style="margin-top:8px;width:100%;padding:10px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:.82rem;cursor:pointer">💰 Pay Now</button>';
 }
 
-// ---- Item 8: PARTY PAYMENT ----
-let _partyPayId=null, _partyPayTick=false;
+// ---- Item 8: PARTY PAYMENT — order.html ke pay-simple screen jaisa (yes/no tick + nudge) ----
+let _partyPayId=null, _partyPayTotal=0, _partyPayTick='';
 window.openPartyPay=function(bookingId,total){
-  _partyPayId=bookingId; _partyPayTick=false;
-  document.getElementById('ppAmt').textContent=total;
-  const yb=document.getElementById('ppYesBox'); if(yb){yb.style.borderColor='#d6d3d1';yb.style.background='#fff';}
-  const cb=document.getElementById('ppConfirmBtn'); if(cb){cb.style.background='#e7e5e4';cb.style.color='#a8a29e';}
+  _partyPayId=bookingId; _partyPayTotal=total; _partyPayTick='';
+  document.getElementById('ppAmt').textContent='₹'+total;
+  const dEl=document.getElementById('ppDate');
+  if(dEl){ const b=(_myBookAll||[]).find(x=>(x.bookingId||(x.partyDate+'_'+x.phone))===bookingId);
+    dEl.textContent=b&&b.partyDate?('Party Date: '+new Date(b.partyDate+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'})):''; }
+  paintPartyPayTick();
   document.getElementById('partyPayScreen').style.display='block';
   window.scrollTo(0,0);
 };
 window.closePartyPay=function(){
   document.getElementById('partyPayScreen').style.display='none';
 };
-window.setPartyPayTick=function(){
-  _partyPayTick=true;
-  const yb=document.getElementById('ppYesBox'); if(yb){yb.style.borderColor='#16a34a';yb.style.background='#f0fdf4';}
-  const cb=document.getElementById('ppConfirmBtn'); if(cb){cb.style.background='linear-gradient(135deg,#f97316,#ea580c)';cb.style.color='#fff';}
+window.setPartyPayTick=function(which){
+  _partyPayTick=(_partyPayTick===which)?'':which;
+  paintPartyPayTick();
 };
+function paintPartyPayTick(){
+  const yb=document.getElementById('ppYesBox'), nb=document.getElementById('ppNoBox');
+  const yi=document.getElementById('ppYes'), ni=document.getElementById('ppNo');
+  const nudge=document.getElementById('ppNudge'), cb=document.getElementById('ppConfirmBtn');
+  if(yb) yb.classList.toggle('yes-on', _partyPayTick==='yes');
+  if(nb) nb.classList.toggle('no-on', _partyPayTick==='no');
+  if(yi) yi.checked=(_partyPayTick==='yes');
+  if(ni) ni.checked=(_partyPayTick==='no');
+  if(nudge) nudge.classList.toggle('show', _partyPayTick==='no');
+  if(cb) cb.classList.toggle('ready', _partyPayTick==='yes');
+}
 window.confirmPartyPayment=async function(){
-  if(!_partyPayTick){ alert('Pehle payment karke "Payment Done" par tap karein'); return; }
+  if(_partyPayTick!=='yes'){
+    const nudge=document.getElementById('ppNudge'); if(nudge) nudge.classList.add('show');
+    return;
+  }
   if(!_partyPayId) return;
   try{
     await setDoc(doc(db,'partyBookings',_partyPayId),{
@@ -673,7 +887,7 @@ if('serviceWorker' in navigator){
     if(!_kbReloaded){ _kbReloaded=true; location.reload(); }
   });
 }
-// Item 12: PC par mouse-wheel se date-chip horizontal scroll
+// Item 12: PC par mouse-wheel + click-drag se date-chip horizontal scroll
 (function(){
   var el=document.getElementById('partyDayChips');
   if(!el) return;
@@ -683,6 +897,27 @@ if('serviceWorker' in navigator){
       e.preventDefault();
     }
   }, {passive:false});
+  var isDown=false, startX=0, startScroll=0, moved=false;
+  el.style.cursor='grab';
+  el.addEventListener('mousedown', function(e){
+    isDown=true; moved=false; el.style.cursor='grabbing';
+    startX=e.pageX; startScroll=el.scrollLeft;
+  });
+  window.addEventListener('mousemove', function(e){
+    if(!isDown) return;
+    var dx=e.pageX-startX;
+    if(Math.abs(dx)>3) moved=true;
+    el.scrollLeft=startScroll-dx;
+    e.preventDefault();
+  });
+  window.addEventListener('mouseup', function(){
+    if(!isDown) return;
+    isDown=false; el.style.cursor='grab';
+    if(moved){
+      var suppress=function(ev){ ev.stopPropagation(); el.removeEventListener('click',suppress,true); };
+      el.addEventListener('click',suppress,true);
+    }
+  });
 })();
 </script>
 </body>

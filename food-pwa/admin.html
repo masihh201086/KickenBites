@@ -3442,12 +3442,15 @@ function renderPartyBookings(all){
          +(b.orderType?'<div style="font-size:.75rem;color:#666;margin-bottom:3px">🚚 '+esc(b.orderType==='delivery'?'Delivery':'Takeaway')+'</div>':'')
          +'<div style="font-size:.75rem;color:#666;margin-bottom:8px">📍 '+esc(b.address||'')+'</div>'
          +(b.paymentConfirmed===true?'<div style="font-size:.75rem;font-weight:700;color:#166534;margin-bottom:8px">✅ Payment verified</div>'
-           :b.customerPaid===true?'<div style="font-size:.75rem;font-weight:700;color:#92400e;margin-bottom:8px">💰 Customer says paid — verify karke bata dein</div>':'')
+           :b.customerPaid===true?'<div style="font-size:.75rem;font-weight:700;color:#92400e;margin-bottom:8px">💰 Customer says paid — neeche verify karein</div>':'')
          +'</div>') : '<div style="margin-bottom:8px"></div>')
       +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
         +'<a href="https://wa.me/91'+esc(b.phone)+'" target="_blank" style="flex:1;text-align:center;background:#25d366;color:#fff;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;text-decoration:none">💬 WhatsApp</a>'
         +'<a href="tel:'+esc(b.phone)+'" style="flex:1;text-align:center;background:#3b82f6;color:#fff;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;text-decoration:none">📞 Call</a>'
         +(done||gone?'':'<button onclick="confirmParty(\''+esc(b.bookingId)+'\')" style="flex:1;background:#a855f7;color:#fff;border:none;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">✅ Confirm</button>')
+        +((b.status==='confirmed'&&b.customerPaid===true&&b.paymentConfirmed!==true)
+          ? '<button onclick="verifyPartyPayment(\''+esc(b.bookingId)+'\')" style="flex:1;background:#16a34a;color:#fff;border:none;padding:8px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">💰 Verify Payment</button>'
+          : '')
         +(gone
           ? '<button onclick="restoreParty(\''+esc(b.bookingId)+'\')" style="background:#ede9fe;color:#6b21a8;border:none;padding:8px 11px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">↩️ Wapas laayein</button>'
           : '<button onclick="dismissParty(\''+esc(b.bookingId)+'\')" style="background:#fee2e2;color:#991b1b;border:none;padding:8px 11px;border-radius:9px;font-weight:700;font-size:.76rem;cursor:pointer">❌ Cancel</button>')
@@ -3491,6 +3494,16 @@ window.confirmParty=async function(id){
         +'Kisi badlaav ke liye is number par message kijiye. Dhanyavaad! 🙏';
       window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
     }
+  }catch(e){ alert('Nahi hua: '+e.message); }
+};
+// Item 8: party-payment ka claim manually verify karna — order-page ke
+// verifyPayment() jaisa hi (paymentConfirmed=true set karke customer ko dikha do).
+window.verifyPartyPayment=async function(id){
+  try{
+    await setDoc(doc(db,'partyBookings',id),{
+      paymentConfirmed:true, paymentVerifiedAt:Date.now()
+    },{merge:true});
+    showToast('✅ Payment verify ho gaya');
   }catch(e){ alert('Nahi hua: '+e.message); }
 };
 // "Sabhi" toggle: purani aur hatai hui bookings bhi dikhti hain, kyunki
