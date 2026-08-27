@@ -36,6 +36,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 .date-chips{display:flex;gap:7px;margin-bottom:8px;}
 .dchip{flex:1;padding:10px;border:2px solid #eee;border-radius:11px;background:white;text-align:center;font-size:.8rem;font-weight:700;cursor:pointer;transition:.15s;}
 .dchip.active{border-color:var(--p);background:#ffe8d0;color:var(--p);}
+/* Item 2: date chips ab order.html ke .dbtn jaisi hi (green=available, dark-green=selected) */
+.dbtn{flex:0 0 auto;min-width:56px;height:50px;padding:2px 6px;border-radius:12px;border:2px solid #22c55e;background:white;font-size:.68rem;font-weight:600;cursor:pointer;color:#15803d;transition:all .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.15;}
+.dbtn .dbtn-pfx{font-size:.58rem;opacity:.85;}
+.dbtn .dbtn-dt{font-weight:800;font-size:.78rem;white-space:nowrap;}
+.dbtn.active{border-color:#15803d;background:#15803d;color:#fff;}
 
 .sugg-box{background:linear-gradient(135deg,#ffe8d0,#ffe8d0);border:2px solid var(--p);border-radius:12px;padding:12px;margin-bottom:11px;display:none;}
 .sugg-title{font-weight:800;font-size:.85rem;color:var(--p);margin-bottom:6px;}
@@ -151,15 +156,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 
   <div id="mainForm" style="display:none">
 
-    <!-- CUSTOMER DETAILS — Item 6: naam/phone silently profile se liye jaate hain.
-         Poora card sirf pehli-baar (profile na hone par) dikhta hai; login hone
-         par kuch dikhaya hi nahi jaata. -->
-    <div class="card" id="whoCard" style="display:none">
-      <div class="ct">👤 Your Details</div>
-      <div class="frow" id="pWhoFields">
-        <div class="fg"><label class="fl">Name</label><input class="fi" id="pName" placeholder="Full name"></div>
-        <div class="fg"><label class="fl">Mobile</label><input class="fi" id="pPhone" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit"></div>
-      </div>
+    <!-- Item 6: naam/mobile fields poori tarah hata diye — profile compulsory hai,
+         wahi se (localStorage custPhone/custName, jo customer.html set karta hai) liya jaata hai. -->
+    <div class="card" id="noProfileCard" style="display:none;text-align:center">
+      <div style="font-size:2.2rem;margin-bottom:8px">👤</div>
+      <div style="font-weight:800;font-size:.95rem;color:var(--p);margin-bottom:6px">Profile banana zaroori hai</div>
+      <div style="font-size:.82rem;color:var(--muted);line-height:1.5;margin-bottom:13px">Party booking ke liye pehle apna naam aur mobile number "Profile" tab me save karein.</div>
+      <button class="cksave" style="width:100%" onclick="goToProfileTab()">👤 Profile banayein</button>
     </div>
 
     <!-- PARTY DETAILS -->
@@ -181,7 +184,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
       <div id="menuList"></div>
     </div>
 
-    <!-- Item 8: CHECKOUT — order.html jaisa hi accordion: Order Type → Booking Summary → Confirm -->
+    <!-- Item 5: CHECKOUT — order.html jaisa hi 3-patti accordion: Order Type → Delivery Address → Booking Summary -->
     <div class="ckwrap" id="ckWrap" style="display:none">
       <div class="ckstrip" id="pck1">
         <div class="ckhd" onclick="pckOpen(1)">
@@ -193,30 +196,65 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
           <div class="ckchg" id="pckc1" style="display:none">Change</div>
         </div>
         <div class="ckbd" id="pckb1" style="display:none">
-          <div style="display:flex;gap:8px;margin-bottom:9px">
+          <div style="display:flex;gap:8px">
             <div class="dchip" id="potDelivery" onclick="setPartyOrderType('delivery')" style="flex:1">🛵 Delivery</div>
             <div class="dchip" id="potTakeaway" onclick="setPartyOrderType('takeaway')" style="flex:1">🏠 Takeaway</div>
           </div>
-          <div class="ig" id="partyAddrBox" style="display:none">
-            <label>Delivery Address *</label>
-            <textarea id="pAddress" rows="2" placeholder="Full address with landmark"></textarea>
-          </div>
-          <div class="ckerr" id="pckErr1"></div>
-          <button class="cksave" onclick="pckSaveType()">Save &amp; continue</button>
         </div>
       </div>
 
-      <div class="ckstrip on" id="pck2">
+      <div class="ckstrip" id="pck2">
         <div class="ckhd" onclick="pckOpen(2)">
           <div class="cknum" id="pckn2">2</div>
+          <div style="min-width:0">
+            <div class="cktt">Delivery Address</div>
+            <div class="cksub" id="pcks2" style="display:none"></div>
+          </div>
+          <div class="ckchg" id="pckc2" style="display:none">Change</div>
+        </div>
+        <div class="ckbd" id="pckb2" style="display:none">
+          <div id="pDelSec">
+            <div class="ig">
+              <label>Location *</label>
+              <select id="pLoc" onchange="pLocChanged()">
+                <option value="">-- Select area --</option>
+                <option value="NTPC Township">NTPC Township</option>
+                <option value="GAIL Gaon">GAIL Gaon</option>
+                <option value="PATA Gate">PATA Gate</option>
+                <option value="GAIL Vihar">GAIL Vihar</option>
+                <option value="Others">Others</option>
+              </select>
+            </div>
+            <div id="pStdAddr">
+              <div class="ig"><label>House / Flat No. *</label><input type="text" id="pHouse" placeholder="e.g. B-204, Type-3"></div>
+            </div>
+            <div id="pOthersAddr" style="display:none">
+              <div class="ig"><label>House No. *</label><input type="text" id="pHouseOther" placeholder="House / Flat No."></div>
+              <div class="ig"><label>Street *</label><input type="text" id="pStreet" placeholder="Street name"></div>
+              <div class="ig"><label>Landmark</label><input type="text" id="pLandmark" placeholder="Near..."></div>
+              <div class="ig"><label>Area *</label><input type="text" id="pArea" placeholder="Colony / Area"></div>
+              <div class="ig"><label>Pincode *</label><input type="tel" id="pPincode" placeholder="6-digit pincode" maxlength="6" inputmode="numeric"></div>
+            </div>
+          </div>
+          <div id="pTaSec" style="display:none">
+            <div style="background:#fff8f0;border:1.5px solid #ffd8b0;border-radius:11px;padding:11px;font-size:.82rem;color:#c94f00;font-weight:600">🏠 Aap order shop se khud collect kar lenge. Shop confirm karte hi pickup jagah/time bata denge.</div>
+          </div>
+          <div class="ckerr" id="pckErr2"></div>
+          <button class="cksave" onclick="pckSaveAddr()">Save &amp; continue</button>
+        </div>
+      </div>
+
+      <div class="ckstrip on" id="pck3">
+        <div class="ckhd" onclick="pckOpen(3)">
+          <div class="cknum" id="pckn3">3</div>
           <div style="min-width:0">
             <div class="cktt">Booking Summary</div>
             <div class="cksub" id="pckBillCnt">0 items</div>
           </div>
           <div class="ckbilltot" id="pckBillTot">₹0</div>
-          <div class="ckchev" id="pckChev2">⌄</div>
+          <div class="ckchev" id="pckChev3">⌄</div>
         </div>
-        <div class="ckbd" id="pckb2">
+        <div class="ckbd" id="pckb3">
           <div id="pBillDate" style="font-size:.8rem;font-weight:700;color:var(--p);margin:-2px 0 7px"></div>
           <div id="pBillItems"></div>
           <div class="pck-br tot"><span>Estimated Total</span><span id="pTotAmt">₹0</span></div>
@@ -226,13 +264,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
       <button class="place-btn" id="confirmBookingBtn" onclick="confirmBookingClick()" disabled>Select items to book</button>
     </div>
 
-    <!-- booking save hone ke baad ka confirmation — ek hi button -->
-    <div id="bookedBox" style="display:none;margin-top:11px;background:#f0fdf4;border:2px solid #86efac;border-radius:13px;padding:13px">
-      <div id="bookedTxt" style="font-size:.82rem;color:#166534;line-height:1.6;margin-bottom:10px"></div>
-      <button class="wa-send" id="bookedWaBtn" style="margin-top:0">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        Send your menu to WhatsApp for early confirmation
-      </button>
+    <!-- booking save hone ke baad ka confirmation — sirf ek simple success message,
+         WhatsApp option nahi (Item 4: admin ko booking Firestore se hi live dikh jaati hai) -->
+    <div id="bookedBox" style="display:none;margin-top:11px;background:#f0fdf4;border:2px solid #86efac;border-radius:13px;padding:14px;text-align:center">
+      <div style="font-size:2rem;margin-bottom:6px">✅</div>
+      <div id="bookedTxt" style="font-size:.85rem;color:#166534;line-height:1.6;font-weight:600"></div>
     </div>
 
     <a class="back-link" href="customer.html">← Back to regular ordering</a>
@@ -270,7 +306,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
       <div style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:11px;padding:11px;font-size:.76rem;line-height:1.5;margin-bottom:12px">
         💡 Payment ka option shop confirm karne ke baad "Meri Bookings" tab me aayega. Abhi sirf booking request submit hogi.
       </div>
-      <button class="wa-send" style="background:linear-gradient(135deg,#e65c00,#ff8c42)" onclick="submitPartyBooking()">📩 Submit — Shop Confirm Karega</button>
+      <button class="wa-send" style="background:linear-gradient(135deg,#e65c00,#ff8c42)" onclick="submitPartyBooking()">📩 Submit to Admin</button>
       <button onclick="closePartySummary()" style="width:100%;padding:12px;background:transparent;border:none;color:#c94f00;font-weight:700;font-size:.82rem;margin-top:8px;cursor:pointer">✏️ Edit Order</button>
     </div>
   </div>
@@ -343,17 +379,6 @@ window.swParty=function(which){
   window.scrollTo(0,0);
 };
 
-// ---- Item 6: kaun book kar raha hai — profile mil jaaye to poora card chhupa do,
-// silently usi ki detail se booking ban jaayegi. Pehli-baar wale customer ko hi
-// naam/mobile fields dikhte hain. ----
-function applyWhoBox(){
-  const card=document.getElementById('whoCard');
-  const nm=(document.getElementById('pName')||{}).value||'';
-  const ph=(document.getElementById('pPhone')||{}).value||'';
-  if(!card)return;
-  card.style.display=(nm.trim() && String(ph).replace(/[^0-9]/g,'').length===10) ? 'none' : 'block';
-}
-
 // ---- Item 5: ratings, taaki plan banate waqt pata rahe kaunsa item achha hai ----
 async function loadItemRatings(){
   try{
@@ -402,19 +427,19 @@ async function init(){
     renderMenu();
     document.getElementById('loadBox').style.display='none';
     document.getElementById('mainForm').style.display='block';
+
+    // Item 6: profile compulsory — bina saved custPhone ke booking form hi nahi dikhta,
+    // sirf ek "Profile banayein" gate card dikhta hai.
+    const hasProfile = await loadCustomerProfile();
+    const gate=document.getElementById('noProfileCard');
+    if(!hasProfile){
+      if(gate) gate.style.display='block';
+      document.getElementById('menuList').closest('.card').style.display='none';
+    } else {
+      if(gate) gate.style.display='none';
+      try{ watchMyBookings(profPhone); }catch(e){}
+    }
     try{ pckPaint(); updateBill(); }catch(e){}
-    // Restore saved profile
-    try{
-      const p=JSON.parse(localStorage.getItem('kb_profile')||'{}');
-      if(p.name)document.getElementById('pName').value=p.name;
-      if(p.phone){ document.getElementById('pPhone').value=p.phone; try{ watchMyBookings(p.phone); }catch(e){} }
-    }catch(e){}
-    const savedPhone=localStorage.getItem('custPhone');
-    if(savedPhone&&!document.getElementById('pPhone').value)document.getElementById('pPhone').value=savedPhone;
-    const savedName=localStorage.getItem('custName');
-    if(savedName&&!document.getElementById('pName').value)document.getElementById('pName').value=savedName;
-    if(savedPhone){ try{ watchMyBookings(savedPhone); }catch(e){} }
-    applyWhoBox();
     // Item 5: ratings menu ke baad aate hain taaki page jaldi khule
     loadItemRatings().then(function(){ renderMenu(); });
     // Item 7: pichhli baar jo tab khula tha wahi khole
@@ -442,9 +467,9 @@ function renderPartyDayChips(){
   wrap.innerHTML=next7Days().map(d=>{
     const lbl=d.idx===0?'Today':d.idx===1?'Tomorrow':'';
     const sel=partyDate===d.date;
-    return '<button type="button" class="dchip'+(sel?' active':'')+'" style="flex-shrink:0;min-width:60px" onclick="setPDate(\''+d.date+'\')">'+
-      (lbl?'<div style="font-size:.58rem;opacity:.85">'+lbl+'</div>':'')+
-      '<div style="font-weight:800">'+d.wd+' '+d.dayNum+'</div></button>';
+    return '<button type="button" class="dbtn'+(sel?' active':'')+'" onclick="setPDate(\''+d.date+'\')">'+
+      (lbl?'<div class="dbtn-pfx">'+lbl+'</div>':'')+
+      '<div class="dbtn-dt">'+d.wd+' '+d.dayNum+'</div></button>';
   }).join('');
 }
 window.setPDate=function(ds){
@@ -507,6 +532,34 @@ window.chQty=function(id,delta){
   updateBill();
 };
 
+// ---- Item 6: PROFILE (compulsory) — naam/phone/location/house customer.html
+// ke real login se aate hain (localStorage custPhone/custName/custLoc/custHouse +
+// Firestore customers/{phone}), party.html me koi alag naam/mobile field nahi hai. ----
+let profPhone='', profName='';
+window.goToProfileTab=function(){
+  try{ if(window.top && window.top!==window && typeof window.top.switchTab==='function'){ window.top.switchTab('profile'); return; } }catch(e){}
+  try{ window.top.location.href='customer.html'; }catch(e){}
+};
+async function loadCustomerProfile(){
+  profPhone=localStorage.getItem('custPhone')||'';
+  profName=localStorage.getItem('custName')||'';
+  if(!profPhone) return false;
+  try{
+    const snap=await getDoc(doc(db,'customers',profPhone));
+    if(snap.exists()){
+      const p=snap.data();
+      profName=p.name||profName;
+      // Location/House sirf DEFAULT ke taur par prefill hote hain — party ke Delivery
+      // Address strip me customer inhe badal bhi sakta hai (booking-specific ho sakta hai).
+      const locEl=document.getElementById('pLoc');
+      if(locEl && p.location){ locEl.value=p.location; pLocChanged(); }
+      const houseEl=document.getElementById('pHouse');
+      if(houseEl && p.houseNo) houseEl.value=p.houseNo;
+    }
+  }catch(e){}
+  return true;
+}
+
 // ---- BILL ----
 let _pckReviewed=false;
 function updateBill(){
@@ -540,27 +593,38 @@ function updateBill(){
   if(cbtn){ cbtn.disabled=!has; cbtn.textContent=has?'✅ Confirm Your Booking':'Select items to book'; }
   const rt=document.getElementById('partyRtGoBtn');
   if(rt){ rt.disabled=!has; rt.textContent=_pckReviewed?'✅ Confirm Your Booking':'➡️ Proceed to Book Menu'; }
+  try{ pckPaint(); }catch(e){}
 }
 
-// ---- Item 8: ORDER TYPE checkout strip (order.html jaisa accordion) ----
+// ---- Item 5: ORDER TYPE + DELIVERY ADDRESS — order.html jaisa hi 3-patti accordion ----
 let partyOrderType='';
 window.setPartyOrderType=function(t){
   partyOrderType=t;
   const d=document.getElementById('potDelivery'), tk=document.getElementById('potTakeaway');
   if(d)d.classList.toggle('active',t==='delivery');
   if(tk)tk.classList.toggle('active',t==='takeaway');
-  const box=document.getElementById('partyAddrBox');
-  if(box)box.style.display=(t==='delivery')?'block':'none';
+  document.getElementById('pDelSec').style.display=(t==='delivery')?'block':'none';
+  document.getElementById('pTaSec').style.display=(t==='takeaway')?'block':'none';
+  _pckOpen=2; pckPaint(); updateBill();
 };
-function pckTypeValid(){
-  if(!partyOrderType) return false;
-  if(partyOrderType==='delivery') return !!(document.getElementById('pAddress')?.value||'').trim();
-  return true;
+window.pLocChanged=function(){
+  const loc=document.getElementById('pLoc').value;
+  document.getElementById('pStdAddr').style.display=(loc==='Others')?'none':'block';
+  document.getElementById('pOthersAddr').style.display=(loc==='Others')?'block':'none';
+};
+function pckAddrValid(){
+  const g=i=>(document.getElementById(i)?.value||'').trim();
+  if(partyOrderType==='takeaway') return true;
+  const loc=g('pLoc'); if(!loc) return false;
+  if(loc==='Others') return !!g('pHouseOther') && !!g('pArea') && /^\d{6}$/.test(g('pPincode'));
+  return !!g('pHouse');
 }
-function pckTypeSummary(){
-  if(!partyOrderType) return '';
-  if(partyOrderType==='delivery') return '🛵 Delivery — '+((document.getElementById('pAddress')?.value||'').trim());
-  return '🏠 Takeaway';
+function pckAddrSummary(){
+  const g=i=>(document.getElementById(i)?.value||'').trim();
+  if(partyOrderType==='takeaway') return '🏠 Shop se collect karenge';
+  const loc=g('pLoc');
+  const house=(loc==='Others')?g('pHouseOther'):g('pHouse');
+  return '📍 '+[house,loc].filter(Boolean).join(', ');
 }
 let _pckOpen=1;
 window.pckOpen=function(n){
@@ -568,7 +632,7 @@ window.pckOpen=function(n){
   pckPaint();
 };
 function pckPaint(){
-  [1,2].forEach(function(i){
+  [1,2,3].forEach(function(i){
     const st=document.getElementById('pck'+i), bd=document.getElementById('pckb'+i);
     if(!st||!bd) return;
     const on=(_pckOpen===i);
@@ -576,55 +640,68 @@ function pckPaint(){
     bd.style.display=on?'block':'none';
   });
   const s1=document.getElementById('pcks1'), c1=document.getElementById('pckc1'), n1=document.getElementById('pckn1');
-  const ok=pckTypeValid();
-  if(s1){ s1.textContent=pckTypeSummary(); s1.style.display=(_pckOpen===1||!ok)?'none':'block'; }
-  if(c1) c1.style.display=(_pckOpen===1||!ok)?'none':'block';
-  if(n1) n1.className='cknum'+(ok?' ok':'');
-  const chev2=document.getElementById('pckChev2');
-  if(chev2) chev2.style.display='block';
+  const typeOk=!!partyOrderType;
+  if(s1){ s1.textContent=(partyOrderType==='takeaway')?'🏠 Takeaway':(partyOrderType==='delivery'?'🛵 Delivery':''); s1.style.display=(_pckOpen===1||!typeOk)?'none':'block'; }
+  if(c1) c1.style.display=(_pckOpen===1||!typeOk)?'none':'block';
+  if(n1) n1.className='cknum'+(typeOk?' ok':'');
+
+  const s2=document.getElementById('pcks2'), c2=document.getElementById('pckc2'), n2=document.getElementById('pckn2');
+  const addrOk=typeOk && pckAddrValid();
+  if(s2){ s2.textContent=pckAddrSummary(); s2.style.display=(_pckOpen===2||!addrOk)?'none':'block'; }
+  if(c2) c2.style.display=(_pckOpen===2||!addrOk)?'none':'block';
+  if(n2) n2.className='cknum'+(addrOk?' ok':'');
+
+  const chev3=document.getElementById('pckChev3');
+  if(chev3) chev3.style.display='block';
 }
-window.pckSaveType=function(){
-  const err=document.getElementById('pckErr1');
+window.pckSaveAddr=function(){
+  const err=document.getElementById('pckErr2');
+  const g=i=>(document.getElementById(i)?.value||'').trim();
   let msg='';
-  if(!partyOrderType) msg='Delivery ya Takeaway chunein';
-  else if(partyOrderType==='delivery' && !(document.getElementById('pAddress')?.value||'').trim()) msg='Delivery address bharein';
+  if(partyOrderType==='delivery'){
+    if(!g('pLoc')) msg='Area chunein';
+    else if(g('pLoc')==='Others'){
+      if(!g('pHouseOther')||!g('pArea')) msg='House aur Area bharein';
+      else if(!/^\d{6}$/.test(g('pPincode'))) msg='Pincode 6 ank ka hona chahiye';
+    } else if(!g('pHouse')) msg='House / Flat number bharein';
+  }
   if(msg){ if(err){err.textContent=msg;err.style.display='block';} return; }
   if(err) err.style.display='none';
-  _pckOpen=2; pckPaint(); updateBill();
+  _pckOpen=3; pckPaint(); updateBill();
 };
 
-// ---- Item 8: floating bar — order.html jaisa DO-TAP CTA ----
-// Pehla tap: details poori na ho to Order Type strip par le jaata hai; poori ho to
-// Booking Summary tak scroll karke button "Confirm Your Booking" ban jaata hai.
-// Doosra tap: booking Summary screen khulti hai.
+// ---- Item 4: floating bar — order.html jaisa 3-STEP CTA ----
+// Tap 1: Order Type adhoora -> wahin le jaao. Tap 2 (delivery ho to): Address
+// adhoora -> wahin le jaao. Sab poora ho to Booking Summary tak scroll + button
+// "Confirm Your Booking" ban jaata hai. Agla tap -> Summary screen khulti hai.
 window.partyBarAction=function(){
   const hasItems=Object.values(quantities).some(q=>q>0);
   if(!hasItems) return;
-  if(!pckTypeValid()){
+  if(!partyOrderType){
     _pckOpen=1; pckPaint(); updateBill();
     setTimeout(function(){ document.getElementById('pck1')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
     return;
   }
+  if(!pckAddrValid()){
+    _pckOpen=2; pckPaint(); updateBill();
+    setTimeout(function(){ document.getElementById('pck2')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
+    return;
+  }
   if(!_pckReviewed){
     _pckReviewed=true;
-    _pckOpen=2; pckPaint(); updateBill();
-    setTimeout(function(){ document.getElementById('pck2')?.scrollIntoView({behavior:'smooth',block:'center'}); },80);
+    _pckOpen=3; pckPaint(); updateBill();
+    setTimeout(function(){ document.getElementById('pck3')?.scrollIntoView({behavior:'smooth',block:'center'}); },80);
     return;
   }
   confirmBookingClick();
 };
 
-// ---- Item 8: CONFIRM → SUMMARY (payment nahi, sirf review + submit) ----
+// ---- Item 1/4: CONFIRM → full SUMMARY screen (payment nahi, sirf review + submit) ----
 window.confirmBookingClick=function(){
-  const name=document.getElementById('pName').value.trim();
-  const phone=document.getElementById('pPhone').value.trim();
-  const address=(document.getElementById('pAddress')||{}).value||'';
-
-  if(!name){alert('Please enter your name');return;}
-  if(phone.length!==10||isNaN(phone)){alert('Enter valid 10-digit mobile');return;}
+  if(!profPhone){ goToProfileTab(); return; }
   if(!partyDate){alert('Select party date');return;}
   if(!partyOrderType){alert('Delivery ya Takeaway chunein');return;}
-  if(partyOrderType==='delivery'&&!address.trim()){alert('Delivery address bharein');return;}
+  if(!pckAddrValid()){alert('Delivery address poori bharein');return;}
 
   const selected=[];
   let total=0;
@@ -637,10 +714,10 @@ window.confirmBookingClick=function(){
   if(!selected.length){alert('Select at least one item');return;}
 
   const dateDisp=new Date(partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('sumWho').textContent=name+' · 📞 '+phone;
+  document.getElementById('sumWho').textContent=profName+' · 📞 '+profPhone;
   document.getElementById('sumDate').textContent='📅 '+dateDisp;
   document.getElementById('sumType').textContent=(partyOrderType==='delivery'?'🛵 Delivery':'🏠 Takeaway');
-  document.getElementById('sumAddr').textContent=(partyOrderType==='delivery'?'📍 '+address:'');
+  document.getElementById('sumAddr').textContent=pckAddrSummary();
   document.getElementById('sumItems').innerHTML=selected.map(s=>'<div style="display:flex;justify-content:space-between"><span>'+escP(s.name)+' × '+s.qty+'</span><span>₹'+s.sub+'</span></div>').join('');
   document.getElementById('sumTotal').textContent='₹'+total;
 
@@ -651,14 +728,17 @@ window.closePartySummary=function(){
   document.getElementById('partySummaryScreen').style.display='none';
 };
 
-// ---- Item 8: SUBMIT — booking Firestore me save, payment nahi ----
+// ---- Item 4: SUBMIT — seedha admin ko (Firestore) jaata hai, WhatsApp option nahi ----
 window.submitPartyBooking=async function(){
-  const name=document.getElementById('pName').value.trim();
-  const phone=document.getElementById('pPhone').value.trim();
-  const address=(document.getElementById('pAddress')||{}).value||'';
-  // Save profile
-  try{localStorage.setItem('kb_profile',JSON.stringify({name,phone}));localStorage.setItem('custName',name);localStorage.setItem('custPhone',phone);}catch(e){}
-  try{applyWhoBox();}catch(e){}
+  const phone=profPhone, name=profName;
+  const g=i=>(document.getElementById(i)?.value||'').trim();
+  let address='';
+  if(partyOrderType==='delivery'){
+    const loc=g('pLoc');
+    address = (loc==='Others')
+      ? [g('pHouseOther'),g('pStreet')].filter(Boolean).join(', ')+' — '+[g('pLandmark'),g('pArea')].filter(Boolean).join(', ')+' — PIN '+g('pPincode')
+      : [g('pHouse'),loc].filter(Boolean).join(', ');
+  }
 
   const selected=[];
   let total=0;
@@ -669,73 +749,43 @@ window.submitPartyBooking=async function(){
     }
   });
 
-  const dateDisp=new Date(partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
-  const nl='\n';
-  const itemLines=selected.map(s=>'  • *'+s.name+'* × '+s.qty+' = ₹'+s.sub).join(nl);
-
-  const msg=
-    '🎉 *PARTY ORDER REQUEST — KICKEN BITES*'+nl+
-    '━━━━━━━━━━━━━━━━━━━'+nl+
-    '👤 Name: '+name+nl+
-    '📞 Phone: '+phone+nl+
-    '📅 Party Date: '+dateDisp+nl+
-    '🚚 Order Type: '+(partyOrderType==='delivery'?'Delivery':'Takeaway')+nl+
-    (partyOrderType==='delivery'?'📍 Address: '+address+nl:'')+
-    '━━━━━━━━━━━━━━━━━━━'+nl+
-    '*Items Requested:*'+nl+
-    itemLines+nl+
-    '━━━━━━━━━━━━━━━━━━━'+nl+
-    '💰 *Estimated Total: ₹'+total+'*'+nl+nl+
-    'Please confirm availability and final price. Thank you! 🙏';
-
-  // BUG-06: booking Firestore me bhi save hoti hai. Doc id date_phone hai, isliye
-  // ek hi banda ek hi date ke liye ek entry banata hai (dobara submit karne par
-  // purani entry update ho jaati hai, duplicate nahi banti).
+  // Doc id date_phone hai, isliye ek hi banda ek hi date ke liye ek entry banata hai
+  // (dobara submit karne par purani entry update ho jaati hai, duplicate nahi banti).
   let savedOk=false;
   try{
     const bookingId = partyDate+'_'+phone;
     await setDoc(doc(db,'partyBookings',bookingId),{
       bookingId, name, phone, partyDate,
-      orderType:partyOrderType, address:(partyOrderType==='delivery'?address:''),
+      orderType:partyOrderType, address,
       items:selected, total,
       status:'pending', createdAt:new Date().toISOString(), at:Date.now()
     },{merge:true});
     savedOk=true;
     try{ watchMyBookings(phone); }catch(e){}
-  }catch(e){ /* net na ho to bhi WhatsApp to chale */ }
+  }catch(e){}
 
   closePartySummary();
-  // Item 8: booking submit ho gayi — form ko clean slate par le aao (naya item
+  // Item 4: booking submit ho gayi — form ko clean slate par le aao (naya item
   // select karne par checkout/floating-bar dobara sahi state se shuru ho).
   quantities={};
   try{ renderMenu(); }catch(e){}
   _pckReviewed=false; _pckOpen=1;
   try{ pckPaint(); }catch(e){}
   try{ updateBill(); }catch(e){}
-  const waUrl='https://wa.me/91'+shopWA+'?text='+encodeURIComponent(msg);
-  showBookingSaved(waUrl, savedOk);
+  showBookingSaved(savedOk);
 };
 
-// Booking save hone ke baad ka confirmation box
-function showBookingSaved(waUrl, savedOk){
+// Booking save hone ke baad ka confirmation — sirf ek simple success message,
+// WhatsApp option nahi. Admin ko booking Firestore se hi live dikh jaati hai.
+function showBookingSaved(savedOk){
   const box=document.getElementById('bookedBox');
   const txt=document.getElementById('bookedTxt');
-  if(!box){ openWA(waUrl); return; }
+  if(!box)return;
   txt.innerHTML = savedOk
-    ? '✅ <b>Aapki party booking record ho gayi hai.</b><br>Shop ko WhatsApp par bhej dijiye taaki wo turant dekh lein. Booking ka status neeche "Meri Party Bookings" me dikhta rahega.'
-    : '⚠️ <b>Internet nahi mila, booking save nahi hui.</b><br>WhatsApp par bhej dijiye — shop message se hi le lega.';
-  document.getElementById('bookedWaBtn').onclick=function(){ openWA(waUrl); };
+    ? 'Aapki party booking submit ho gayi hai.<br>Shop admin isko confirm karega — status "Meri Bookings" tab me dikhta rahega.'
+    : '⚠️ Internet nahi mila, booking save nahi ho paayi. Dobara try karein.';
   box.style.display='block';
   try{ box.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
-}
-
-// party.html customer.html ke andar iframe me chalta hai. location.href se
-// sirf iframe navigate hota tha (blank/toota hua page). Top window bhejo.
-function openWA(url){
-  try{
-    if(window.top && window.top!==window){ window.top.location.href=url; return; }
-  }catch(e){}
-  try{ window.open(url,'_blank'); }catch(e){ location.href=url; }
 }
 
 // ---- MERI PARTY BOOKINGS (customer ko apna record dikhe) ----
@@ -750,9 +800,9 @@ window.toggleMyBook=function(id){
   renderMyBookings(_myBookAll);
 };
 function bookStatusChip(st){
-  if(st==='confirmed') return '<span style="background:#dcfce7;color:#166534;border-radius:8px;padding:2px 8px;font-size:.7rem;font-weight:800">✅ CONFIRMED</span>';
-  if(st==='dismissed') return '<span style="background:#fee2e2;color:#991b1b;border-radius:8px;padding:2px 8px;font-size:.7rem;font-weight:800">❌ CANCELLED</span>';
-  return '<span style="background:#fef3c7;color:#92400e;border-radius:8px;padding:2px 8px;font-size:.7rem;font-weight:800">⏳ PENDING</span>';
+  if(st==='confirmed') return '<span style="background:#dcfce7;color:#166534;border-radius:20px;padding:4px 11px;font-size:.7rem;font-weight:800;white-space:nowrap">✅ CONFIRMED</span>';
+  if(st==='dismissed') return '<span style="background:#fee2e2;color:#991b1b;border-radius:20px;padding:4px 11px;font-size:.7rem;font-weight:800;white-space:nowrap">❌ CANCELLED</span>';
+  return '<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:4px 11px;font-size:.7rem;font-weight:800;white-space:nowrap">⏳ PENDING</span>';
 }
 function renderMyBookings(list){
   _myBookAll=list||[];
@@ -772,23 +822,31 @@ function renderMyBookings(list){
   card.style.display='block';
   const cnt=document.getElementById('myBookCount'); if(cnt) cnt.textContent=list.length;
   list.sort(function(a,b){ return String(b.partyDate||'').localeCompare(String(a.partyDate||'')); });
+  // Item 3: booking cards ko poora dikha diya — pehle sirf items+total the (dull),
+  // ab order-type/address bhi aur bade, dark, colored text ke saath.
   box.innerHTML=list.map(function(b){
     const d=b.partyDate?new Date(b.partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}):'';
     const items=(b.items||[]).map(function(i){ return escP(i.name)+' × '+i.qty; }).join(', ');
     const past=String(b.partyDate||'')<getTodayDate();
-    // Ek line me booking; detail tap par khulti hai taaki page na bhare.
     const bid=escP(b.bookingId||(b.partyDate+'_'+b.phone)), open=_myBookOpen[bid]===true;
-    return '<div style="background:#fff8f0;border:1px solid #ffd8b0;border-radius:11px;padding:11px;margin-bottom:8px'+(past?';opacity:.6':'')+'">'
-      +'<div onclick="toggleMyBook(\''+bid+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:6px">'
-        +'<div style="font-weight:800;font-size:.88rem;color:#c94f00">'+(open?'▾':'▸')+' 📅 '+escP(d)+'</div>'
+    const typeIcon=b.orderType==='takeaway'?'🏠 Takeaway':'🛵 Delivery';
+    const borderCol=b.status==='confirmed'?'#86efac':(b.status==='dismissed'?'#fecaca':'#ffd8b0');
+    const bgCol=b.status==='confirmed'?'#f0fdf4':(b.status==='dismissed'?'#fef2f2':'#fff8f0');
+    return '<div style="background:'+bgCol+';border:2px solid '+borderCol+';border-radius:13px;padding:13px;margin-bottom:10px'+(past?';opacity:.65':'')+'">'
+      +'<div onclick="toggleMyBook(\''+bid+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px">'
+        +'<div style="font-weight:900;font-size:.95rem;color:#c94f00">'+(open?'▾':'▸')+' 📅 '+escP(d)+'</div>'
         +bookStatusChip(b.status)
       +'</div>'
       +(open?(
-        '<div style="margin-top:6px">'
-        +'<div style="font-size:.78rem;color:#555;margin-bottom:3px">🍽️ '+items+'</div>'
-        +'<div style="font-size:.82rem;font-weight:800;color:#c94f00">Estimated: ₹'+(Number(b.total)||0)+'</div>'
-        +(b.status==='confirmed'?'<div style="font-size:.75rem;color:#166534;margin-top:5px">Shop ne aapki booking confirm kar di hai. 🎉</div>':'')
-        +(b.status==='dismissed'?'<div style="font-size:.75rem;color:#991b1b;margin-top:5px">Ye booking shop ne cancel kar di hai. Baat karne ke liye WhatsApp kijiye.</div>':'')
+        '<div style="margin-top:10px;padding-top:9px;border-top:1.5px dashed '+borderCol+'">'
+        +'<div style="font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#a8a29e;margin-bottom:3px">Items</div>'
+        +'<div style="font-size:.86rem;color:#1c1917;font-weight:600;margin-bottom:9px;line-height:1.5">🍗 '+items+'</div>'
+        +'<div style="font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#a8a29e;margin-bottom:3px">Order Type</div>'
+        +'<div style="font-size:.86rem;color:#1c1917;font-weight:600;margin-bottom:9px">'+typeIcon+(b.address?' — '+escP(b.address):'')+'</div>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:9px;padding:9px 11px;font-weight:900;font-size:.98rem;color:#c94f00">'
+        +'<span>Estimated Total</span><span>₹'+(Number(b.total)||0)+'</span></div>'
+        +(b.status==='confirmed'?'<div style="font-size:.8rem;color:#166534;font-weight:700;margin-top:9px">🎉 Shop ne aapki booking confirm kar di hai.</div>':'')
+        +(b.status==='dismissed'?'<div style="font-size:.8rem;color:#991b1b;font-weight:700;margin-top:9px">Ye booking shop ne cancel kar di hai. Baat karne ke liye WhatsApp kijiye.</div>':'')
         +(b.status==='confirmed'?partyPayCta(b):'')
         +'</div>'):'')
       +'</div>';
@@ -851,6 +909,7 @@ window.confirmPartyPayment=async function(){
     },{merge:true});
     closePartyPay();
     renderMyBookings(_myBookAll);
+    alert('✅ Payment submitted! Shop isko verify karega, "Meri Bookings" me status update dikh jaayega.');
   }catch(e){ alert('Error — try again or contact shop.'); }
 };
 window.watchMyBookings=function(phone){
