@@ -1,6 +1,6 @@
 // Kicken Bites Service Worker v8 — NETWORK-FIRST, self-updating
 // Bump this number on every deploy to force every device onto the newest files.
-const SW_VERSION = 'kb-v10';
+const SW_VERSION = 'kb-v11';
 const CACHE = SW_VERSION;
 
 // Install: take over immediately, don't wait for old tabs to close.
