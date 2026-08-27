@@ -9,7 +9,8 @@
 <style>
 :root{--o:#e65c00;--p:#e65c00;--g:#22c55e;--r:#ef4444;--dark:#1a1a2e;--muted:#666;--rd:14px;--cream:#fff8f0;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160deg,#fff8f0,#ffe8d0);min-height:100vh;padding-bottom:26px;}
+html{overscroll-behavior-y:none;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160deg,#fff8f0,#ffe8d0);min-height:100vh;padding-bottom:26px;overscroll-behavior-y:none;}
 
 .hdr{background:linear-gradient(135deg,var(--p),#ff8c42);color:white;padding:9px 14px;text-align:center;border-radius:0 0 16px 16px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .hdr h1{font-size:1rem;font-weight:800;}
@@ -108,18 +109,22 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 #partyRunBar .rt-go:disabled{opacity:.75;cursor:default}
 
 /* Item 8: PAYMENT SCREEN — order.html ke pay-simple design se hu-bahu match */
+/* Point 5: booking-submitted full-screen — order.html ke successScreen jaisa */
+#partyDoneScreen{display:none;position:fixed;inset:0;min-height:100vh;background:linear-gradient(160deg,#fff8f0,#ffe8d0);z-index:550;overflow-y:auto;overscroll-behavior:contain;}
+#partyDoneScreen.show{display:block;}
+
 #partyPayScreen{display:none;position:fixed;inset:0;height:100vh;height:100dvh;min-height:100dvh;z-index:600;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#fdf6ee;background-attachment:fixed;}
 #partyPayScreen.show{display:block}
 .pay-bar{padding:5px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;background:linear-gradient(135deg,#f97316,#ea580c);}
 .pay-logo{color:white;font-weight:800;font-size:.76rem;}
 .pay-x{width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:white;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .pay-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px 15px 4px;}
-.pay-simple{padding:8px 16px 16px;display:flex;flex-direction:column;min-height:calc(100dvh - 150px);}
+.pay-simple{padding:8px 16px 16px;}
 .pqr-headline{text-align:center;font-size:1.15rem;font-weight:900;color:#ea580c;letter-spacing:-.01em;margin-bottom:10px;line-height:1.3;}
 .pqr-card{background:#fff;border:1.5px solid #e7e5e4;border-radius:16px;padding:12px;text-align:center;}
 .pqr-img{width:100%;max-width:min(64vw,300px);border-radius:10px;border:1px solid #e7e5e4;display:block;margin:0 auto;}
 .pqr-dl{display:inline-block;margin-top:9px;background:transparent;border:1.5px solid #ea580c;color:#ea580c;border-radius:10px;padding:7px 16px;font-size:.76rem;font-weight:700;text-decoration:none;}
-.pqr-bottom{margin-top:auto;padding-top:18px;}
+.pqr-bottom{padding-top:18px;}
 .pqr-ticks{display:flex;gap:10px;margin-top:0;}
 .pqr-tick{flex:1;display:flex;align-items:center;gap:8px;border:2px solid #d6d3d1;border-radius:12px;padding:10px;cursor:pointer;background:#fff;transition:border-color .15s,background .15s;}
 .pqr-tick input{width:18px;height:18px;flex-shrink:0;pointer-events:none;}
@@ -166,7 +171,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
     </div>
 
     <!-- PARTY DETAILS -->
-    <div class="card">
+    <div class="card" id="partyDateCard">
       <div class="ct">🎊 Party Details</div>
       <label class="fl">Party Date</label>
       <div id="partyDayChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:8px"></div>
@@ -264,14 +269,22 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
       <button class="place-btn" id="confirmBookingBtn" onclick="confirmBookingClick()" disabled>Select items to book</button>
     </div>
 
-    <!-- booking save hone ke baad ka confirmation — sirf ek simple success message,
-         WhatsApp option nahi (Item 4: admin ko booking Firestore se hi live dikh jaati hai) -->
-    <div id="bookedBox" style="display:none;margin-top:11px;background:#f0fdf4;border:2px solid #86efac;border-radius:13px;padding:14px;text-align:center">
-      <div style="font-size:2rem;margin-bottom:6px">✅</div>
-      <div id="bookedTxt" style="font-size:.85rem;color:#166534;line-height:1.6;font-weight:600"></div>
-    </div>
-
     <a class="back-link" href="customer.html">← Back to regular ordering</a>
+  </div>
+
+  <!-- Point 5: booking submit hone ke baad — order.html ke successScreen jaisa
+       hi full-screen confirmation, Home/My Bookings buttons ke saath. -->
+  <div id="partyDoneScreen">
+    <div style="max-width:420px;margin:0 auto;text-align:center;padding:30px 18px">
+      <div style="font-size:3.2rem;margin-bottom:6px">🎉</div>
+      <div style="font-weight:900;font-size:1.3rem;color:#c94f00;margin-bottom:8px">Booking Submitted!</div>
+      <div style="font-size:.88rem;color:#57534e;line-height:1.6;margin-bottom:24px">Your booking has been submitted.<br>Admin will confirm it — then you can make payment from the <b>"Meri Bookings"</b> tab.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:8px">
+        <button onclick="goPartyHome()" style="padding:13px;background:white;color:#c94f00;border:2px solid #c94f00;border-radius:13px;font-weight:800;font-size:.86rem;cursor:pointer">🏠 Home</button>
+        <button onclick="goPartyMyBookings()" style="padding:13px;background:linear-gradient(135deg,#e65c00,#ff8c42);color:#fff;border:none;border-radius:13px;font-weight:800;font-size:.86rem;cursor:pointer">🎫 My Bookings</button>
+      </div>
+      <div id="pdPrevFb" style="display:none;margin-top:22px;background:#fff;border:2px solid #ffe8d0;border-radius:16px;padding:18px;text-align:left"></div>
+    </div>
   </div>
 
   <!-- Item 8: floating "Proceed to Book Menu" bar — order.html ke runTotalBar jaisa -->
@@ -430,15 +443,7 @@ async function init(){
 
     // Item 6: profile compulsory — bina saved custPhone ke booking form hi nahi dikhta,
     // sirf ek "Profile banayein" gate card dikhta hai.
-    const hasProfile = await loadCustomerProfile();
-    const gate=document.getElementById('noProfileCard');
-    if(!hasProfile){
-      if(gate) gate.style.display='block';
-      document.getElementById('menuList').closest('.card').style.display='none';
-    } else {
-      if(gate) gate.style.display='none';
-      try{ watchMyBookings(profPhone); }catch(e){}
-    }
+    await applyProfileGate();
     try{ pckPaint(); updateBill(); }catch(e){}
     // Item 5: ratings menu ke baad aate hain taaki page jaldi khule
     loadItemRatings().then(function(){ renderMenu(); });
@@ -559,6 +564,30 @@ async function loadCustomerProfile(){
   }catch(e){}
   return true;
 }
+// Point 3: gate-check ab ek reusable function hai — pehli baar init() par chalta
+// hai, AUR har baar jab customer.html Party tab par switch karta hai (window.top
+// se recheckProfile() call hota hai), taaki agar login iframe-load ke BAAD complete
+// hui ho to gate turant hat jaaye, kabhi atka na rahe.
+async function applyProfileGate(){
+  const hasProfile = await loadCustomerProfile();
+  const gate=document.getElementById('noProfileCard');
+  const dateCard=document.getElementById('partyDateCard');
+  const menuCard=document.getElementById('menuList').closest('.card');
+  if(!hasProfile){
+    if(gate) gate.style.display='block';
+    if(dateCard) dateCard.style.display='none';
+    if(menuCard) menuCard.style.display='none';
+  } else {
+    if(gate) gate.style.display='none';
+    if(dateCard) dateCard.style.display='block';
+    if(menuCard) menuCard.style.display='block';
+    try{ watchMyBookings(profPhone); }catch(e){}
+  }
+  return hasProfile;
+}
+window.recheckProfile=function(){
+  try{ applyProfileGate(); }catch(e){}
+};
 
 // ---- BILL ----
 let _pckReviewed=false;
@@ -775,18 +804,83 @@ window.submitPartyBooking=async function(){
   showBookingSaved(savedOk);
 };
 
-// Booking save hone ke baad ka confirmation — sirf ek simple success message,
-// WhatsApp option nahi. Admin ko booking Firestore se hi live dikh jaati hai.
+// Point 5: booking save hone ke baad — order.html ke successScreen jaisa hi
+// full-screen confirmation page. WhatsApp option nahi, seedha Firestore submit.
 function showBookingSaved(savedOk){
-  const box=document.getElementById('bookedBox');
-  const txt=document.getElementById('bookedTxt');
-  if(!box)return;
-  txt.innerHTML = savedOk
-    ? 'Aapki party booking submit ho gayi hai.<br>Shop admin isko confirm karega — status "Meri Bookings" tab me dikhta rahega.'
-    : '⚠️ Internet nahi mila, booking save nahi ho paayi. Dobara try karein.';
+  if(!savedOk){
+    alert('⚠️ Internet nahi mila, booking save nahi ho paayi. Dobara try karein.');
+    return;
+  }
+  document.getElementById('mainForm').style.display='none';
+  const ds=document.getElementById('partyDoneScreen');
+  ds.classList.add('show');
+  window.scrollTo(0,0);
+  // Point 5: pichli party ka feedback + 5-star par Google review — order.html
+  // ke maybeShowPrevFeedback() jaisa hi, 3 sec baad
+  setTimeout(function(){ try{ maybeShowPrevPartyFeedback(); }catch(e){} },3000);
+}
+window.goPartyHome=function(){
+  document.getElementById('partyDoneScreen').classList.remove('show');
+  document.getElementById('mainForm').style.display='block';
+  swParty('plan');
+  window.scrollTo(0,0);
+};
+window.goPartyMyBookings=function(){
+  document.getElementById('partyDoneScreen').classList.remove('show');
+  document.getElementById('mainForm').style.display='block';
+  swParty('mine');
+  window.scrollTo(0,0);
+};
+
+// ---- Point 5: PREVIOUS BOOKING FEEDBACK + Google review nudge on 5-star ----
+let _partyFbStar=0;
+async function maybeShowPrevPartyFeedback(){
+  const box=document.getElementById('pdPrevFb');
+  if(!box) return;
+  const today=getTodayDate();
+  const cand=(_myBookAll||[])
+    .filter(function(b){ return b.status==='confirmed' && String(b.partyDate||'')<today && !b.rating; })
+    .sort(function(a,b){ return String(b.partyDate||'').localeCompare(String(a.partyDate||'')); })[0];
+  if(!cand) return;
+  _partyFbStar=0;
+  const d=cand.partyDate?new Date(cand.partyDate+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';
+  box.innerHTML =
+    '<div style="text-align:center;margin-bottom:4px"><span style="font-size:1.7rem">⭐</span></div>'
+    +'<div style="font-weight:900;font-size:1rem;color:#c94f00;text-align:center">Pichli party ka feedback</div>'
+    +'<div style="font-size:.74rem;color:#a8a29e;text-align:center;margin-bottom:10px">Party — '+escP(d)+'</div>'
+    +'<div id="pdFbStars" style="display:flex;justify-content:center;gap:7px;margin-bottom:10px">'
+      +[1,2,3,4,5].map(function(n){ return '<span onclick="partyFbSetStar('+n+')" data-v="'+n+'" style="font-size:1.9rem;cursor:pointer;color:#ddd;line-height:1">★</span>'; }).join('')
+    +'</div>'
+    +'<textarea id="pdFbReview" placeholder="Apna comment likhein… (optional)" style="width:100%;box-sizing:border-box;padding:9px;border:1.5px solid #eee;border-radius:9px;font-size:.8rem;height:48px;resize:none;font-family:inherit;outline:none;margin-bottom:10px"></textarea>'
+    +'<div style="display:grid;grid-template-columns:1fr 2fr;gap:8px">'
+      +'<button onclick="document.getElementById(\'pdPrevFb\').style.display=\'none\'" style="padding:11px;background:#f3f3f3;color:#57534e;border:none;border-radius:11px;font-weight:700;font-size:.82rem;cursor:pointer">Baad me</button>'
+      +'<button onclick="submitPartyFeedback(\''+escP(cand.bookingId||(cand.partyDate+'_'+cand.phone))+'\')" style="padding:11px;background:#f59e0b;color:#fff;border:none;border-radius:11px;font-weight:800;font-size:.82rem;cursor:pointer">⭐ Submit</button>'
+    +'</div>';
   box.style.display='block';
   try{ box.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
 }
+window.partyFbSetStar=function(v){
+  _partyFbStar=v;
+  document.querySelectorAll('#pdFbStars span').forEach(function(sp){
+    sp.style.color=Number(sp.dataset.v)<=v?'#f59e0b':'#ddd';
+  });
+};
+window.submitPartyFeedback=async function(bookingId){
+  if(!_partyFbStar){ alert('Pehle star select karein'); return; }
+  const review=(document.getElementById('pdFbReview')?.value||'').trim();
+  try{
+    await setDoc(doc(db,'partyBookings',bookingId),{
+      rating:_partyFbStar, review, ratedAt:new Date().toISOString()
+    },{merge:true});
+  }catch(e){}
+  const box=document.getElementById('pdPrevFb');
+  if(box) box.style.display='none';
+  const gotFive=_partyFbStar===5;
+  _partyFbStar=0;
+  if(gotFive){
+    try{ if(window.top && typeof window.top.showGoogleReviewPopup==='function') window.top.showGoogleReviewPopup(); }catch(e){}
+  }
+};
 
 // ---- MERI PARTY BOOKINGS (customer ko apna record dikhe) ----
 // Pehle booking bhejne ke baad customer ko kahin kuch dikhta hi nahi tha, aur

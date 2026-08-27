@@ -24,7 +24,8 @@
   --sh-brand:0 5px 18px rgba(230,92,0,.32);
   --r-lg:18px;--hdr-h:68px;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--font-body);background:var(--obg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+html{overscroll-behavior-y:none;}
+body{font-family:var(--font-body);background:var(--obg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none;}
 h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 
 /* LOADING */
@@ -316,13 +317,13 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 /* Session 16: hero aur bhi compact — amount + total + payee sab ek row me */
 .pay-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px 15px 4px;}
 /* S65: PAYMENT REDESIGN — single-screen: static QR + amount text + tick + confirm */
-.pay-simple{padding:8px 16px 16px;display:flex;flex-direction:column;min-height:calc(100dvh - 150px);}
+.pay-simple{padding:8px 16px 16px;}
 .pqr-headline{text-align:center;font-size:1.15rem;font-weight:900;color:#ea580c;letter-spacing:-.01em;margin-bottom:10px;line-height:1.3;}
 .pqr-card{background:#fff;border:1.5px solid #e7e5e4;border-radius:16px;padding:12px;text-align:center;}
 .pqr-img{width:100%;max-width:min(64vw,300px);border-radius:10px;border:1px solid #e7e5e4;display:block;margin:0 auto;}
 .pqr-note{font-size:.78rem;color:#57534e;margin-top:9px;line-height:1.4;}
 .pqr-dl{display:inline-block;margin-top:9px;background:transparent;border:1.5px solid #ea580c;color:#ea580c;border-radius:10px;padding:7px 16px;font-size:.76rem;font-weight:700;text-decoration:none;}
-.pqr-bottom{margin-top:auto;padding-top:18px;}
+.pqr-bottom{padding-top:18px;}
 .pqr-ticks{display:flex;gap:10px;margin-top:0;}
 .pqr-tick{flex:1;display:flex;align-items:center;gap:8px;border:2px solid #d6d3d1;border-radius:12px;padding:10px;cursor:pointer;background:#fff;transition:border-color .15s,background .15s;}
 .pqr-tick input{width:18px;height:18px;flex-shrink:0;pointer-events:none;}
@@ -882,7 +883,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 
   <!-- PARTY TAB -->
   <div class="panel" id="tab-party" style="padding:0">
-    <iframe src="party.html" style="width:100%;height:calc(100vh - 130px);border:none;display:block" title="Party Planner"></iframe>
+    <iframe id="partyFrame" src="party.html" style="width:100%;height:calc(100vh - 130px);border:none;display:block" title="Party Planner"></iframe>
   </div>
 
   <div class="panel" id="tab-profile">
@@ -3110,6 +3111,13 @@ window.placeOrderClick=async function(){
     lastOrder={name,phone,address,total,delivery,items,notes,orderType,payLater:false,date:ds};
     // Persist to localStorage so WA button works even after page interaction
     try{localStorage.setItem('kb_last_order',JSON.stringify(lastOrder));}catch(e){}
+    // Point 8: order successfully create hote hi cart clear — pehle sirf "🏠 Home"
+    // button dabane par hota tha, isliye "📋 My Orders" se ya seedha tab-switch se
+    // wapas aane par purana item qty cart me chipka reh jaata tha (agla "+" seedha
+    // 2 se shuru hota tha). Ab yahin, order ban te hi, saaf ho jaata hai.
+    quantities={};
+    try{ window._portionSel={}; }catch(e){}
+    try{ renderMenu(menuConfig.items||[]); }catch(e){}
     openPayScreen(total);
   }catch(e){console.error('Order error:',e);alert('Error placing order: '+(e&&e.message?e.message:'Please try again.'));}
   btn.disabled=false;
@@ -3687,6 +3695,16 @@ window.switchTab=function(t){
   if(t==='profile') loadLoyalty();
   if(t==='wish') initWishTab();
   if(t==='myorders') showDeliveredBannerIfPending();
+  // Point 3: party.html ek iframe hai jo page load hote hi turant load ho jaata
+  // hai — login/profile poora hone se PEHLE hi apna profile-check chala leta tha
+  // aur galat "Profile banayein" gate par atak jaata tha. Ab Party tab khulte hi
+  // dobara fresh check karwate hain.
+  if(t==='party'){
+    try{
+      const fr=document.getElementById('partyFrame');
+      if(fr && fr.contentWindow && typeof fr.contentWindow.recheckProfile==='function') fr.contentWindow.recheckProfile();
+    }catch(e){}
+  }
   // Item 1: Install App button sirf Order tab par dikhe — baaki tabs par nahi
   // (payment/checkout jaise overlays alag se hide karte hain, ye sirf tab switch ke liye hai).
   try{ const ib=document.getElementById('kbInstallBtn'); if(ib) ib.style.display=(t==='order')?'':'none'; }catch(e){}
