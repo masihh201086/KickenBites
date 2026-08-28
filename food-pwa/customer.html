@@ -1616,6 +1616,10 @@ function kbPlaySuccessChime(){
     });
   }catch(e){}
 }
+// Point 3 (party.html): iframe se cross-window call ke liye explicitly window par
+// expose karna zaroori hai — module script me top-level function apne aap window
+// par nahi jaati.
+window.kbPlaySuccessChime=kbPlaySuccessChime;
 window.rateFromDelivered=function(orderId){
   const el=document.getElementById('deliveredPopup'); if(el)el.remove();
   switchTab('myorders');

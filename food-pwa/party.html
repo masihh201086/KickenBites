@@ -80,10 +80,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 .ig input:focus,.ig select:focus,.ig textarea:focus{border-color:var(--p);}
 .ig textarea{resize:none;height:58px;}
 .ckwrap{max-width:520px;margin:0 auto;}
-/* Point 1: PC par party page baaki tabs (customer.html #mainApp max-width:900px)
-   jitni chaudi ho — pehle sirf 520px fixed thi, isliye aadhi chaudi lagti thi. */
+/* Point 1: PC par party page ab #mainApp jitni hi (900px) chaudi ho — pehle 800px
+   thi jo thodi kam thi doosre tabs se. */
 @media(min-width:600px){
-  .ptabs,.wrap,.bill-in,.ckwrap{max-width:800px;}
+  .ptabs,.wrap,.bill-in,.ckwrap{max-width:900px;}
 }
 .ckstrip{background:#fff;border:2px solid #eee;border-radius:var(--rd);margin-bottom:9px;overflow:hidden;}
 .ckstrip.on{border-color:var(--p);}
@@ -111,6 +111,20 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
 /* Point 5: booking-submitted full-screen — order.html ke successScreen jaisa */
 #partyDoneScreen{display:none;position:fixed;inset:0;min-height:100vh;background:linear-gradient(160deg,#fff8f0,#ffe8d0);z-index:550;overflow-y:auto;overscroll-behavior:contain;}
 #partyDoneScreen.show{display:block;}
+/* Point 3: order.html ke animated green-tick + text styles ka hu-bahu copy */
+.okwrap{width:86px;height:86px;margin-bottom:10px;position:relative;}
+.ok-ring{stroke:#16a34a;stroke-width:4;fill:#fff;stroke-dasharray:166;stroke-dashoffset:166;}
+.ok-tick{stroke:#16a34a;stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:48;stroke-dashoffset:48;}
+.okwrap.go .ok-ring{animation:okRing .5s cubic-bezier(.65,0,.45,1) forwards;}
+.okwrap.go .ok-tick{animation:okTick .32s cubic-bezier(.65,0,.45,1) .42s forwards;}
+.okwrap.go .ok-pulse{animation:okPulse .55s ease-out .5s;}
+.ok-pulse{transform-origin:50% 50%;fill:#16a34a;opacity:0;}
+@keyframes okRing{to{stroke-dashoffset:0;}}
+@keyframes okTick{to{stroke-dashoffset:0;}}
+@keyframes okPulse{0%{opacity:.28;transform:scale(.6);}100%{opacity:0;transform:scale(1.5);}}
+.st{font-size:1.25rem;font-weight:800;margin-bottom:4px;color:var(--dark);}
+.ss{color:var(--muted);font-size:.84rem;line-height:1.5;}
+.oid{background:white;border-radius:10px;padding:9px 16px;margin:11px 0;font-size:.79rem;}
 
 #partyPayScreen{display:none;position:fixed;inset:0;height:100vh;height:100dvh;min-height:100dvh;z-index:600;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#fdf6ee;background-attachment:fixed;}
 #partyPayScreen.show{display:block}
@@ -264,8 +278,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
           <div class="pck-br tot"><span>Estimated Total</span><span id="pTotAmt">₹0</span></div>
         </div>
       </div>
-
-      <button class="place-btn" id="confirmBookingBtn" onclick="confirmBookingClick()" disabled>Select items to book</button>
+      <!-- Point 4: floating bar (customer.html me) neeche overlay karti hai — itni
+           jagah chhod di taaki last strip usme chhupe nahi. Alag "Confirm Your
+           Booking" button yahan nahi — floating bar khud "Proceed to Book Menu" se
+           "Confirm Your Booking" me badal jaati hai, do buttons ka confusion nahi. -->
+      <div style="height:70px"></div>
     </div>
 
     <a class="back-link" href="customer.html">← Back to regular ordering</a>
@@ -274,15 +291,23 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
   <!-- Point 5: booking submit hone ke baad — order.html ke successScreen jaisa
        hi full-screen confirmation, Home/My Bookings buttons ke saath. -->
   <div id="partyDoneScreen">
-    <div style="max-width:420px;margin:0 auto;text-align:center;padding:30px 18px">
-      <div style="font-size:3.2rem;margin-bottom:6px">🎉</div>
-      <div style="font-weight:900;font-size:1.3rem;color:#c94f00;margin-bottom:8px">Booking Submitted!</div>
-      <div style="font-size:.88rem;color:#57534e;line-height:1.6;margin-bottom:24px">Your booking has been submitted.<br>Admin will confirm it — then you can make payment from the <b>"Meri Bookings"</b> tab.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:8px">
-        <button onclick="goPartyHome()" style="padding:13px;background:white;color:#c94f00;border:2px solid #c94f00;border-radius:13px;font-weight:800;font-size:.86rem;cursor:pointer">🏠 Home</button>
-        <button onclick="goPartyMyBookings()" style="padding:13px;background:linear-gradient(135deg,#e65c00,#ff8c42);color:#fff;border:none;border-radius:13px;font-weight:800;font-size:.86rem;cursor:pointer">🎫 My Bookings</button>
+    <div style="max-width:420px;margin:0 auto;text-align:center;padding:30px 18px;display:flex;flex-direction:column;align-items:center">
+      <!-- Point 3: order.html ke "Order Confirmed!" jaisa hi animated green tick -->
+      <div class="okwrap" id="pdOkTick" role="img" aria-label="Booking submitted">
+        <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+          <circle class="ok-pulse" cx="30" cy="30" r="26"></circle>
+          <circle class="ok-ring" cx="30" cy="30" r="26"></circle>
+          <path class="ok-tick" d="M18 30.5 L26.5 39 L42 23"></path>
+        </svg>
       </div>
-      <div id="pdPrevFb" style="display:none;margin-top:22px;background:#fff;border:2px solid #ffe8d0;border-radius:16px;padding:18px;text-align:left"></div>
+      <div class="st">Booking Submitted!</div>
+      <div class="ss">Your booking has been submitted.<br>Admin will confirm it — then you can make payment from the <b>"Meri Bookings"</b> tab.</div>
+      <div class="oid" id="pdPartyDateBox"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;margin:11px 0 8px">
+        <button onclick="goPartyMyBookings()" style="padding:12px;background:var(--dark);color:white;border:none;border-radius:13px;font-weight:700;font-size:.84rem;cursor:pointer">🎫 My Bookings</button>
+        <button onclick="goPartyHome()" style="padding:12px;background:linear-gradient(135deg,#e65c00,#ff8c42);color:white;border:none;border-radius:13px;font-weight:700;font-size:.84rem;cursor:pointer">🎉 Book Again</button>
+      </div>
+      <div id="pdPrevFb" style="display:none;width:100%;margin-top:14px;background:#fff;border:2px solid #ffe8d0;border-radius:16px;padding:18px;text-align:left"></div>
     </div>
   </div>
 
@@ -611,13 +636,13 @@ function updateBill(){
     document.getElementById('pBillDate').textContent='📅 '+dd;
   }
 
-  const cbtn=document.getElementById('confirmBookingBtn');
-  if(cbtn){ cbtn.disabled=!has; cbtn.textContent=has?'✅ Confirm Your Booking':'Select items to book'; }
   // Point 3: floating bar ab iframe ke ANDAR position:fixed nahi hai — mobile
   // browsers me iframe ke andar fixed elements screen se chipakte nahi hain (PC
   // par chalta tha, mobile par bottom me chhupa reh jaata tha, scroll karna padta
   // tha). Ab customer.html (outer page, jahan fixed reliably kaam karta hai) ko
-  // postMessage se state bhej dete hain, wahi bar render karta hai.
+  // postMessage se state bhej dete hain, wahi bar render karta hai. Point 4: ab
+  // yehi ek button hai — ek alag inline "Confirm Your Booking" button hata diya
+  // taaki do buttons ka confusion na ho.
   try{
     if(window.top && window.top!==window){
       window.top.postMessage({type:'kbPartyBar', show:has, disabled:!has,
@@ -813,6 +838,9 @@ window.submitPartyBooking=async function(){
 
 // Point 5: booking save hone ke baad — order.html ke successScreen jaisa hi
 // full-screen confirmation page. WhatsApp option nahi, seedha Firestore submit.
+// Point 3 & 5: booking save hone ke baad — order.html ke successScreen jaisa hi
+// full-screen confirmation page (animated green tick + chime). WhatsApp option
+// nahi, seedha Firestore submit.
 function showBookingSaved(savedOk){
   if(!savedOk){
     alert('⚠️ Internet nahi mila, booking save nahi ho paayi. Dobara try karein.');
@@ -820,7 +848,14 @@ function showBookingSaved(savedOk){
   }
   document.getElementById('mainForm').style.display='none';
   const ds=document.getElementById('partyDoneScreen');
+  const dateDisp=partyDate?new Date(partyDate+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'';
+  document.getElementById('pdPartyDateBox').innerHTML='Party Date: <strong>'+escP(dateDisp)+'</strong>';
   ds.classList.add('show');
+  // Point 3: har naye booking par tick animation dobara chale (go class hataakar
+  // reflow karke wapas lagate hain — order.html ka wahi tareeka)
+  const tick=document.getElementById('pdOkTick');
+  if(tick){ tick.classList.remove('go'); void tick.offsetWidth; tick.classList.add('go'); }
+  try{ if(window.top && typeof window.top.kbPlaySuccessChime==='function') window.top.kbPlaySuccessChime(); }catch(e){}
   window.scrollTo(0,0);
   // Point 5: pichli party ka feedback + 5-star par Google review — order.html
   // ke maybeShowPrevFeedback() jaisa hi, 3 sec baad
