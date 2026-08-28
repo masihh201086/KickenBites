@@ -51,7 +51,12 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .otp-box{background:#eff6ff;border-radius:10px;padding:10px;margin-bottom:12px;font-size:.85rem;color:#1e40af;}
 
 /* HEADER */
-.hdr{background:var(--ograd);color:white;padding:12px 15px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;min-height:var(--hdr-h);box-shadow:0 2px 12px rgba(230,92,0,.25);}
+.hdr{background:var(--ograd);color:white;padding:12px 15px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;min-height:var(--hdr-h);box-shadow:0 2px 12px rgba(230,92,0,.25);
+  /* Point 2: Android Chrome par position:sticky elements kabhi-kabhi repaint
+     nahi hote (scroll/tab-switch ke baad purana "ghost" header reh jaata hai,
+     naye ke upar stack ho jaata hai — "double banner" jaisa dikhta hai). Apni
+     GPU layer force karne se ye repaint-glitch nikal jaata hai. */
+  transform:translateZ(0);will-change:transform;backface-visibility:hidden;}
 .brand{display:flex;align-items:center;gap:11px;min-width:0;}
 .brand-logo{width:44px;height:44px;object-fit:contain;border-radius:50%;background:rgba(255,255,255,.97);padding:3px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.18);}
 .brand-txt{min-width:0;}
@@ -65,7 +70,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .pbtn .av-ltr{font-size:1.05rem;font-weight:800;line-height:1;}
 
 /* TABS */
-.tbar{background:white;display:flex;border-bottom:1px solid #ececec;position:sticky;top:var(--hdr-h);z-index:99;box-shadow:var(--sh-sm);}
+.tbar{background:white;display:flex;border-bottom:1px solid #ececec;position:sticky;top:var(--hdr-h);z-index:99;box-shadow:var(--sh-sm);transform:translateZ(0);will-change:transform;backface-visibility:hidden;}
 .ti{flex:1;padding:11px 3px 9px;text-align:center;font-size:.71rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:color .2s,border-color .2s;line-height:1.5;}
 .ti.active{color:var(--orange);border-bottom-color:var(--orange);font-weight:700;}
 

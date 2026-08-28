@@ -336,10 +336,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160d
         </div>
       </div>
       <div style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:11px;padding:11px;font-size:.76rem;line-height:1.5;margin-bottom:12px">
-        💡 Payment ka option shop confirm karne ke baad "Meri Bookings" tab me aayega. Abhi sirf booking request submit hogi.
+        💡 Payment ka option shop confirm karne ke baad "Meri Bookings" tab me aayega. Neeche "📩 Submit to Admin" dabakar booking bhej dein.
       </div>
-      <button class="wa-send" style="background:linear-gradient(135deg,#e65c00,#ff8c42)" onclick="submitPartyBooking()">📩 Submit to Admin</button>
-      <button onclick="closePartySummary()" style="width:100%;padding:12px;background:transparent;border:none;color:#c94f00;font-weight:700;font-size:.82rem;margin-top:8px;cursor:pointer">✏️ Edit Order</button>
+      <button onclick="closePartySummary()" style="width:100%;padding:12px;background:transparent;border:2px solid #ffd8b0;border-radius:12px;color:#c94f00;font-weight:700;font-size:.82rem;cursor:pointer">✏️ Edit Order</button>
+      <!-- Point 3: yahan koi static submit button nahi — floating bar (neeche) hi
+           "📩 Submit to Admin" ban jaati hai, ek hi jagah, do buttons ka confusion nahi -->
+      <div style="height:80px"></div>
     </div>
   </div>
 
@@ -643,13 +645,22 @@ function updateBill(){
   // postMessage se state bhej dete hain, wahi bar render karta hai. Point 4: ab
   // yehi ek button hai — ek alag inline "Confirm Your Booking" button hata diya
   // taaki do buttons ka confusion na ho.
+  syncPartyBar();
+  try{ pckPaint(); }catch(e){}
+}
+// Point 3: floating bar 3 stage me apna hi label badalti hai — "Proceed to Book
+// Menu" → (type+address bhar jaaye) "Proceed to Submit" → (summary khul jaaye)
+// "Submit to Admin". Har stage EK hi jagah, ek hi button.
+function syncPartyBar(){
+  const hasItems=Object.values(quantities).some(q=>q>0);
+  let label='➡️ Proceed to Book Menu';
+  if(_pckReviewed && !_summaryOpen) label='➡️ Proceed to Submit';
+  if(_summaryOpen) label='📩 Submit to Admin';
   try{
     if(window.top && window.top!==window){
-      window.top.postMessage({type:'kbPartyBar', show:has, disabled:!has,
-        label:_pckReviewed?'✅ Confirm Your Booking':'➡️ Proceed to Book Menu'}, '*');
+      window.top.postMessage({type:'kbPartyBar', show:hasItems, disabled:!hasItems, label:label}, '*');
     }
   }catch(e){}
-  try{ pckPaint(); }catch(e){}
 }
 
 // ---- Item 5: ORDER TYPE + DELIVERY ADDRESS — order.html jaisa hi 3-patti accordion ----
@@ -728,8 +739,10 @@ window.pckSaveAddr=function(){
 
 // ---- Item 4: floating bar — order.html jaisa 3-STEP CTA ----
 // Tap 1: Order Type adhoora -> wahin le jaao. Tap 2 (delivery ho to): Address
-// adhoora -> wahin le jaao. Sab poora ho to Booking Summary tak scroll + button
-// "Confirm Your Booking" ban jaata hai. Agla tap -> Summary screen khulti hai.
+// adhoora -> wahin le jaao. Tap 3: Booking Summary tak scroll, button "Proceed
+// to Submit" ban jaata hai. Tap 4: Summary screen khulti hai, button "Submit to
+// Admin" ban jaata hai. Tap 5: asli submit.
+let _summaryOpen=false;
 window.partyBarAction=function(){
   const hasItems=Object.values(quantities).some(q=>q>0);
   if(!hasItems) return;
@@ -749,7 +762,8 @@ window.partyBarAction=function(){
     setTimeout(function(){ document.getElementById('pck3')?.scrollIntoView({behavior:'smooth',block:'center'}); },80);
     return;
   }
-  confirmBookingClick();
+  if(!_summaryOpen){ confirmBookingClick(); return; }
+  submitPartyBooking();
 };
 // Point 3: outer (customer.html) floating bar ka click yahan tak postMessage se
 // pahunchta hai — wahi partyBarAction() chalti hai jo pehle local button chalata tha.
@@ -783,10 +797,12 @@ window.confirmBookingClick=function(){
   document.getElementById('sumTotal').textContent='₹'+total;
 
   document.getElementById('partySummaryScreen').style.display='block';
+  _summaryOpen=true; syncPartyBar();
   window.scrollTo(0,0);
 };
 window.closePartySummary=function(){
   document.getElementById('partySummaryScreen').style.display='none';
+  _summaryOpen=false; syncPartyBar();
 };
 
 // ---- Item 4: SUBMIT — seedha admin ko (Firestore) jaata hai, WhatsApp option nahi ----
@@ -810,17 +826,18 @@ window.submitPartyBooking=async function(){
     }
   });
 
-  // Doc id date_phone hai, isliye ek hi banda ek hi date ke liye ek entry banata hai
-  // (dobara submit karne par purani entry update ho jaati hai, duplicate nahi banti).
+  // Point 1: pehle bookingId sirf date_phone tha — isi din ki DOOSRI booking pehli
+  // ko (confirmed ho chuki ho tab bhi) chupchap OVERWRITE kar deti thi kyunki
+  // Firestore me doc id wahi rehta. Ab har submit ki apni alag id hai.
   let savedOk=false;
   try{
-    const bookingId = partyDate+'_'+phone;
+    const bookingId = partyDate+'_'+phone+'_'+Date.now();
     await setDoc(doc(db,'partyBookings',bookingId),{
       bookingId, name, phone, partyDate,
       orderType:partyOrderType, address,
       items:selected, total,
       status:'pending', createdAt:new Date().toISOString(), at:Date.now()
-    },{merge:true});
+    });
     savedOk=true;
     try{ watchMyBookings(phone); }catch(e){}
   }catch(e){}
@@ -836,8 +853,6 @@ window.submitPartyBooking=async function(){
   showBookingSaved(savedOk);
 };
 
-// Point 5: booking save hone ke baad — order.html ke successScreen jaisa hi
-// full-screen confirmation page. WhatsApp option nahi, seedha Firestore submit.
 // Point 3 & 5: booking save hone ke baad — order.html ke successScreen jaisa hi
 // full-screen confirmation page (animated green tick + chime). WhatsApp option
 // nahi, seedha Firestore submit.
@@ -957,11 +972,16 @@ function renderMyBookings(list){
   if(empty) empty.style.display='none';
   card.style.display='block';
   const cnt=document.getElementById('myBookCount'); if(cnt) cnt.textContent=list.length;
-  list.sort(function(a,b){ return String(b.partyDate||'').localeCompare(String(a.partyDate||'')); });
+  list.sort(function(a,b){
+    const d=String(b.partyDate||'').localeCompare(String(a.partyDate||''));
+    if(d!==0) return d;
+    return String(b.createdAt||'').localeCompare(String(a.createdAt||''));
+  });
   // Item 3: booking cards ko poora dikha diya — pehle sirf items+total the (dull),
   // ab order-type/address bhi aur bade, dark, colored text ke saath.
   box.innerHTML=list.map(function(b){
     const d=b.partyDate?new Date(b.partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'}):'';
+    const bookedOn=b.createdAt?new Date(b.createdAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit',hour12:true}):'';
     const items=(b.items||[]).map(function(i){ return escP(i.name)+' × '+i.qty; }).join(', ');
     const past=String(b.partyDate||'')<getTodayDate();
     const bid=escP(b.bookingId||(b.partyDate+'_'+b.phone)), open=_myBookOpen[bid]===true;
@@ -970,8 +990,18 @@ function renderMyBookings(list){
     const bgCol=b.status==='confirmed'?'#f0fdf4':(b.status==='dismissed'?'#fef2f2':'#fff8f0');
     return '<div style="background:'+bgCol+';border:2px solid '+borderCol+';border-radius:13px;padding:13px;margin-bottom:10px'+(past?';opacity:.65':'')+'">'
       +'<div onclick="toggleMyBook(\''+bid+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px">'
-        +'<div style="font-weight:900;font-size:.95rem;color:#c94f00">'+(open?'▾':'▸')+' 📅 '+escP(d)+'</div>'
-        +bookStatusChip(b.status)
+        +'<div>'
+          +'<div style="font-weight:900;font-size:.95rem;color:#c94f00">'+(open?'▾':'▸')+' 📅 '+escP(d)+'</div>'
+          // Point 1: ek din me multiple bookings ho sakti hain — booked-on
+          // timestamp se pehchana ja sake ki kaunsi kab ki hai
+          +(bookedOn?'<div style="font-size:.68rem;color:#a8a29e;margin-left:15px">Booked '+escP(bookedOn)+'</div>':'')
+        +'</div>'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">'
+          +bookStatusChip(b.status)
+          // Point 5: payment-verified ab collapsed row par bhi chhoti badge se
+          // dikhta hai, expand kiye bina bhi pata chal jaaye
+          +(b.paymentConfirmed===true?'<span style="background:#dcfce7;color:#166534;border-radius:20px;padding:2px 9px;font-size:.62rem;font-weight:800;white-space:nowrap">💰 Paid</span>':'')
+        +'</div>'
       +'</div>'
       +(open?(
         '<div style="margin-top:10px;padding-top:9px;border-top:1.5px dashed '+borderCol+'">'

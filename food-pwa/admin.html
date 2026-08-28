@@ -3435,6 +3435,7 @@ function renderPartyBookings(all){
         +'<div style="font-weight:800;font-size:.87rem;color:#6b21a8">₹'+(Number(b.total)||0)+'</div>'
       +'</div>'
       +'<div style="font-size:.75rem;color:#888">📅 '+esc(d)+' • '+esc(ppl)+' • '+ft+(done?' • ✅ confirmed':'')+(gone?' • ❌ cancelled':'')+'</div>'
+      +(b.createdAt?'<div style="font-size:.68rem;color:#aaa">Booked '+esc(new Date(b.createdAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit',hour12:true}))+'</div>':'')
       +'</div>'
       +(open?(
          '<div style="margin-top:7px">'
@@ -3475,26 +3476,11 @@ function listenPartyBookings(){
 }
 window.confirmParty=async function(id){
   try{
-    const snap=await getDoc(doc(db,'partyBookings',id));
-    const b=snap.exists()?snap.data():{};
     await setDoc(doc(db,'partyBookings',id),{status:'confirmed',confirmedAt:Date.now()},{merge:true});
     showToast('✅ Party confirm ho gayi');
-    // Customer ko batana zaroori hai — sirf status badalne se use pata nahi chalta
-    // jab tak wo app na khole. Isliye WhatsApp par confirmation bhi bhej dete hain.
-    const ph=String(b.phone||'').replace(/[^0-9]/g,'');
-    if(ph.length===10){
-      const d=b.partyDate?new Date(b.partyDate+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}):'';
-      const items=(b.items||[]).map(function(i){ return '  • '+wab(i.name)+' × '+i.qty; }).join('\n');
-      const msg='🎉 *PARTY BOOKING CONFIRMED — KICKEN BITES*\n\n'
-        +'Namaste '+(b.name||'')+' ji,\n'
-        +'Aapki party booking confirm ho gayi hai. ✅\n\n'
-        +'📅 Date: '+d+'\n'
-        +'📍 Venue: '+(b.address||'')+'\n\n'
-        +'*Items:*\n'+items+'\n\n'
-        +'💰 Estimated Total: ₹'+(Number(b.total)||0)+'\n\n'
-        +'Kisi badlaav ke liye is number par message kijiye. Dhanyavaad! 🙏';
-      window.open('https://wa.me/91'+ph+'?text='+encodeURIComponent(msg),'_blank');
-    }
+    // Point 4: pehle yahan WhatsApp automatically khul jaata tha — confirm karte
+    // hi ek naya tab pop-up ho jaata tha jo distracting tha. Ab sirf confirm hota
+    // hai; customer ko batana ho to card ka alag "💬 WhatsApp" button use karein.
   }catch(e){ alert('Nahi hua: '+e.message); }
 };
 // Item 8: party-payment ka claim manually verify karna — order-page ke
