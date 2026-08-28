@@ -12,6 +12,32 @@
 html{overscroll-behavior-y:none;}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(160deg,#fff8f0,#ffe8d0);min-height:100vh;padding-bottom:26px;overscroll-behavior-y:none;}
 
+/* Point 1: har tappable cheez ko halka "press" feedback — chhota-bada hoke
+   dabne ka experience de */
+button,.dchip,.ptab,.ckhd,.pqr-tick{transition:transform .1s ease;}
+button:active,.dchip:active,.ptab:active,.ckhd:active,.pqr-tick:active{transform:scale(.96);}
+.place-btn:active,.cksave:active{transform:scale(.97);}
+
+/* Point 3: adhoori detail (Order Type / Address) highlight — floating bar tap
+   karne par jis strip par le jaate hain wahan glow+shake taaki turant pata chale
+   ki yahan bharna baaki hai */
+@keyframes pckAttn{
+  0%,100%{box-shadow:0 0 0 0 rgba(230,92,0,0);}
+  15%,45%,75%{box-shadow:0 0 0 4px rgba(230,92,0,.35);transform:translateX(-3px);}
+  30%,60%,90%{box-shadow:0 0 0 4px rgba(230,92,0,.35);transform:translateX(3px);}
+}
+.ckstrip.attn{animation:pckAttn .6s ease 2;border-color:var(--p)!important;}
+
+/* Point 5: naya booking shuru hote hi Booking Summary strip ko highlight karo
+   (Order Type/Address to already-bhare-hue "green" collapsed rehte hain) */
+@keyframes pckFreshGlow{
+  0%{box-shadow:0 0 0 0 rgba(34,197,94,.5);}
+  70%{box-shadow:0 0 0 10px rgba(34,197,94,0);}
+  100%{box-shadow:0 0 0 0 rgba(34,197,94,0);}
+}
+.ckstrip.fresh{animation:pckFreshGlow 1.1s ease-out 1;}
+
+
 .hdr{background:linear-gradient(135deg,var(--p),#ff8c42);color:white;padding:9px 14px;text-align:center;border-radius:0 0 16px 16px;display:flex;align-items:center;justify-content:center;gap:8px;}
 .hdr h1{font-size:1rem;font-weight:800;}
 .hdr p{font-size:.68rem;opacity:.8;}
@@ -748,12 +774,22 @@ window.partyBarAction=function(){
   if(!hasItems) return;
   if(!partyOrderType){
     _pckOpen=1; pckPaint(); updateBill();
-    setTimeout(function(){ document.getElementById('pck1')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
+    setTimeout(function(){
+      const el=document.getElementById('pck1');
+      el?.scrollIntoView({behavior:'smooth',block:'start'});
+      // Point 3: adhoori detail par glow+shake taaki turant pata chale ki
+      // yahan bharna baaki hai
+      if(el){ el.classList.remove('attn'); void el.offsetWidth; el.classList.add('attn'); }
+    },80);
     return;
   }
   if(!pckAddrValid()){
     _pckOpen=2; pckPaint(); updateBill();
-    setTimeout(function(){ document.getElementById('pck2')?.scrollIntoView({behavior:'smooth',block:'start'}); },80);
+    setTimeout(function(){
+      const el=document.getElementById('pck2');
+      el?.scrollIntoView({behavior:'smooth',block:'start'});
+      if(el){ el.classList.remove('attn'); void el.offsetWidth; el.classList.add('attn'); }
+    },80);
     return;
   }
   if(!_pckReviewed){
@@ -843,13 +879,20 @@ window.submitPartyBooking=async function(){
   }catch(e){}
 
   closePartySummary();
-  // Item 4: booking submit ho gayi — form ko clean slate par le aao (naya item
-  // select karne par checkout/floating-bar dobara sahi state se shuru ho).
+  // Point 5: booking submit ho gayi — Order Type/Address jaan-boojh kar CLEAR
+  // nahi karte (wahi customer phir se same jagah party book karega), collapsed
+  // "green" state me hi rehte hain. Sirf items/quantities reset hote hain taaki
+  // naya booking shuru ho sake. Booking Summary strip par ek chhota glow animation
+  // dete hain taaki dikhe ki yahan se agli booking shuru ho sakti hai.
   quantities={};
   try{ renderMenu(); }catch(e){}
-  _pckReviewed=false; _pckOpen=1;
+  _pckReviewed=false; _pckOpen=0;
   try{ pckPaint(); }catch(e){}
   try{ updateBill(); }catch(e){}
+  setTimeout(function(){
+    const s3=document.getElementById('pck3');
+    if(s3){ s3.classList.remove('fresh'); void s3.offsetWidth; s3.classList.add('fresh'); }
+  },150);
   showBookingSaved(savedOk);
 };
 
@@ -972,10 +1015,12 @@ function renderMyBookings(list){
   if(empty) empty.style.display='none';
   card.style.display='block';
   const cnt=document.getElementById('myBookCount'); if(cnt) cnt.textContent=list.length;
+  // Latest booking sabse upar — booking KAB ki gayi (createdAt/at) usi se sort,
+  // party date se nahi (pehle party-date-pehle sort hoti thi).
   list.sort(function(a,b){
-    const d=String(b.partyDate||'').localeCompare(String(a.partyDate||''));
-    if(d!==0) return d;
-    return String(b.createdAt||'').localeCompare(String(a.createdAt||''));
+    const ta = Number(a.at) || (a.createdAt?new Date(a.createdAt).getTime():0);
+    const tb = Number(b.at) || (b.createdAt?new Date(b.createdAt).getTime():0);
+    return tb - ta;
   });
   // Item 3: booking cards ko poora dikha diya — pehle sirf items+total the (dull),
   // ab order-type/address bhi aur bade, dark, colored text ke saath.

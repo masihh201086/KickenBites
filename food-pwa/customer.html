@@ -25,6 +25,9 @@
   --r-lg:18px;--hdr-h:68px;}
 *{box-sizing:border-box;margin:0;padding:0;}
 html{overscroll-behavior-y:none;}
+/* Point 1: har button/tappable ko halka press-feedback */
+button:active{transform:scale(.96);}
+button{transition:transform .1s ease;}
 body{font-family:var(--font-body);background:var(--obg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none;}
 h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 
@@ -3733,9 +3736,16 @@ window.switchTab=function(t){
       const fr=document.getElementById('partyFrame');
       if(fr && fr.contentWindow && typeof fr.contentWindow.recheckProfile==='function') fr.contentWindow.recheckProfile();
     }catch(e){}
+    // Point 2/4: Party tab par saara scrolling iframe ke ANDAR hona chahiye.
+    // Jab OUTER page (yahan) bhi thoda-bahut scroll ho jaata tha, sticky
+    // header/tab-bar ka position-calc gadbadata tha aur "ghost"/double dikhta
+    // tha (sirf mobile par — PC par iframe apni alag scrollbar leta hai).
+    // Outer page ko yahan poori tarah lock kar dete hain taaki ye kabhi na ho.
+    try{ document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden'; window.scrollTo(0,0); }catch(e){}
   } else {
-    // Party tab se hatte hi uska floating bar bhi hata do
+    // Party tab se hatte hi uska floating bar bhi hata do, aur scroll-lock hatao
     try{ const pb=document.getElementById('partyOuterBar'); if(pb) pb.style.display='none'; }catch(e){}
+    try{ document.documentElement.style.overflow=''; document.body.style.overflow=''; }catch(e){}
   }
   // Item 1: Install App button sirf Order tab par dikhe — baaki tabs par nahi
   // (payment/checkout jaise overlays alag se hide karte hain, ye sirf tab switch ke liye hai).
@@ -3959,7 +3969,11 @@ function _syncBodyScrollLock(){
     const el=document.getElementById(i);
     return el && el.style.display && el.style.display!=='none';
   });
-  document.body.style.overflow = anyOpen ? 'hidden' : '';
+  // Point 2/4: Party tab par outer page hamesha locked rehni chahiye (upar
+  // switchTab me lagayi gayi) — is function ne use accidentally hata na diya jaaye.
+  const partyActive = document.getElementById('tab-party')?.classList.contains('active');
+  document.body.style.overflow = (anyOpen||partyActive) ? 'hidden' : '';
+  document.documentElement.style.overflow = (anyOpen||partyActive) ? 'hidden' : '';
 }
 function show(id){const e=document.getElementById(id);if(e){if(id==='successScreen'||id==='loginScreen')e.style.display='flex';else e.style.display='block';}_syncBodyScrollLock();}
 function hide(id){const e=document.getElementById(id);if(e)e.style.display='none';_syncBodyScrollLock();}
