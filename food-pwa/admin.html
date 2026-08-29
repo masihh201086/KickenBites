@@ -364,28 +364,38 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
       <div id="ordLiveNote" style="display:none;background:#fffbeb;border-radius:9px;padding:8px 10px;font-size:.7rem;color:#92400e;margin-top:7px"></div>
     </div>
-    <div class="sg">
-      <div class="sb"><div class="sn" id="stOrders">0</div><div class="sl">Orders</div></div>
-      <div class="sb"><div class="sn" id="stRev">₹0</div><div class="sl">Revenue</div></div>
-      <div class="sb"><div class="sn" id="stPend">0</div><div class="sl">Awaiting Pay</div></div>
-      <div class="sb"><div class="sn" id="stDel">0</div><div class="sl">Delivered</div></div>
-      <div class="sb"><div class="sn" id="stCancel" style="color:var(--r)">0</div><div class="sl">Cancelled</div></div>
-    </div>
-    <div class="card" style="padding:11px;margin-top:0">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div style="background:var(--gp);border-radius:14px;padding:10px;text-align:center">
-          <div style="font-size:1.15rem;font-weight:900;color:var(--g)" id="stPaidCount">0</div>
-          <div style="font-size:.66rem;color:#888">💰 Paid — <span id="stPaidAmt">₹0</span></div>
+    <div class="card" style="padding:11px">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('stats')">
+        <div class="ct" style="margin:0">📊 Today's Snapshot</div>
+        <span id="chev-stats" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-stats" style="margin-top:10px">
+        <div class="sg" style="margin-bottom:9px">
+          <div class="sb"><div class="sn" id="stOrders">0</div><div class="sl">Orders</div></div>
+          <div class="sb"><div class="sn" id="stRev">₹0</div><div class="sl">Revenue</div></div>
+          <div class="sb"><div class="sn" id="stPend">0</div><div class="sl">Awaiting Pay</div></div>
+          <div class="sb"><div class="sn" id="stDel">0</div><div class="sl">Delivered</div></div>
+          <div class="sb"><div class="sn" id="stCancel" style="color:var(--r)">0</div><div class="sl">Cancelled</div></div>
         </div>
-        <div style="background:var(--rp);border-radius:14px;padding:10px;text-align:center">
-          <div style="font-size:1.15rem;font-weight:900;color:var(--r)" id="stDueCount">0</div>
-          <div style="font-size:.66rem;color:#888">⏳ Unpaid — <span id="stDueAmt">₹0</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:var(--gp);border-radius:14px;padding:10px;text-align:center">
+            <div style="font-size:1.15rem;font-weight:900;color:var(--g)" id="stPaidCount">0</div>
+            <div style="font-size:.66rem;color:#888">💰 Paid — <span id="stPaidAmt">₹0</span></div>
+          </div>
+          <div style="background:var(--rp);border-radius:14px;padding:10px;text-align:center">
+            <div style="font-size:1.15rem;font-weight:900;color:var(--r)" id="stDueCount">0</div>
+            <div style="font-size:.66rem;color:#888">⏳ Unpaid — <span id="stDueAmt">₹0</span></div>
+          </div>
         </div>
       </div>
     </div>
     <!-- DELIVERY CONTROL -->
     <div class="card">
-      <div class="ct">🛵 Delivery Control</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('delivery')">
+        <div class="ct" style="margin:0">🛵 Delivery Control</div>
+        <span id="chev-delivery" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-delivery" style="margin-top:10px">
       <div class="dc-row">
         <div>
           <div style="font-weight:700;font-size:.88rem" id="dcStatus">Delivery Not Started</div>
@@ -415,6 +425,7 @@ input:checked+.slider:before{transform:translateX(20px);}
         <a href="delivery.html" target="_blank" style="color:var(--muted)">Delivery App ↗</a>
         <a id="trackLink" href="track.html" target="_blank" style="color:var(--o);font-weight:600">📍 Customer Tracking →</a>
         <a onclick="showAdminTracking()" style="color:var(--b);font-weight:600;cursor:pointer">🗺️ Full Tracking Map →</a>
+      </div>
       </div>
     </div>
     <div class="fr">
@@ -1109,6 +1120,7 @@ async function initDash(){
   try{ preloadAdminClosedDates(); }catch(e){}   // Session 36
   listenPartyBookings();
   listenWishRatingDots();
+  initCollapsibleSections();
   // BUG-04: har minute check — page khula ho to bina refresh ke bhi stock chhoot jaaye
   try{ setInterval(function(){ try{ sweepStaleUnpaid(allOrders); }catch(e){} }, 60000); }catch(e){}
   listenCustomerPresence();
@@ -3380,6 +3392,26 @@ window.waRecipeList=function(id,plates){
   r.ingredients.forEach(ing=>{ msg+='• '+ing.name+': '+(Math.round(ing.qtyPerPlate*plates*100)/100)+' '+(ing.unit||'')+'\n'; });
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 };
+
+// ---- COLLAPSIBLE SECTIONS (Orders tab: Stats + Delivery Control) ----
+// State remembered per admin device so a collapsed section stays collapsed on reload.
+window.toggleSec=function(id){
+  const body=document.getElementById('sec-'+id); const chev=document.getElementById('chev-'+id);
+  if(!body) return;
+  const willOpen=body.style.display==='none';
+  body.style.display=willOpen?'block':'none';
+  if(chev) chev.style.transform=willOpen?'rotate(0deg)':'rotate(-90deg)';
+  try{localStorage.setItem('kb_adm_sec_'+id, willOpen?'open':'closed');}catch(e){}
+};
+function initCollapsibleSections(){
+  ['stats','delivery'].forEach(id=>{
+    let saved=null; try{saved=localStorage.getItem('kb_adm_sec_'+id);}catch(e){}
+    const isOpen = saved ? saved==='open' : true; // default: open, until admin collapses it once
+    const body=document.getElementById('sec-'+id); const chev=document.getElementById('chev-'+id);
+    if(body) body.style.display=isOpen?'block':'none';
+    if(chev) chev.style.transform=isOpen?'rotate(0deg)':'rotate(-90deg)';
+  });
+}
 
 window.sw=function(t){
   try{localStorage.setItem('kb_adm_tab',t);}catch(e){}
