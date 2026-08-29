@@ -478,13 +478,18 @@ input:checked+.slider:before{transform:translateX(20px);}
       <p style="font-size:.7rem;color:var(--muted);margin-top:6px">Saves instantly — stays as set for this date until you switch it again.</p>
     </div>
     <div class="card">
-      <div class="ct">Delivery Charges by Location (₹)</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('todayCharges')">
+        <div class="ct" style="margin:0">Delivery Charges by Location (₹)</div>
+        <span id="chev-todayCharges" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-todayCharges" style="margin-top:9px">
       <div class="lc-grid">
         <div class="lc-item"><label>NTPC Township</label><input class="inp" type="number" inputmode="numeric" id="lcNTPC" placeholder="₹"></div>
         <div class="lc-item"><label>GAIL Gaon</label><input class="inp" type="number" inputmode="numeric" id="lcGAIL" placeholder="₹"></div>
         <div class="lc-item"><label>PATA Gate</label><input class="inp" type="number" inputmode="numeric" id="lcPATA" placeholder="₹"></div>
         <div class="lc-item"><label>GAIL Vihar</label><input class="inp" type="number" inputmode="numeric" id="lcGVIHAR" placeholder="₹"></div>
         <div class="lc-item"><label>Others</label><input class="inp" type="number" inputmode="numeric" id="lcOTHERS" placeholder="₹"></div>
+      </div>
       </div>
     </div>
     <div class="card">
@@ -660,7 +665,11 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
     <div class="card">
-      <div class="ct">Shop Details</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupShop')">
+        <div class="ct" style="margin:0">Shop Details</div>
+        <span id="chev-setupShop" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-setupShop" style="margin-top:9px">
       <div class="sg2"><label>Shop Name</label><input class="si" id="sName" placeholder="Kicken Bites"></div>
       <div class="sg2"><label>UPI ID</label><input class="si" id="sUpi" placeholder="e.g. q797038315@ybl"></div>
       <div class="sg2"><label>UPI Display Name</label><input class="si" id="sUpiName" placeholder="e.g. Kicken Bites Pvt Ltd"></div>
@@ -687,13 +696,18 @@ input:checked+.slider:before{transform:translateX(20px);}
           📱 When customer pays → WhatsApp opens with order details to this number
         </div>
       </div>
+      </div>
     </div>
     <!-- S47: Takeaway pickup. Customer ko Takeaway chunne par dikhta hai:
          "Collect your order from <name>, <address>" + us meal ka time window.
          Time window Setup me isliye rakha ki tyohaar/sardi me waqt badalta rehta hai
          aur admin ko har baar code badalwana na pade. -->
     <div class="card">
-      <div class="ct">🏠 Takeaway Pickup</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupTakeaway')">
+        <div class="ct" style="margin:0">🏠 Takeaway Pickup</div>
+        <span id="chev-setupTakeaway" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-setupTakeaway" style="margin-top:9px">
       <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Takeaway chunne par customer ko ye pata aur time dikhega. Time menu ke hisaab se apne aap chunta hai.</p>
       <div class="sg2"><label>Kisse lena hai (naam)</label><input class="si" id="sPickupName" placeholder="Netaji Ji" maxlength="40"></div>
       <div class="sg2"><label>Pata</label><input class="si" id="sPickupAddr" placeholder="Kunj 2027" maxlength="80"></div>
@@ -701,9 +715,14 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="sg2"><label>Lunch ka time</label><input class="si" id="sSlotLunch" placeholder="12:30 PM - 2:30 PM" maxlength="40"></div>
       <div class="sg2"><label>Dinner ka time</label><input class="si" id="sSlotDinner" placeholder="7:30 PM - 10:30 PM" maxlength="40"></div>
       <div id="pickupHint" style="font-size:.7rem;color:var(--muted);margin-top:2px;line-height:1.5"></div>
+      </div>
     </div>
     <div class="card">
-      <div class="ct">🛵 Delivery Boys</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupBoys')">
+        <div class="ct" style="margin:0">🛵 Delivery Boys</div>
+        <span id="chev-setupBoys" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-setupBoys" style="margin-top:9px">
       <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Add delivery boys. They login via delivery.html with mobile + PIN.</p>
       <div id="dbList"></div>
       <div style="display:flex;gap:7px;margin-top:8px">
@@ -711,41 +730,62 @@ input:checked+.slider:before{transform:translateX(20px);}
         <input class="si" id="dbPhone" placeholder="Mobile" style="width:120px" type="tel" inputmode="numeric" maxlength="10">
         <button onclick="addDeliveryBoy()" style="padding:9px 13px;background:var(--o);color:white;border:none;border-radius:var(--radius);font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">+ Add</button>
       </div>
+      </div>
     </div>
     <!-- DELIVERY BOY PAYMENTS (B) -->
     <div class="card">
-      <div class="ct">💵 Delivery Boy Payments</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupBoyPay')">
+        <div class="ct" style="margin:0">💵 Delivery Boy Payments</div>
+        <span id="chev-setupBoyPay" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-setupBoyPay" style="margin-top:9px">
       <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Monthly account per boy. Mark salary paid after payout — the boy gets notified.</p>
       <div id="payMonthChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px"></div>
       <input type="month" id="payMonthPick" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none" onchange="setPayMonth('pick',this.value)">
       <button class="btn btn-sec" onclick="loadBoyPayments()" style="margin:0 0 8px;width:auto;padding:9px 13px">🔄 Load</button>
       <div id="boyPayList"></div>
+      </div>
     </div>
     <div class="card">
-      <div class="ct">Change Password</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupPassword')">
+        <div class="ct" style="margin:0">Change Password</div>
+        <span id="chev-setupPassword" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-setupPassword" style="margin-top:9px">
       <p style="font-size:.72rem;color:var(--muted);margin-bottom:9px">Password Firestore me hashed save hota hai — badalne par <b>sab devices</b> par lagu ho jaata hai. Save karte hi ek naya recovery code milega, use likh kar rakhiye.</p>
       <div class="sg2"><label>New Password</label><input class="si" type="password" id="sPass" placeholder="New password (min 6)"></div>
       <div class="sg2"><label>Confirm</label><input class="si" type="password" id="sPassC" placeholder="Confirm"></div>
+      </div>
     </div>
     <!-- ALL CUSTOMERS -->
     <div class="card" style="margin-top:9px">
-      <div class="ct">👥 All Registered Customers</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupCustomers')">
+        <div class="ct" style="margin:0">👥 All Registered Customers</div>
+        <span id="chev-setupCustomers" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-setupCustomers" style="margin-top:9px">
       <p style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Tap any customer to see their full profile — orders, spend, favorite item, address.</p>
       <div style="display:flex;gap:7px;margin-bottom:8px">
         <button class="btn btn-sec" onclick="loadAllCustomers()" style="margin:0;flex-shrink:0;width:auto;padding:10px 14px">🔄 Load</button>
         <input type="text" placeholder="🔍 Search name, phone, area…" oninput="filterCustList(this.value)" style="flex:1;padding:10px 12px;border:2px solid #eee;border-radius:10px;font-size:.85rem">
       </div>
       <div id="allCustList" style="max-height:400px;overflow-y:auto"></div>
+      </div>
     </div>
 
     <!-- DEFAULT DELIVERY BOY -->
     <div class="card" style="margin-top:9px">
-      <div class="ct">🛵 Default Delivery Boy</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupDefaultBoy')">
+        <div class="ct" style="margin:0">🛵 Default Delivery Boy</div>
+        <span id="chev-setupDefaultBoy" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-setupDefaultBoy" style="margin-top:9px">
       <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">All new orders auto-assigned to this boy unless you change manually.</p>
       <select id="sDefaultBoy" style="width:100%;padding:10px;border:2px solid #eee;border-radius:10px;font-size:.88rem;margin-bottom:7px">
         <option value="">— No default (assign manually) —</option>
       </select>
       <div id="defaultBoyStatus" style="font-size:.73rem;color:var(--muted)"></div>
+      </div>
     </div>
     <button class="btn btn-o" onclick="saveSetup()">💾 Save Settings</button>
     <button class="btn btn-sec" onclick="doLogout()" style="margin-top:7px">Logout</button>
@@ -3404,9 +3444,13 @@ window.toggleSec=function(id){
   try{localStorage.setItem('kb_adm_sec_'+id, willOpen?'open':'closed');}catch(e){}
 };
 function initCollapsibleSections(){
-  ['stats','delivery'].forEach(id=>{
+  // Orders tab: glance info admin checks every session -> default OPEN
+  const openByDefault=['stats','delivery'];
+  // Rarely-touched settings (set once, forget) -> default CLOSED to cut page bulk immediately
+  const closedByDefault=['todayCharges','setupShop','setupTakeaway','setupBoys','setupBoyPay','setupPassword','setupCustomers','setupDefaultBoy'];
+  openByDefault.concat(closedByDefault).forEach(id=>{
     let saved=null; try{saved=localStorage.getItem('kb_adm_sec_'+id);}catch(e){}
-    const isOpen = saved ? saved==='open' : true; // default: open, until admin collapses it once
+    const isOpen = saved ? saved==='open' : openByDefault.includes(id);
     const body=document.getElementById('sec-'+id); const chev=document.getElementById('chev-'+id);
     if(body) body.style.display=isOpen?'block':'none';
     if(chev) chev.style.transform=isOpen?'rotate(0deg)':'rotate(-90deg)';
