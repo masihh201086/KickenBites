@@ -172,6 +172,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---- recipes: admin-uploaded ingredient lists, scaled by plates in the app ----
+    // ⚠️ NAYI collection — rule publish karna zaroori, warna writes silently fail
+    // honge (jaise ratings/pinReset/helpdesk me pehle hua tha).
+    match /recipes/{id} {
+      allow read: if true;
+      allow write: if request.resource.data.name is string
+                    && request.resource.data.ingredients is list;
+      allow delete: if true;
+    }
+
     // ---- googleUsers: uid -> phone mapping (P-14 customer Google login) ----
     match /googleUsers/{uid} {
       allow read: if true;

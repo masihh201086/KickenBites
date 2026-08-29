@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <title>Kicken Bites — Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -315,20 +316,23 @@ input:checked+.slider:before{transform:translateX(20px);}
 <div id="app" style="display:none">
   <div class="hdr">
     <div class="a-brand"><img class="a-brand-logo" src="logo.webp" decoding="async" onerror="this.onerror=null;this.src='logo.png'" alt="Kicken Bites"><div class="a-brand-txt"><h1>Kicken Bites <span class="adm">Admin</span></h1><div class="a-date" id="aDate"></div></div></div>
-    <span class="live-badge" id="liveBadge">● 0 active</span>
-    <span class="live-badge" id="liveCustBadge" style="background:#3b82f6;margin-left:6px">👥 0 online</span>
+    <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:flex-end">
+      <span class="live-badge" id="liveBadge">● 0 active</span>
+      <span class="live-badge" id="liveCustBadge" style="background:#3b82f6">👥 0 online</span>
+    </div>
   </div>
   <div class="tabs">
     <div class="tab active" data-tab="orders" onclick="sw('orders')">📋 Orders</div>
     <div class="tab" data-tab="today" onclick="sw('today')">📅 Menu</div>
-    <div class="tab" data-tab="master" onclick="sw('master')">🗂️ Master</div>
-    <div class="tab" data-tab="ratings" onclick="sw('ratings')">⭐ Ratings</div>
-    <div class="tab" data-tab="wish" onclick="sw('wish')">🌟 Wish</div>
-    <div class="tab" data-tab="party" onclick="sw('party')">🎉 Party</div>
     <div class="tab" data-tab="paylist" onclick="sw('paylist')">💰 Payments</div>
     <div class="tab" data-tab="setup" onclick="sw('setup')">⚙️ Setup</div>
     <div class="tab" id="moreTab" onclick="toggleMoreMenu(event)" style="position:relative">⋯ More
-      <div id="moreMenu" style="display:none;position:fixed;background:#fff;border:1px solid #eee;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.22);z-index:10001;min-width:160px;overflow:hidden">
+      <div id="moreMenu" style="display:none;position:fixed;background:#fff;border:1px solid #eee;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.22);z-index:10001;min-width:170px;overflow:hidden">
+        <div class="tab" data-tab="master" onclick="sw('master')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🗂️ Master</div>
+        <div class="tab" data-tab="ratings" onclick="sw('ratings')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">⭐ Ratings</div>
+        <div class="tab" data-tab="wish" onclick="sw('wish')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🌟 Wish</div>
+        <div class="tab" data-tab="party" onclick="sw('party')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🎉 Party</div>
+        <div class="tab" data-tab="recipe" onclick="sw('recipe')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🍲 Recipe</div>
         <div class="tab" data-tab="print" onclick="sw('print')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🖨️ Print</div>
         <div class="tab" data-tab="ai" onclick="sw('ai')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">📊 Demand</div>
       </div>
@@ -559,6 +563,34 @@ input:checked+.slider:before{transform:translateX(20px);}
         <div id="adminWishTotal"><div style="text-align:center;padding:20px;color:#999">⏳ Loading…</div></div>
         <button onclick="loadAdminWishTotal()" style="width:100%;margin-top:9px;padding:9px;background:var(--dark);color:white;border:none;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer">🔄 Refresh</button>
       </div>
+    </div>
+  </div>
+
+  <!-- RECIPE -->
+  <div class="panel" id="tab-recipe">
+    <div class="card">
+      <div class="ct">📤 Recipe Excel Upload Karein</div>
+      <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Excel sheet daaliye jisme ingredient ka naam, quantity aur unit ho. Save karne ke baad plates daal kar poori list turant mil jayegi.</p>
+      <input class="inp" type="text" id="rcpName" placeholder="Recipe ka naam (e.g. Chicken Biryani)" style="margin-bottom:8px">
+      <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:4px">Ye sheet kitne plates ke liye bani hai? (agar pata na ho to 1 rehne dein)</label>
+      <input class="inp" type="number" id="rcpBasePlates" value="1" min="1" style="margin-bottom:9px">
+      <input type="file" id="rcpFile" accept=".xlsx,.xls" onchange="parseRecipeFile(this.files[0])" style="width:100%;margin-bottom:4px">
+      <p style="font-size:.68rem;color:var(--muted);margin-bottom:6px">Sheet ka pehla page padha jaayega — pehla column ingredient naam, dusra quantity, teesra (agar ho) unit maana jaayega. Neeche preview me check/edit kar sakte hain.</p>
+      <div id="rcpPreview"></div>
+      <button class="btn btn-o" id="rcpSaveBtn" onclick="saveRecipe()" style="display:none">💾 Recipe Save Karein</button>
+    </div>
+
+    <div class="card">
+      <div class="ct">🧮 Plates Ke Hisaab Se Nikalein</div>
+      <select class="inp" id="rcpSelect" style="margin-bottom:8px"><option value="">-- Recipe chunein --</option></select>
+      <input class="inp" type="number" id="rcpPlates" placeholder="Kitne plates?" min="1" style="margin-bottom:9px">
+      <button class="btn btn-o" onclick="calcRecipe()" style="margin-top:0">🧮 Calculate Karein</button>
+      <div id="rcpCalcResult" style="margin-top:11px"></div>
+    </div>
+
+    <div class="card">
+      <div class="ct">📋 Saved Recipes</div>
+      <div id="rcpList"><p style="color:var(--muted);font-size:.8rem;text-align:center;padding:14px">Loading…</p></div>
     </div>
   </div>
 
@@ -1076,6 +1108,7 @@ async function initDash(){
   listenCustomerRequests();   // Session 27
   try{ preloadAdminClosedDates(); }catch(e){}   // Session 36
   listenPartyBookings();
+  listenWishRatingDots();
   // BUG-04: har minute check — page khula ho to bina refresh ke bhi stock chhoot jaaye
   try{ setInterval(function(){ try{ sweepStaleUnpaid(allOrders); }catch(e){} }, 60000); }catch(e){}
   listenCustomerPresence();
@@ -3157,6 +3190,197 @@ window.hideRating = async function(ratingId) {
   } catch(e) { alert('Error'); }
 };
 
+// ---- MORE-MENU "NEW ACTIVITY" GREEN DOTS (Wish / Ratings / Party) ----
+// Party already had its own red dot (recoloured green above, driven by upcoming-bookings).
+// Wish + Ratings dots below are TRUE new-vs-seen: compares latest doc timestamp against
+// a per-admin-device localStorage "last opened" mark, cleared the moment that tab is opened.
+let _wishSeenTs='', _ratingSeenTs='';
+try{ _wishSeenTs=localStorage.getItem('kb_adm_wish_seen')||''; }catch(e){}
+try{ _ratingSeenTs=localStorage.getItem('kb_adm_rating_seen')||''; }catch(e){}
+function addNewDot(tabSel){
+  const el=document.querySelector(tabSel); if(!el) return;
+  if(!el.querySelector('.new-dot')){
+    const d=document.createElement('span');
+    d.className='new-dot';
+    d.style.cssText='display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle';
+    el.appendChild(d);
+  }
+}
+function removeNewDot(tabSel){
+  const el=document.querySelector(tabSel); const d=el&&el.querySelector('.new-dot'); if(d) d.remove();
+}
+function refreshMoreBadge(){
+  try{
+    const mt=document.getElementById('moreTab'); const mm=document.getElementById('moreMenu');
+    if(!mt||!mm) return;
+    const anyDot=!!mm.querySelector('.new-dot,.party-dot');
+    let agg=mt.querySelector('.more-agg-dot');
+    if(anyDot){
+      if(!agg){ agg=document.createElement('span'); agg.className='more-agg-dot'; agg.style.cssText='display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle'; mt.insertBefore(agg,mm); }
+    } else if(agg){ agg.remove(); }
+  }catch(e){}
+}
+window.markSeen=function(kind){
+  const now=new Date().toISOString();
+  if(kind==='wish'){ _wishSeenTs=now; try{localStorage.setItem('kb_adm_wish_seen',now);}catch(e){} removeNewDot('.tab[data-tab="wish"]'); }
+  if(kind==='rating'){ _ratingSeenTs=now; try{localStorage.setItem('kb_adm_rating_seen',now);}catch(e){} removeNewDot('.tab[data-tab="ratings"]'); }
+  if(kind==='party'){ const t=document.querySelector('.tab[data-tab="party"]'); const d=t&&t.querySelector('.party-dot'); if(d) d.remove(); }
+  refreshMoreBadge();
+};
+function listenWishRatingDots(){
+  try{
+    onSnapshot(collection(db,'wishlist'),snap=>{
+      let latest='';
+      snap.docs.forEach(d=>{ const t=d.data().updatedAt||''; if(t>latest) latest=t; });
+      if(latest && latest>_wishSeenTs) addNewDot('.tab[data-tab="wish"]'); else removeNewDot('.tab[data-tab="wish"]');
+      refreshMoreBadge();
+    },function(e){console.error('wish-dot listen',e);});
+  }catch(e){}
+  try{
+    onSnapshot(collection(db,'ratings'),snap=>{
+      let latest='';
+      snap.docs.forEach(d=>{ const t=d.data().createdAt||''; if(t>latest) latest=t; });
+      if(latest && latest>_ratingSeenTs) addNewDot('.tab[data-tab="ratings"]'); else removeNewDot('.tab[data-tab="ratings"]');
+      refreshMoreBadge();
+    },function(e){console.error('rating-dot listen',e);});
+  }catch(e){}
+}
+
+// ---- RECIPE (Excel upload -> ingredients per-plate -> scale by entered plates) ----
+let _rcpParsed=null; // {basePlates, rows:[{name,qty,unit}]}
+window.parseRecipeFile=function(file){
+  if(!file) return;
+  const prev=document.getElementById('rcpPreview');
+  const saveBtn=document.getElementById('rcpSaveBtn');
+  if(prev) prev.innerHTML='<p style="color:var(--muted);font-size:.8rem;padding:10px 0">⏳ Sheet padhi ja rahi hai…</p>';
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      // auto-detect header row by keyword match; fallback to row 0 as header, cols 0/1/2
+      const nameKeys=['ingredient','item','name','saman'];
+      const qtyKeys=['qty','quantity','amount','weight','wajan'];
+      const unitKeys=['unit','uom'];
+      let hdrIdx=0, nameCol=0, qtyCol=1, unitCol=2, found=false;
+      for(let i=0;i<Math.min(rows.length,6);i++){
+        const r=rows[i].map(c=>String(c||'').toLowerCase().trim());
+        const nc=r.findIndex(c=>nameKeys.some(k=>c.includes(k)));
+        const qc=r.findIndex(c=>qtyKeys.some(k=>c.includes(k)));
+        if(nc>-1 && qc>-1){
+          hdrIdx=i; nameCol=nc; qtyCol=qc;
+          const uc=r.findIndex(c=>unitKeys.some(k=>c.includes(k)));
+          unitCol=uc>-1?uc:-1;
+          found=true; break;
+        }
+      }
+      if(!found){ unitCol=rows[0]&&rows[0].length>2?2:-1; }
+      const out=[];
+      for(let i=hdrIdx+1;i<rows.length;i++){
+        const r=rows[i]; if(!r||!r.length) continue;
+        const name=String(r[nameCol]||'').trim();
+        const qtyRaw=r[qtyCol];
+        const qty=parseFloat(String(qtyRaw).replace(/[^\d.]/g,''));
+        if(!name || isNaN(qty)) continue;
+        const unit=unitCol>-1?String(r[unitCol]||'').trim():'';
+        out.push({name,qty,unit});
+      }
+      if(!out.length){
+        if(prev) prev.innerHTML='<p style="color:var(--r);font-size:.8rem;padding:10px 0">⚠️ Koi ingredient row nahi mili. Pehla column naam, dusra quantity honi chahiye.</p>';
+        return;
+      }
+      _rcpParsed={rows:out};
+      renderRecipePreview();
+      if(saveBtn) saveBtn.style.display='block';
+    }catch(err){
+      if(prev) prev.innerHTML='<p style="color:var(--r);font-size:.8rem;padding:10px 0">⚠️ Sheet padhne me error: '+esc(err.message||'')+'</p>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+};
+function renderRecipePreview(){
+  const prev=document.getElementById('rcpPreview'); if(!prev||!_rcpParsed) return;
+  prev.innerHTML='<div style="font-size:.72rem;color:var(--muted);margin:8px 0 6px">'+_rcpParsed.rows.length+' ingredients mile — zaroorat ho to yahin edit kar lijiye:</div>'+
+    _rcpParsed.rows.map((r,i)=>
+      '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">'+
+        '<input class="inp" style="flex:2;padding:7px 9px;font-size:.78rem" value="'+esc(r.name)+'" onchange="_rcpParsed.rows['+i+'].name=this.value">'+
+        '<input class="inp" type="number" step="any" style="flex:1;padding:7px 9px;font-size:.78rem" value="'+r.qty+'" onchange="_rcpParsed.rows['+i+'].qty=parseFloat(this.value)||0">'+
+        '<input class="inp" style="flex:1;padding:7px 9px;font-size:.78rem" placeholder="unit" value="'+esc(r.unit)+'" onchange="_rcpParsed.rows['+i+'].unit=this.value">'+
+        '<button onclick="_rcpParsed.rows.splice('+i+',1);renderRecipePreview()" style="border:none;background:none;color:var(--r);font-size:1rem;cursor:pointer;padding:0 3px">✕</button>'+
+      '</div>'
+    ).join('');
+}
+window.saveRecipe=async function(){
+  const nameEl=document.getElementById('rcpName');
+  const name=(nameEl?.value||'').trim();
+  const basePlates=parseFloat(document.getElementById('rcpBasePlates')?.value)||1;
+  if(!name){ alert('Recipe ka naam daalein'); return; }
+  if(!_rcpParsed || !_rcpParsed.rows.length){ alert('Pehle Excel sheet upload karein'); return; }
+  const ingredients=_rcpParsed.rows.filter(r=>r.name && r.qty>0).map(r=>({name:r.name,qtyPerPlate:r.qty/basePlates,unit:r.unit||''}));
+  if(!ingredients.length){ alert('Koi valid ingredient nahi mila'); return; }
+  const slug=name.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('recipe-'+Date.now());
+  try{
+    await setDoc(doc(db,'recipes',slug),{name,ingredients,updatedAt:new Date().toISOString()});
+    showToast('✅ Recipe saved!');
+    nameEl.value=''; document.getElementById('rcpFile').value=''; document.getElementById('rcpBasePlates').value='1';
+    _rcpParsed=null;
+    document.getElementById('rcpPreview').innerHTML='';
+    document.getElementById('rcpSaveBtn').style.display='none';
+    loadRecipeList();
+  }catch(e){ alert('Save error: '+e.message); }
+};
+window.deleteRecipe=async function(id){
+  if(!confirm('Ye recipe delete karein?')) return;
+  try{ await deleteDoc(doc(db,'recipes',id)); showToast('Recipe deleted'); loadRecipeList(); }catch(e){ alert('Error: '+e.message); }
+};
+window.loadRecipeList=async function(){
+  const list=document.getElementById('rcpList'); const sel=document.getElementById('rcpSelect');
+  if(!list) return;
+  try{
+    const snap=await getDocs(collection(db,'recipes'));
+    const recipes=snap.docs.map(d=>({id:d.id,...d.data()}));
+    _rcpAll=recipes;
+    if(!recipes.length){
+      list.innerHTML='<p style="color:var(--muted);font-size:.8rem;text-align:center;padding:14px">Abhi tak koi recipe save nahi hui.</p>';
+      if(sel) sel.innerHTML='<option value="">-- Recipe chunein --</option>';
+      return;
+    }
+    list.innerHTML=recipes.map(r=>
+      '<div style="display:flex;justify-content:space-between;align-items:center;background:#fdfaf7;border-radius:14px;padding:11px;margin-bottom:8px;box-shadow:var(--sh-sm)">'+
+        '<div><div style="font-weight:800;font-size:.85rem">'+esc(r.name)+'</div><div style="font-size:.7rem;color:var(--muted)">'+(r.ingredients?.length||0)+' ingredients</div></div>'+
+        '<button onclick="deleteRecipe(\''+r.id+'\')" style="border:none;background:var(--rp);color:var(--r);border-radius:20px;padding:6px 12px;font-size:.7rem;font-weight:700;cursor:pointer">🗑️ Delete</button>'+
+      '</div>'
+    ).join('');
+    if(sel) sel.innerHTML='<option value="">-- Recipe chunein --</option>'+recipes.map(r=>'<option value="'+r.id+'">'+esc(r.name)+'</option>').join('');
+  }catch(e){ list.innerHTML='<p style="color:var(--r);font-size:.8rem;text-align:center;padding:14px">Error loading recipes.</p>'; }
+};
+let _rcpAll=[];
+window.calcRecipe=function(){
+  const id=document.getElementById('rcpSelect')?.value;
+  const plates=parseFloat(document.getElementById('rcpPlates')?.value);
+  const out=document.getElementById('rcpCalcResult');
+  if(!out) return;
+  if(!id){ out.innerHTML='<p style="color:var(--r);font-size:.8rem">Pehle recipe chunein</p>'; return; }
+  if(!plates||plates<=0){ out.innerHTML='<p style="color:var(--r);font-size:.8rem">Plates ki sahi sankhya daalein</p>'; return; }
+  const r=_rcpAll.find(x=>x.id===id);
+  if(!r){ out.innerHTML='<p style="color:var(--r);font-size:.8rem">Recipe nahi mili</p>'; return; }
+  const lines=r.ingredients.map(ing=>{
+    const total=ing.qtyPerPlate*plates;
+    const shown=(Math.round(total*100)/100);
+    return {name:ing.name,shown,unit:ing.unit};
+  });
+  out.innerHTML='<div class="ct" style="margin-top:0">'+esc(r.name)+' — '+plates+' plates</div>'+
+    lines.map(l=>'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0e5da;font-size:.85rem"><span>'+esc(l.name)+'</span><span style="font-weight:800;color:var(--o)">'+l.shown+' '+esc(l.unit)+'</span></div>').join('')+
+    '<button onclick="waRecipeList(\''+id+'\','+plates+')" style="width:100%;margin-top:11px;padding:10px;background:#25d366;color:white;border:none;border-radius:20px;font-weight:700;font-size:.8rem;cursor:pointer">💬 WhatsApp par bhejein</button>';
+};
+window.waRecipeList=function(id,plates){
+  const r=_rcpAll.find(x=>x.id===id); if(!r) return;
+  let msg='*'+r.name+'* — '+plates+' plates\n\n';
+  r.ingredients.forEach(ing=>{ msg+='• '+ing.name+': '+(Math.round(ing.qtyPerPlate*plates*100)/100)+' '+(ing.unit||'')+'\n'; });
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+};
+
 window.sw=function(t){
   try{localStorage.setItem('kb_adm_tab',t);}catch(e){}
   // id-based (not index-based) so tabs can be added/removed/moved safely
@@ -3165,11 +3389,13 @@ window.sw=function(t){
   const panel=document.getElementById('tab-'+t); if(panel) panel.classList.add('active');
   // close the More dropdown after any pick
   const md=document.getElementById('moreMenu'); if(md) md.style.display='none';
-  const mt=document.getElementById('moreTab'); if(mt) mt.classList.toggle('active',(t==='print'||t==='ai'));
+  const mt=document.getElementById('moreTab'); if(mt) mt.classList.toggle('active',['print','ai','master','ratings','wish','party','recipe'].includes(t));
   if(t==='setup'){loadDeliveryBoys();}
   if(t==='paylist'){startPaymentListListener();renderPaymentList();}
-  if(t==='ratings')loadRatings();
-  if(t==='wish')loadAdminWish();
+  if(t==='ratings'){loadRatings();markSeen('rating');}
+  if(t==='wish'){loadAdminWish();markSeen('wish');}
+  if(t==='party'){markSeen('party');}
+  if(t==='recipe'){loadRecipeList();}
   if(t==='orders'&&adminMap)setTimeout(()=>adminMap.invalidateSize(),100);
 };
 window.toggleMoreMenu=function(e){
@@ -3400,15 +3626,16 @@ function renderPartyBookings(all){
   const live=_partyAll.filter(function(b){ return b.status!=='dismissed' && String(b.partyDate||'')>=today; });
   const list=partyShowAll?_partyAll.slice():live;
   if(cnt) cnt.textContent=live.length;
-  // red dot on the Party tab when upcoming bookings exist
+  // green dot on the Party tab when upcoming bookings exist
   try{
     const ptab=document.querySelector('.tab[data-tab="party"]');
     if(ptab){
       let dot=ptab.querySelector('.party-dot');
       if(live.length>0){
-        if(!dot){ dot=document.createElement('span'); dot.className='party-dot'; dot.style.cssText='display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-left:4px;vertical-align:middle'; ptab.appendChild(dot); }
+        if(!dot){ dot=document.createElement('span'); dot.className='party-dot'; dot.style.cssText='display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle'; ptab.appendChild(dot); }
       } else if(dot){ dot.remove(); }
     }
+    refreshMoreBadge();
   }catch(e){}
   if(tgl){
     tgl.style.display=_partyAll.length?'inline-block':'none';
