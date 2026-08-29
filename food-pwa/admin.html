@@ -2823,15 +2823,15 @@ window.loadBoyPayments=async function(){
     if(!rows.length){list.innerHTML='<p style="font-size:.78rem;color:var(--muted);text-align:center;padding:8px">No deliveries in '+label+'</p>';return;}
     rows.sort((a,b)=>b.total-a.total);
     list.innerHTML='<div style="font-size:.72rem;color:var(--muted);margin-bottom:7px">'+label+'</div>'+rows.map(r=>
-      '<div style="border:1px solid #eee;border-radius:11px;padding:11px;margin-bottom:8px">'+
+      '<div style="background:#fdfaf7;border-radius:14px;padding:12px;margin-bottom:9px;box-shadow:var(--sh-sm)">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
           '<div><div style="font-weight:800;font-size:.86rem">'+(r.name||r.phone)+'</div><div style="font-size:.7rem;color:var(--muted)">📞 '+r.phone+'</div></div>'+
           '<div style="text-align:right"><div style="font-weight:900;color:var(--o);font-size:1rem">₹'+r.total+'</div><div style="font-size:.66rem;color:var(--muted)">'+r.count+' deliveries</div></div>'+
         '</div>'+
         '<div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Base ₹'+ADMIN_DEL_BASE+' + charges ₹'+r.charges+'</div>'+
         (r.paid
-          ?'<div style="text-align:center;background:#f0fdf4;color:#166534;border-radius:9px;padding:8px;font-weight:800;font-size:.8rem">✅ Salary Paid for '+label+'</div>'
-          :'<button onclick="markSalaryPaid(\''+r.phone+'\',\''+r.monthKey+'\',\''+label.replace(/'/g,"")+'\','+r.total+')" style="width:100%;background:var(--g);color:white;border:none;padding:10px;border-radius:9px;font-weight:800;font-size:.8rem;cursor:pointer">💵 Mark Salary Paid</button>')+
+          ?'<div style="text-align:center;background:var(--g);color:#fff;border-radius:20px;padding:9px;font-weight:800;font-size:.8rem">✅ Salary Paid for '+label+'</div>'
+          :'<button onclick="markSalaryPaid(\''+r.phone+'\',\''+r.monthKey+'\',\''+label.replace(/'/g,"")+'\','+r.total+')" style="width:100%;background:var(--g);color:white;border:none;padding:10px;border-radius:20px;font-weight:800;font-size:.8rem;cursor:pointer">💵 Mark Salary Paid</button>')+
       '</div>'
     ).join('');
   }catch(e){console.error(e);list.innerHTML='<p style="font-size:.78rem;color:#e33">Error: '+e.message+'</p>';}
@@ -3633,9 +3633,9 @@ window.viewCustomerProfile=async function(phone){
 
     let addr=esc([c.location,c.houseNo,c.addrLine2].filter(Boolean).join(' — ')||'Not set');
     let bodyHtml='';
-    bodyHtml+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'+
-      '<div style="background:#fff7ed;border-radius:10px;padding:10px;text-align:center"><div style="font-size:1.3rem;font-weight:900;color:var(--o)">'+totalOrders+'</div><div style="font-size:.68rem;color:#888">Total Orders</div></div>'+
-      '<div style="background:#f0fdf4;border-radius:10px;padding:10px;text-align:center"><div style="font-size:1.3rem;font-weight:900;color:var(--g)">₹'+totalSpend+'</div><div style="font-size:.68rem;color:#888">Total Spent</div></div>'+
+    bodyHtml+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px">'+
+      '<div style="background:var(--op);border-radius:14px;padding:11px;text-align:center"><div style="font-size:1.3rem;font-weight:900;color:var(--o)">'+totalOrders+'</div><div style="font-size:.68rem;color:#888">Total Orders</div></div>'+
+      '<div style="background:var(--gp);border-radius:14px;padding:11px;text-align:center"><div style="font-size:1.3rem;font-weight:900;color:var(--g)">₹'+totalSpend+'</div><div style="font-size:.68rem;color:#888">Total Spent</div></div>'+
     '</div>';
     bodyHtml+='<div style="font-size:.76rem;line-height:1.7;margin-bottom:12px">'+
       '<div>📍 <b>Address:</b> '+addr+'</div>'+
