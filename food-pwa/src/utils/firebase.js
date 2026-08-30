@@ -96,10 +96,18 @@ export function listenToItemRatings(itemId, callback) {
   return onSnapshot(q,snap=>callback(snap.docs.map(d=>({id:d.id,...d.data()}))));
 }
 
-// Delivery
-export async function setDeliveryStatus(data) { await setDoc(doc(db,"delivery","status"),data); }
-export function listenToDelivery(callback) {
-  return onSnapshot(doc(db,"delivery","status"),snap=>callback(snap.exists()?snap.data():null));
+// Delivery — SESSION GPS-FIX: was a single shared doc(db,'delivery','status') that
+// ANY delivery boy's GPS watch would overwrite, so when 2+ boys were online at once
+// the last one to update silently hijacked the other's tracking slot (customer +
+// admin would then be watching the wrong boy, or a boy's location would appear to
+// "stop updating"). Now each boy gets their own doc under deliveryLive/{phone}.
+export async function setDeliveryStatus(phone, data) { if(!phone) return; await setDoc(doc(db,"deliveryLive",phone),data,{merge:true}); }
+export function listenToDelivery(phone, callback) {
+  if(!phone) return function(){};
+  return onSnapshot(doc(db,"deliveryLive",phone),snap=>callback(snap.exists()?snap.data():null));
+}
+export function listenToAllDelivery(callback) {
+  return onSnapshot(collection(db,"deliveryLive"),snap=>callback(snap.docs.map(d=>({phone:d.id,...d.data()}))));
 }
 
 // Legacy
