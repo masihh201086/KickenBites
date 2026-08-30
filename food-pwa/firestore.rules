@@ -90,8 +90,17 @@ service cloud.firestore {
       allow delete: if true;  // admin removeBoy
     }
 
-    // ---- delivery live status ----
+    // ---- delivery live status (legacy single shared doc — no longer written,
+    //      kept readable in case any old cached page still points at it) ----
     match /delivery/{docId} {
+      allow read: if true;
+      allow write: if true;
+      allow delete: if false;
+    }
+    // ---- deliveryLive: SESSION GPS-FIX — one doc per boy (was a single shared
+    // doc that any boy's GPS watch could overwrite). ⚠️ NEW collection — rule
+    // publish karna zaroori, warna writes silently fail honge.
+    match /deliveryLive/{phone} {
       allow read: if true;
       allow write: if true;
       allow delete: if false;
