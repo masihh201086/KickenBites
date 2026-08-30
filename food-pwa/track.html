@@ -268,6 +268,21 @@ function updateETACard(mins, dist) {
 }
 
 // Listen to order
+let deliveryUnsub=null, trackedBoyPhone='';
+function listenToBoyLocation(phone){
+  if(deliveryUnsub){ deliveryUnsub(); deliveryUnsub=null; }
+  if(!phone){ showNotStarted(); return; }
+  deliveryUnsub=onSnapshot(doc(db,'deliveryLive',phone), snap => {
+    if (!snap.exists()) { showNotStarted(); return; }
+    const d = snap.data();
+    if (!d.isDelivering || !d.deliveryStarted) { showNotStarted(); return; }
+    if (!d.lat || !d.lng) { showNotStarted('Waiting for GPS…'); return; }
+    updateBoyPos(d.lat, d.lng);
+    showLiveUI(d);
+    showCustOnMap(); // Always update route on every GPS update
+  });
+}
+
 if (!orderId) {
   document.getElementById('trackContent').innerHTML = '<div class="ns-box"><div class="ns-icon">❌</div><div class="ns-title">Invalid tracking link</div></div>';
 } else {
@@ -281,17 +296,17 @@ if (!orderId) {
       return;
     }
     const o = snap.data();
-    if (o.status==='delivered') showDelivered(o);
-  });
-
-  onSnapshot(doc(db,'delivery','status'), snap => {
-    if (!snap.exists()) { showNotStarted(); return; }
-    const d = snap.data();
-    if (!d.isDelivering || !d.deliveryStarted) { showNotStarted(); return; }
-    if (!d.lat || !d.lng) { showNotStarted('Waiting for GPS…'); return; }
-    updateBoyPos(d.lat, d.lng);
-    showLiveUI(d);
-    showCustOnMap(); // Always update route on every GPS update
+    if (o.status==='delivered') { showDelivered(o); return; }
+    // SESSION GPS-FIX: each delivery boy now has their own location doc
+    // (deliveryLive/{phone}) instead of one shared doc every boy could overwrite.
+    // Follow the SPECIFIC boy assigned to this order — re-subscribe if it changes.
+    const phone = o.assignedBoyPhone || '';
+    if (phone !== trackedBoyPhone) {
+      trackedBoyPhone = phone;
+      listenToBoyLocation(phone);
+    } else if (!phone) {
+      showNotStarted();
+    }
   });
 }
 

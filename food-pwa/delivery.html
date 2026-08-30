@@ -959,7 +959,9 @@ async function stopGPS() {
   if (watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
   isGPS=false; updateCount=0;
   try{
-    await setDoc(doc(db,'delivery','status'),{isDelivering:false,lat:null,lng:null,boyName:'',boyPhone:'',deliveryStarted:false,updatedAt:new Date().toISOString()});
+    if(boy?.phone){
+      await setDoc(doc(db,'deliveryLive',boy.phone),{isDelivering:false,lat:null,lng:null,deliveryStarted:false,updatedAt:new Date().toISOString()},{merge:true});
+    }
     await setOnlineStatus(false); // Mark offline when GPS stops
   }catch(e){}
   setBar('wait','GPS stopped');
@@ -975,18 +977,20 @@ async function savePos(pos) {
   document.getElementById('coordsDisp').textContent=`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
   document.getElementById('updBadge').textContent=`✅ Updated ${updateCount} times`;
   const now=new Date().toISOString();
+  if(!boy?.phone) return; // no logged-in boy identity — nothing to key the doc on
   try {
-    await setDoc(doc(db,'delivery','status'),{
+    // SESSION GPS-FIX: own doc per boy (deliveryLive/{phone}) — was a single shared
+    // doc(db,'delivery','status') that any boy's watchPosition could overwrite,
+    // silently stealing another boy's tracking slot when both were online.
+    await setDoc(doc(db,'deliveryLive',boy.phone),{
       isDelivering:true, lat, lng,
       boyName:boy?.name||'Delivery Boy',
-      boyPhone:boy?.phone||'',
+      boyPhone:boy.phone,
       accuracy:pos.coords.accuracy,
       updatedAt:now
     },{merge:true});
     // Also update lastSeen in deliveryBoys so admin sees accurate online status
-    if(boy?.phone){
-      await setDoc(doc(db,'deliveryBoys',boy.phone),{isOnline:true,lastSeen:now},{merge:true});
-    }
+    await setDoc(doc(db,'deliveryBoys',boy.phone),{isOnline:true,lastSeen:now},{merge:true});
   } catch(e){console.error(e);}
 }
 

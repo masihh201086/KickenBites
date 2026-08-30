@@ -28,11 +28,11 @@
   --sh-brand:0 5px 18px rgba(230,92,0,.32);
   --r-lg:18px;--hdr-h:60px;}
 *{box-sizing:border-box;margin:0;padding:0;}
-html{overscroll-behavior-y:none;}
+html{overscroll-behavior-y:auto;}
 /* Session ADMIN-REDESIGN-1: har button ko halka press-feedback (customer.html jaisa) */
 button:active{transform:scale(.96);}
 button{transition:transform .1s ease;}
-body{font-family:var(--font-body);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overscroll-behavior-y:none;}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
 h1,h2,h3,.lb h2{font-family:var(--font-head);}
 
 /* LOGIN */
@@ -326,17 +326,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div class="tab" data-tab="today" onclick="sw('today')">📅 Menu</div>
     <div class="tab" data-tab="paylist" onclick="sw('paylist')">💰 Payments</div>
     <div class="tab" data-tab="setup" onclick="sw('setup')">⚙️ Setup</div>
-    <div class="tab" id="moreTab" onclick="toggleMoreMenu(event)" style="position:relative">⋯ More
-      <div id="moreMenu" style="display:none;position:fixed;background:#fff;border:1px solid #eee;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.22);z-index:10001;min-width:170px;overflow:hidden">
-        <div class="tab" data-tab="master" onclick="sw('master')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🗂️ Master</div>
-        <div class="tab" data-tab="ratings" onclick="sw('ratings')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">⭐ Ratings</div>
-        <div class="tab" data-tab="wish" onclick="sw('wish')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🌟 Wish</div>
-        <div class="tab" data-tab="party" onclick="sw('party')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🎉 Party</div>
-        <div class="tab" data-tab="recipe" onclick="sw('recipe')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🍲 Recipe</div>
-        <div class="tab" data-tab="print" onclick="sw('print')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">🖨️ Print</div>
-        <div class="tab" data-tab="ai" onclick="sw('ai')" style="padding:12px 16px;border:none;white-space:nowrap;text-align:left">📊 Demand</div>
-      </div>
-    </div>
+    <div class="tab" data-tab="extra" onclick="sw('extra')">🧰 Extra<span id="dot-extra-agg" style="display:none;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle"></span></div>
   </div>
 
   <!-- ORDERS -->
@@ -406,6 +396,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div id="noBoyMsg" style="background:#fff8f0;border-radius:9px;padding:9px;font-size:.76rem;color:var(--o);margin-top:6px;display:block">
         ⚠️ Waiting for delivery boy to login and start GPS sharing
       </div>
+      <div id="activeBoysList" style="display:none;gap:6px;margin-bottom:9px;overflow-x:auto"></div>
       <div id="boyLiveCard" style="display:none">
         <div class="boy-card">
           <div class="boy-av">🛵</div>
@@ -446,20 +437,6 @@ input:checked+.slider:before{transform:translateX(20px);}
   </div>
 
   <!-- TODAY -->
-  <!-- PARTY (own tab now — Session D) -->
-  <div class="panel" id="tab-party">
-    <div class="card" style="padding:13px;border:2px solid #a855f7;background:#faf5ff">
-      <div class="ct" style="margin:0 0 9px 0;color:#6b21a8;display:flex;align-items:center;justify-content:space-between">
-        <span>🎉 Party Bookings <span id="partyCount" style="background:#7c3aed;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span></span>
-        <button id="partyToggle" onclick="togglePartyAll()" style="display:none;background:#ede9fe;color:#6b21a8;border:none;padding:4px 11px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">Sabhi dikhayein</button>
-      </div>
-      <div id="partyList"></div>
-      <div id="partyEmpty" style="display:none;text-align:center;padding:26px 10px;color:var(--muted)">
-        <div style="font-size:2rem">🎉</div>
-        <p style="font-size:.82rem;margin-top:6px">Abhi koi party booking nahi.<br>Customer party planner se book karega to yahan dikhega.</p>
-      </div>
-    </div>
-  </div>
 
   <div class="panel" id="tab-today">
     <div class="card">
@@ -526,115 +503,156 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
   </div>
 
-  <!-- MASTER -->
-  <div class="panel" id="tab-master">
-    <div class="card">
-      <div class="ct">All Menu Items (Master List)</div>
-      <div class="info-box">📸 Tap image to upload photo. Images stored via ImgBB.</div>
-      <div id="masterList"></div>
-      <button class="add-btn" onclick="addItem()">+ Add New Item</button>
-    </div>
-    <button class="btn btn-o" onclick="saveMaster()">💾 Save Master Menu</button>
-  </div>
+  <!-- EXTRA — consolidated: Master / Ratings / Wish / Party / Recipe / Print / AI Demand.
+       All 7 live as accordion cards on ONE page now (opening one closes the others in
+       this group — see SEC_GROUPS.extra in toggleSec). Default: all closed on first visit. -->
+  <div class="panel" id="tab-extra">
 
-  <!-- RATINGS -->
-  <div class="panel" id="tab-ratings">
     <div class="card">
-      <div class="ct">Customer Ratings & Feedback</div>
-      <div class="info-box">⭐ All customer ratings for your menu items. Visible to customers while ordering.</div>
-      <div id="ratingsList"><p style="color:var(--muted);font-size:.8rem;text-align:center;padding:16px">Loading ratings…</p></div>
-    </div>
-  </div>
-
-  <!-- PRINT -->
-  <div class="panel" id="tab-print">
-    <div class="card">
-      <div class="ct">Print & Download</div>
-      <button class="btn btn-o" onclick="showPrint('kitchen')" style="margin-top:0">🍳 Kitchen Order List</button>
-      <button class="btn btn-dark" onclick="showPrint('delivery')">🛵 Delivery List</button>
-      <button class="btn btn-g" onclick="showPrint('summary')">📊 Daily Summary Report</button>
-    </div>
-    <div id="printArea2"></div>
-  </div>
-
-  <!-- WISHLIST PANEL -->
-  <div class="panel" id="tab-wish">
-    <div class="card">
-      <div class="ct">🌟 Customer Wishlist Votes</div>
-      <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">See which items customers want. Plan your menu accordingly!</p>
-      <!-- Day-wise / Total toggle -->
-      <div style="display:flex;gap:7px;margin-bottom:11px">
-        <button id="awModeDay" onclick="setWishMode('day')" style="flex:1;padding:9px;border-radius:10px;border:2px solid var(--o);background:var(--o);color:white;font-weight:800;font-size:.8rem;cursor:pointer">📅 Day-wise</button>
-        <button id="awModeTotal" onclick="setWishMode('total')" style="flex:1;padding:9px;border-radius:10px;border:2px solid #e5e5e5;background:white;color:#555;font-weight:800;font-size:.8rem;cursor:pointer">📊 Total Demand</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('master','extra')">
+        <div class="ct" style="margin:0">🗂️ Master Menu Items</div>
+        <span id="chev-master" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
-      <!-- DAY-WISE view -->
-      <div id="awDayView">
-        <div id="awDayChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:9px"></div>
-        <div id="awDateShow" style="font-size:.78rem;color:var(--o);font-weight:700;margin-bottom:9px"></div>
-        <div id="adminWishList"><div style="text-align:center;padding:25px;color:#999">Select date to see votes</div></div>
-      </div>
-      <!-- TOTAL view -->
-      <div id="awTotalView" style="display:none">
-        <div style="font-size:.73rem;color:var(--muted);margin-bottom:9px">🏆 Highest demand over the next 7 days — plan your top items.</div>
-        <div id="adminWishTotal"><div style="text-align:center;padding:20px;color:#999">⏳ Loading…</div></div>
-        <button onclick="loadAdminWishTotal()" style="width:100%;margin-top:9px;padding:9px;background:var(--dark);color:white;border:none;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer">🔄 Refresh</button>
+      <div id="sec-master" style="margin-top:9px;display:none">
+        <div class="info-box">📸 Tap image to upload photo. Images stored via ImgBB.</div>
+        <div id="masterList"></div>
+        <button class="add-btn" onclick="addItem()">+ Add New Item</button>
+        <button class="btn btn-o" onclick="saveMaster()">💾 Save Master Menu</button>
       </div>
     </div>
-  </div>
-
-  <!-- RECIPE -->
-  <div class="panel" id="tab-recipe">
-    <div class="card">
-      <div class="ct">📤 Recipe Excel Upload Karein</div>
-      <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Excel sheet daaliye jisme ingredient ka naam, quantity aur unit ho. Save karne ke baad plates daal kar poori list turant mil jayegi.</p>
-      <input class="inp" type="text" id="rcpName" placeholder="Recipe ka naam (e.g. Chicken Biryani)" style="margin-bottom:8px">
-      <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:4px">Ye sheet kitne plates ke liye bani hai? (agar pata na ho to 1 rehne dein)</label>
-      <input class="inp" type="number" id="rcpBasePlates" value="1" min="1" style="margin-bottom:9px">
-      <input type="file" id="rcpFile" accept=".xlsx,.xls" onchange="parseRecipeFile(this.files[0])" style="width:100%;margin-bottom:4px">
-      <p style="font-size:.68rem;color:var(--muted);margin-bottom:6px">Sheet ka pehla page padha jaayega — pehla column ingredient naam, dusra quantity, teesra (agar ho) unit maana jaayega. Neeche preview me check/edit kar sakte hain.</p>
-      <div id="rcpPreview"></div>
-      <button class="btn btn-o" id="rcpSaveBtn" onclick="saveRecipe()" style="display:none">💾 Recipe Save Karein</button>
-    </div>
 
     <div class="card">
-      <div class="ct">🧮 Plates Ke Hisaab Se Nikalein</div>
-      <select class="inp" id="rcpSelect" style="margin-bottom:8px"><option value="">-- Recipe chunein --</option></select>
-      <input class="inp" type="number" id="rcpPlates" placeholder="Kitne plates?" min="1" style="margin-bottom:9px">
-      <button class="btn btn-o" onclick="calcRecipe()" style="margin-top:0">🧮 Calculate Karein</button>
-      <div id="rcpCalcResult" style="margin-top:11px"></div>
-    </div>
-
-    <div class="card">
-      <div class="ct">📋 Saved Recipes</div>
-      <div id="rcpList"><p style="color:var(--muted);font-size:.8rem;text-align:center;padding:14px">Loading…</p></div>
-    </div>
-  </div>
-
-  <!-- AI DEMAND -->
-  <div class="panel" id="tab-ai">
-    <div class="ai-card">
-      <div class="ai-title">📊 Demand Prediction</div>
-      <div class="ai-sub">Predicts how much to prepare based on history, day, weather patterns, and advance bookings.</div>
-    </div>
-    <div class="card">
-      <div class="ct">Select Date for Prediction</div>
-      <input type="date" class="inp" id="aiDate" style="width:100%;margin-bottom:8px">
-      <button class="btn btn-o" onclick="runPrediction()" style="margin-top:0">🔮 Predict Demand</button>
-    </div>
-    <div id="aiResults"></div>
-    <div class="card">
-      <div class="ct">Prediction Accuracy</div>
-      <div class="acc-grid">
-        <div class="acc-box"><div class="acc-val" id="accToday">—</div><div class="acc-lbl">Today</div></div>
-        <div class="acc-box"><div class="acc-val" id="accWeek">—</div><div class="acc-lbl">This Week</div></div>
-        <div class="acc-box"><div class="acc-val" id="accMonth">—</div><div class="acc-lbl">This Month</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('ratings','extra')">
+        <div class="ct" style="margin:0">⭐ Ratings &amp; Feedback<span id="dot-rating" style="display:none;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle"></span></div>
+        <span id="chev-ratings" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-ratings" style="margin-top:9px;display:none">
+        <div class="info-box">⭐ All customer ratings for your menu items. Visible to customers while ordering.</div>
+        <div id="ratingsList"><p style="color:var(--muted);font-size:.8rem;text-align:center;padding:16px">Loading ratings…</p></div>
       </div>
     </div>
+
     <div class="card">
-      <div class="ct">Smart Recommendations</div>
-      <div id="aiRecs"><p style="color:var(--muted);font-size:.8rem">Run a prediction to see recommendations</p></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('wish','extra')">
+        <div class="ct" style="margin:0">🌟 Wishlist Votes<span id="dot-wish" style="display:none;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle"></span></div>
+        <span id="chev-wish" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-wish" style="margin-top:9px;display:none">
+        <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">See which items customers want. Plan your menu accordingly!</p>
+        <div style="display:flex;gap:7px;margin-bottom:11px">
+          <button id="awModeDay" onclick="setWishMode('day')" style="flex:1;padding:9px;border-radius:10px;border:2px solid var(--o);background:var(--o);color:white;font-weight:800;font-size:.8rem;cursor:pointer">📅 Day-wise</button>
+          <button id="awModeTotal" onclick="setWishMode('total')" style="flex:1;padding:9px;border-radius:10px;border:2px solid #e5e5e5;background:white;color:#555;font-weight:800;font-size:.8rem;cursor:pointer">📊 Total Demand</button>
+        </div>
+        <div id="awDayView">
+          <div id="awDayChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:9px"></div>
+          <div id="awDateShow" style="font-size:.78rem;color:var(--o);font-weight:700;margin-bottom:9px"></div>
+          <div id="adminWishList"><div style="text-align:center;padding:25px;color:#999">Select date to see votes</div></div>
+        </div>
+        <div id="awTotalView" style="display:none">
+          <div style="font-size:.73rem;color:var(--muted);margin-bottom:9px">🏆 Highest demand over the next 7 days — plan your top items.</div>
+          <div id="adminWishTotal"><div style="text-align:center;padding:20px;color:#999">⏳ Loading…</div></div>
+          <button onclick="loadAdminWishTotal()" style="width:100%;margin-top:9px;padding:9px;background:var(--dark);color:white;border:none;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer">🔄 Refresh</button>
+        </div>
+      </div>
     </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('party','extra')">
+        <div class="ct" style="margin:0">🎉 Party Bookings<span id="dot-party" style="display:none;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle"></span></div>
+        <span id="chev-party" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-party" style="margin-top:9px;display:none">
+        <div style="padding:13px;border:2px solid #a855f7;background:#faf5ff;border-radius:14px">
+          <div class="ct" style="margin:0 0 9px 0;color:#6b21a8;display:flex;align-items:center;justify-content:space-between">
+            <span>Bookings <span id="partyCount" style="background:#7c3aed;color:#fff;border-radius:11px;padding:1px 8px;font-size:.72rem;margin-left:4px"></span></span>
+            <button id="partyToggle" onclick="togglePartyAll()" style="display:none;background:#ede9fe;color:#6b21a8;border:none;padding:4px 11px;border-radius:8px;font-size:.72rem;font-weight:700;cursor:pointer">Sabhi dikhayein</button>
+          </div>
+          <div id="partyList"></div>
+          <div id="partyEmpty" style="display:none;text-align:center;padding:26px 10px;color:var(--muted)">
+            <div style="font-size:2rem">🎉</div>
+            <p style="font-size:.82rem;margin-top:6px">Abhi koi party booking nahi.<br>Customer party planner se book karega to yahan dikhega.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('recipe','extra')">
+        <div class="ct" style="margin:0">🍲 Recipe Calculator</div>
+        <span id="chev-recipe" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-recipe" style="margin-top:9px;display:none">
+        <div class="card" style="box-shadow:none;border:1px solid #f0e5da">
+          <div class="ct">📤 Recipe Excel Upload Karein</div>
+          <p style="font-size:.73rem;color:var(--muted);margin-bottom:9px">Excel sheet daaliye jisme ingredient ka naam, quantity aur unit ho. Save karne ke baad plates daal kar poori list turant mil jayegi.</p>
+          <input class="inp" type="text" id="rcpName" placeholder="Recipe ka naam (e.g. Chicken Biryani)" style="margin-bottom:8px">
+          <label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:4px">Ye sheet kitne plates ke liye bani hai? (agar pata na ho to 1 rehne dein)</label>
+          <input class="inp" type="number" id="rcpBasePlates" value="1" min="1" style="margin-bottom:9px">
+          <input type="file" id="rcpFile" accept=".xlsx,.xls" onchange="parseRecipeFile(this.files[0])" style="width:100%;margin-bottom:4px">
+          <p style="font-size:.68rem;color:var(--muted);margin-bottom:6px">Sheet ka pehla page padha jaayega — pehla column ingredient naam, dusra quantity, teesra (agar ho) unit maana jaayega. Neeche preview me check/edit kar sakte hain.</p>
+          <div id="rcpPreview"></div>
+          <button class="btn btn-o" id="rcpSaveBtn" onclick="saveRecipe()" style="display:none">💾 Recipe Save Karein</button>
+        </div>
+        <div class="card" style="box-shadow:none;border:1px solid #f0e5da">
+          <div class="ct">🧮 Plates Ke Hisaab Se Nikalein</div>
+          <select class="inp" id="rcpSelect" style="margin-bottom:8px"><option value="">-- Recipe chunein --</option></select>
+          <input class="inp" type="number" id="rcpPlates" placeholder="Kitne plates?" min="1" style="margin-bottom:9px">
+          <button class="btn btn-o" onclick="calcRecipe()" style="margin-top:0">🧮 Calculate Karein</button>
+          <div id="rcpCalcResult" style="margin-top:11px"></div>
+        </div>
+        <div class="card" style="box-shadow:none;border:1px solid #f0e5da;margin-bottom:0">
+          <div class="ct">📋 Saved Recipes</div>
+          <div id="rcpList"><p style="color:var(--muted);font-size:.8rem;text-align:center;padding:14px">Loading…</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('print','extra')">
+        <div class="ct" style="margin:0">🖨️ Print &amp; Download</div>
+        <span id="chev-print" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-print" style="margin-top:9px;display:none">
+        <button class="btn btn-o" onclick="showPrint('kitchen')" style="margin-top:0">🍳 Kitchen Order List</button>
+        <button class="btn btn-dark" onclick="showPrint('delivery')">🛵 Delivery List</button>
+        <button class="btn btn-g" onclick="showPrint('summary')">📊 Daily Summary Report</button>
+        <div id="printArea2"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('ai','extra')">
+        <div class="ct" style="margin:0">📊 Demand Prediction</div>
+        <span id="chev-ai" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-ai" style="margin-top:9px;display:none">
+        <div class="ai-card">
+          <div class="ai-title">📊 Demand Prediction</div>
+          <div class="ai-sub">Predicts how much to prepare based on history, day, weather patterns, and advance bookings.</div>
+        </div>
+        <div class="card" style="box-shadow:none;border:1px solid #f0e5da">
+          <div class="ct">Select Date for Prediction</div>
+          <input type="date" class="inp" id="aiDate" style="width:100%;margin-bottom:8px">
+          <button class="btn btn-o" onclick="runPrediction()" style="margin-top:0">🔮 Predict Demand</button>
+        </div>
+        <div id="aiResults"></div>
+        <div class="card" style="box-shadow:none;border:1px solid #f0e5da">
+          <div class="ct">Prediction Accuracy</div>
+          <div class="acc-grid">
+            <div class="acc-box"><div class="acc-val" id="accToday">—</div><div class="acc-lbl">Today</div></div>
+            <div class="acc-box"><div class="acc-val" id="accWeek">—</div><div class="acc-lbl">This Week</div></div>
+            <div class="acc-box"><div class="acc-val" id="accMonth">—</div><div class="acc-lbl">This Month</div></div>
+          </div>
+        </div>
+        <div class="card" style="box-shadow:none;border:1px solid #f0e5da;margin-bottom:0">
+          <div class="ct">Smart Recommendations</div>
+          <div id="aiRecs"><p style="color:var(--muted);font-size:.8rem">Run a prediction to see recommendations</p></div>
+        </div>
+      </div>
+    </div>
+
   </div>
+
 
   <!-- SETUP -->
   <style>
@@ -665,7 +683,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupShop')">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupShop','setup')">
         <div class="ct" style="margin:0">Shop Details</div>
         <span id="chev-setupShop" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -703,7 +721,7 @@ input:checked+.slider:before{transform:translateX(20px);}
          Time window Setup me isliye rakha ki tyohaar/sardi me waqt badalta rehta hai
          aur admin ko har baar code badalwana na pade. -->
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupTakeaway')">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupTakeaway','setup')">
         <div class="ct" style="margin:0">🏠 Takeaway Pickup</div>
         <span id="chev-setupTakeaway" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -718,7 +736,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupBoys')">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupBoys','setup')">
         <div class="ct" style="margin:0">🛵 Delivery Boys</div>
         <span id="chev-setupBoys" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -734,7 +752,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
     <!-- DELIVERY BOY PAYMENTS (B) -->
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupBoyPay')">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupBoyPay','setup')">
         <div class="ct" style="margin:0">💵 Delivery Boy Payments</div>
         <span id="chev-setupBoyPay" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -747,7 +765,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupPassword')">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupPassword','setup')">
         <div class="ct" style="margin:0">Change Password</div>
         <span id="chev-setupPassword" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -759,7 +777,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
     <!-- ALL CUSTOMERS -->
     <div class="card" style="margin-top:9px">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupCustomers')">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupCustomers','setup')">
         <div class="ct" style="margin:0">👥 All Registered Customers</div>
         <span id="chev-setupCustomers" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -775,7 +793,7 @@ input:checked+.slider:before{transform:translateX(20px);}
 
     <!-- DEFAULT DELIVERY BOY -->
     <div class="card" style="margin-top:9px">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupDefaultBoy')">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupDefaultBoy','setup')">
         <div class="ct" style="margin:0">🛵 Default Delivery Boy</div>
         <span id="chev-setupDefaultBoy" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -831,7 +849,7 @@ input:checked+.slider:before{transform:translateX(20px);}
 <div id="toast"></div>
 
 <script type="module">
-import { db, getTodayDate, formatDisplayDate, getConfig, saveConfig, saveDailyMenu, getDailyMenu, listenToOrders, updateOrderStatus, listenToDelivery, setDeliveryStatus, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, where, query, runTransaction } from './src/utils/firebase.js';
+import { db, getTodayDate, formatDisplayDate, getConfig, saveConfig, saveDailyMenu, getDailyMenu, listenToOrders, updateOrderStatus, listenToDelivery, listenToAllDelivery, setDeliveryStatus, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, where, query, runTransaction } from './src/utils/firebase.js';
 
 const PK='adminPwd_v4';
 let cfg={}, masterItems=[], allOrders=[], todayOrders=[], ordViewDate='', ordDatesWithOrders=new Set(), curFilter='all', selMenuDate='', selMenuHasOverride=false, adminMap=null, adminMarker=null;
@@ -1220,6 +1238,7 @@ async function initDash(){
     }
 
     todayOrders=orders;
+    renderDeliveryControl(); // assignments may have changed — refresh who's tracked
     // Only paint the list when the admin is actually viewing today
     if(ordViewDate===today){ allOrders=orders; updateStats(); renderOrders(); }
     renderOrdDayChips();
@@ -1692,109 +1711,125 @@ function updateStats(){
   document.getElementById('liveBadge').textContent='● '+badgeSrc.filter(o=>!['delivered','cancelled'].includes(o.status)).length+' active';
 }
 
-// ---- DELIVERY LISTENER ----
+// ---- DELIVERY LISTENER (SESSION GPS-FIX: multi-boy aware) ----
+// Shows tracking ONLY for boys who are (a) GPS-active/not-stale AND (b) currently have
+// a live assigned order today — exactly "jo boy online ho aur delivery assign ho".
+// Idle-but-online boys (no assignment yet) don't get a tracking tile here.
+let _deliveryLiveList=[], _selectedTrackPhone='';
+const ACTIVE_ORDER_STATUSES=['confirmed','preparing','ready','out_for_delivery'];
 function initDeliveryListener(){
   if(deliveryUnsub)deliveryUnsub();
-  deliveryUnsub=listenToDelivery(data=>{
-    const tog=document.getElementById('delToggle');
-    const card=document.getElementById('boyLiveCard');
-    const noBoyMsg=document.getElementById('noBoyMsg');
-    // Check if delivery status is stale (> 10 min old = boy closed app without stopping)
-    let isStaleData = false;
-    if(data&&data.updatedAt){
-      const ageMs = Date.now() - new Date(data.updatedAt).getTime();
-      if(ageMs > 10*60*1000) isStaleData = true; // Stale after 10 minutes
-    }
-    const boyOnline = data&&data.isDelivering&&data.lat&&data.lng&&!isStaleData;
-    const deliveryStarted = data&&data.deliveryStarted&&!isStaleData;
-
-    if(boyOnline){
-      // Boy is online and sharing GPS — enable toggle
-      if(tog){tog.disabled=false;}
-      if(noBoyMsg) noBoyMsg.style.display='none';
-      if(deliveryStarted){
-        if(tog)tog.checked=true;
-        document.getElementById('dcStatus').textContent='🟢 Delivery Active — Customer Tracking ON';
-        document.getElementById('dcSub').textContent='Customers can see live location';
-        document.getElementById('dcSub').style.color='var(--g)';
-      }else{
-        if(tog)tog.checked=false;
-        document.getElementById('dcStatus').textContent='🟡 Delivery Boy Online — Tap toggle to start tracking';
-        document.getElementById('dcSub').textContent='Boy is ready. Toggle ON to let customers track.';
-        document.getElementById('dcSub').style.color='var(--y)';
-      }
-      card.style.display='block';
-      document.getElementById('lbName').textContent=data.boyName||'Delivery Boy';
-      const t=data.updatedAt?new Date(data.updatedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
-      document.getElementById('lbSub').textContent=`📍 GPS Live | Updated: ${t}`;
-      if(data.boyPhone){document.getElementById('lbCall').href='tel:'+data.boyPhone;document.getElementById('lbCall').textContent='📞 '+data.boyPhone;}
-      if(data.lat&&data.lng) document.getElementById('lbMap').href=`https://www.google.com/maps?q=${data.lat},${data.lng}`;
-      // Map
-      const mapDiv=document.getElementById('deliveryMap');
-      mapDiv.style.display='block';
-      setTimeout(()=>{
-        if(!adminMap){
-          try{
-            adminMap=L.map('deliveryMap').setView([data.lat,data.lng],15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(adminMap);
-            const icon=L.divIcon({html:'<div style="background:#e65c00;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 3px 10px rgba(0,0,0,.3);border:3px solid white">🛵</div>',iconSize:[42,42],iconAnchor:[21,21],className:''});
-            adminMarker=L.marker([data.lat,data.lng],{icon}).addTo(adminMap);
-            adminMarker.bindPopup(`<b>${data.boyName||'Delivery Boy'}</b><br>📞 ${data.boyPhone||''}`).openPopup();
-          }catch(e){console.error('Map init error',e);}
-        }else{
-          adminMarker.setLatLng([data.lat,data.lng]);
-          adminMap.panTo([data.lat,data.lng]);
-          adminMap.invalidateSize();
-        }
-      },200);
-    }else{
-      // Boy not online or stale data
-      if(tog){tog.checked=false;tog.disabled=true;}
-      if(noBoyMsg) noBoyMsg.style.display='block';
-      if(isStaleData){
-        document.getElementById('dcStatus').textContent='⚫ Delivery Boy Disconnected';
-        document.getElementById('dcSub').textContent='Last session timed out. Boy needs to restart GPS.';
-        // Auto-clear stale delivery status
-        setDeliveryStatus({isDelivering:false,lat:null,lng:null,boyName:'',boyPhone:'',deliveryStarted:false,updatedAt:new Date().toISOString()}).catch(()=>{});
-      } else {
-        document.getElementById('dcStatus').textContent='⚫ Delivery Boy Offline';
-        document.getElementById('dcSub').textContent='Waiting for delivery boy to login and start GPS';
-      }
-      document.getElementById('dcSub').style.color='var(--muted)';
-      card.style.display='none';
-      document.getElementById('deliveryMap').style.display='none';
-      if(adminMap){try{adminMap.remove();}catch(e){}adminMap=null;adminMarker=null;}
-    }
-  });
+  deliveryUnsub=listenToAllDelivery(list=>{ _deliveryLiveList=list; renderDeliveryControl(); });
 }
+function renderDeliveryControl(){
+  const tog=document.getElementById('delToggle');
+  const card=document.getElementById('boyLiveCard');
+  const noBoyMsg=document.getElementById('noBoyMsg');
+  const listWrap=document.getElementById('activeBoysList');
+  if(!tog||!card) return; // panel not in DOM yet
+  const now=Date.now();
+  const gpsActive=_deliveryLiveList.filter(d=>{
+    if(!d.isDelivering||!d.lat||!d.lng) return false;
+    if(d.updatedAt && (now-new Date(d.updatedAt).getTime())>10*60*1000) return false; // stale >10min
+    return true;
+  });
+  const assignedPhones=new Set(
+    todayOrders.filter(o=>o.assignedBoyPhone && ACTIVE_ORDER_STATUSES.includes(o.status)).map(o=>o.assignedBoyPhone)
+  );
+  const tracked=gpsActive.filter(d=>assignedPhones.has(d.phone));
+
+  if(!tracked.length){
+    tog.checked=false; tog.disabled=true;
+    if(noBoyMsg) noBoyMsg.style.display='block';
+    document.getElementById('dcStatus').textContent='⚫ No Active Delivery';
+    document.getElementById('dcSub').textContent='Koi online boy ke paas abhi assigned delivery nahi hai';
+    document.getElementById('dcSub').style.color='var(--muted)';
+    if(listWrap){listWrap.style.display='none';listWrap.innerHTML='';}
+    card.style.display='none';
+    document.getElementById('deliveryMap').style.display='none';
+    if(adminMap){try{adminMap.remove();}catch(e){}adminMap=null;adminMarker=null;}
+    return;
+  }
+
+  tog.disabled=false;
+  if(noBoyMsg) noBoyMsg.style.display='none';
+  if(!_selectedTrackPhone || !tracked.find(d=>d.phone===_selectedTrackPhone)){
+    _selectedTrackPhone=tracked[0].phone;
+  }
+  const data=tracked.find(d=>d.phone===_selectedTrackPhone)||tracked[0];
+
+  if(listWrap){
+    if(tracked.length>1){
+      listWrap.style.display='flex';
+      listWrap.innerHTML=tracked.map(d=>
+        '<button onclick="selectTrackBoy(\''+d.phone+'\')" style="padding:6px 12px;border-radius:20px;border:none;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;background:'+(d.phone===_selectedTrackPhone?'var(--o)':'#fff')+';color:'+(d.phone===_selectedTrackPhone?'#fff':'#888')+';box-shadow:var(--sh-sm)">🛵 '+esc(d.boyName||d.phone)+'</button>'
+      ).join('');
+    } else { listWrap.style.display='none'; listWrap.innerHTML=''; }
+  }
+
+  if(data.deliveryStarted){
+    tog.checked=true;
+    document.getElementById('dcStatus').textContent='🟢 Delivery Active — Customer Tracking ON';
+    document.getElementById('dcSub').textContent='Customers can see live location';
+    document.getElementById('dcSub').style.color='var(--g)';
+  }else{
+    tog.checked=false;
+    document.getElementById('dcStatus').textContent='🟡 Delivery Boy Online — Tap toggle to start tracking';
+    document.getElementById('dcSub').textContent='Boy is ready. Toggle ON to let customers track.';
+    document.getElementById('dcSub').style.color='var(--y)';
+  }
+  card.style.display='block';
+  document.getElementById('lbName').textContent=data.boyName||'Delivery Boy';
+  const t=data.updatedAt?new Date(data.updatedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+  document.getElementById('lbSub').textContent=`📍 GPS Live | Updated: ${t}`;
+  if(data.boyPhone){document.getElementById('lbCall').href='tel:'+data.boyPhone;document.getElementById('lbCall').textContent='📞 '+data.boyPhone;}
+  if(data.lat&&data.lng) document.getElementById('lbMap').href=`https://www.google.com/maps?q=${data.lat},${data.lng}`;
+  const mapDiv=document.getElementById('deliveryMap');
+  mapDiv.style.display='block';
+  setTimeout(()=>{
+    if(!adminMap){
+      try{
+        adminMap=L.map('deliveryMap').setView([data.lat,data.lng],15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(adminMap);
+        const icon=L.divIcon({html:'<div style="background:#e65c00;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 3px 10px rgba(0,0,0,.3);border:3px solid white">🛵</div>',iconSize:[42,42],iconAnchor:[21,21],className:''});
+        adminMarker=L.marker([data.lat,data.lng],{icon}).addTo(adminMap);
+        adminMarker.bindPopup(`<b>${data.boyName||'Delivery Boy'}</b><br>📞 ${data.boyPhone||''}`).openPopup();
+      }catch(e){console.error('Map init error',e);}
+    }else{
+      adminMarker.setLatLng([data.lat,data.lng]);
+      adminMap.panTo([data.lat,data.lng]);
+      adminMap.invalidateSize();
+    }
+  },200);
+}
+window.selectTrackBoy=function(phone){
+  _selectedTrackPhone=phone;
+  if(adminMap){try{adminMap.remove();}catch(e){}adminMap=null;adminMarker=null;}
+  renderDeliveryControl();
+};
 
 window.toggleDelivery=async function(checked){
+  if(!_selectedTrackPhone){ alert('Koi active delivery boy nahi mila'); return; }
   try{
     if(checked){
-      // Only set deliveryStarted=true, keep boy GPS data intact
-      const cur=await (async()=>{try{const s=await getDoc(doc(db,'delivery','status'));return s.exists()?s.data():{};}catch(e){return{};}})();
-      await setDeliveryStatus({...cur,deliveryStarted:true,deliveryStartedAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+      await setDeliveryStatus(_selectedTrackPhone,{deliveryStarted:true,deliveryStartedAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
       showToast('🛵 Delivery started! Customers can now track.');
     }else{
-      const cur=await (async()=>{try{const s=await getDoc(doc(db,'delivery','status'));return s.exists()?s.data():{};}catch(e){return{};}})();
-      await setDeliveryStatus({...cur,deliveryStarted:false,updatedAt:new Date().toISOString()});
+      await setDeliveryStatus(_selectedTrackPhone,{deliveryStarted:false,updatedAt:new Date().toISOString()});
       showToast('Delivery tracking paused for customers.');
     }
   }catch(e){alert('Error: '+e.message);}
 };
-// R1: Clear stale delivery status
+// R1: Clear stale delivery status — now sweeps every boy's own deliveryLive doc
 async function clearStaleDeliveryStatus(){
   try{
-    const snap = await getDoc(doc(db,'delivery','status'));
-    if(!snap.exists()) return;
-    const data = snap.data();
-    if(!data.isDelivering) return;
-    // Check if stale - no update in 10 minutes
-    if(data.updatedAt){
-      const ageMin = (Date.now() - new Date(data.updatedAt).getTime()) / 60000;
-      if(ageMin > 10){
-// console.log('Clearing stale delivery status - age:', Math.round(ageMin), 'min');
-        await setDeliveryStatus({isDelivering:false,lat:null,lng:null,boyName:'',boyPhone:'',deliveryStarted:false,updatedAt:new Date().toISOString()});
+    const liveSnap = await getDocs(collection(db,'deliveryLive'));
+    for(const d of liveSnap.docs){
+      const data=d.data();
+      if(!data.isDelivering||!data.updatedAt) continue;
+      const ageMin=(Date.now()-new Date(data.updatedAt).getTime())/60000;
+      if(ageMin>10){
+        await setDoc(doc(db,'deliveryLive',d.id),{isDelivering:false,lat:null,lng:null,deliveryStarted:false,updatedAt:new Date().toISOString()},{merge:true});
       }
     }
     // Clear all stale boy online statuses
@@ -2146,8 +2181,10 @@ window.chgStatus=async function(id,status){
 window.startDelivery=async function(orderId){
   // Toggle delivery started flag so customer can see tracking
   try{
+    const osnap=await getDoc(doc(db,'orders',orderId));
+    const boyPhone=osnap.exists()?osnap.data().assignedBoyPhone:'';
     await updateOrderStatus(orderId,'out_for_delivery',{deliveryStartedAt:new Date().toISOString()});
-    await setDeliveryStatus({...(await getDoc(doc(db,'delivery','status'))).data()||{},deliveryStarted:true,updatedAt:new Date().toISOString()});
+    if(boyPhone) await setDeliveryStatus(boyPhone,{deliveryStarted:true,updatedAt:new Date().toISOString()});
     showToast('🛵 Delivery started! Customer can now track.');
   }catch(e){alert('Error: '+e.message);}
 };
@@ -3076,10 +3113,7 @@ window.removeBoy=async function(phone){
     const {deleteDoc:dd} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     await dd(delRef);
     // Also stop their GPS if they're currently delivering
-    const delSnap = await getDoc(doc(db,'delivery','status'));
-    if(delSnap.exists()&&delSnap.data().boyPhone===phone){
-      await setDeliveryStatus({isDelivering:false,lat:null,lng:null,boyName:'',boyPhone:'',deliveryStarted:false,updatedAt:new Date().toISOString()});
-    }
+    await setDeliveryStatus(phone,{isDelivering:false,lat:null,lng:null,deliveryStarted:false,updatedAt:new Date().toISOString()});
     showToast('✅ Delivery boy removed');
   }catch(e){alert('Error removing: '+e.message);}
 };
@@ -3242,58 +3276,42 @@ window.hideRating = async function(ratingId) {
   } catch(e) { alert('Error'); }
 };
 
-// ---- MORE-MENU "NEW ACTIVITY" GREEN DOTS (Wish / Ratings / Party) ----
-// Party already had its own red dot (recoloured green above, driven by upcoming-bookings).
-// Wish + Ratings dots below are TRUE new-vs-seen: compares latest doc timestamp against
-// a per-admin-device localStorage "last opened" mark, cleared the moment that tab is opened.
+// ---- "EXTRA" PAGE GREEN DOTS (Wish / Ratings / Party) ----
+// Wish + Ratings dots are TRUE new-vs-seen: latest doc timestamp vs a per-admin-device
+// localStorage "last opened" mark, cleared the moment that section is expanded.
+// Party's dot mirrors upcoming-bookings (set in renderPartyBookings). All three also
+// light up one aggregate dot on the "Extra" tab itself so it's visible without opening it.
 let _wishSeenTs='', _ratingSeenTs='';
 try{ _wishSeenTs=localStorage.getItem('kb_adm_wish_seen')||''; }catch(e){}
 try{ _ratingSeenTs=localStorage.getItem('kb_adm_rating_seen')||''; }catch(e){}
-function addNewDot(tabSel){
-  const el=document.querySelector(tabSel); if(!el) return;
-  if(!el.querySelector('.new-dot')){
-    const d=document.createElement('span');
-    d.className='new-dot';
-    d.style.cssText='display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle';
-    el.appendChild(d);
-  }
-}
-function removeNewDot(tabSel){
-  const el=document.querySelector(tabSel); const d=el&&el.querySelector('.new-dot'); if(d) d.remove();
-}
-function refreshMoreBadge(){
+function addNewDot(dotId){ const el=document.getElementById(dotId); if(el) el.style.display='inline-block'; refreshExtraBadge(); }
+function removeNewDot(dotId){ const el=document.getElementById(dotId); if(el) el.style.display='none'; refreshExtraBadge(); }
+function refreshExtraBadge(){
   try{
-    const mt=document.getElementById('moreTab'); const mm=document.getElementById('moreMenu');
-    if(!mt||!mm) return;
-    const anyDot=!!mm.querySelector('.new-dot,.party-dot');
-    let agg=mt.querySelector('.more-agg-dot');
-    if(anyDot){
-      if(!agg){ agg=document.createElement('span'); agg.className='more-agg-dot'; agg.style.cssText='display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle'; mt.insertBefore(agg,mm); }
-    } else if(agg){ agg.remove(); }
+    const agg=document.getElementById('dot-extra-agg'); if(!agg) return;
+    const any=['dot-wish','dot-rating','dot-party'].some(id=>{const e=document.getElementById(id); return e && e.style.display!=='none';});
+    agg.style.display=any?'inline-block':'none';
   }catch(e){}
 }
 window.markSeen=function(kind){
   const now=new Date().toISOString();
-  if(kind==='wish'){ _wishSeenTs=now; try{localStorage.setItem('kb_adm_wish_seen',now);}catch(e){} removeNewDot('.tab[data-tab="wish"]'); }
-  if(kind==='rating'){ _ratingSeenTs=now; try{localStorage.setItem('kb_adm_rating_seen',now);}catch(e){} removeNewDot('.tab[data-tab="ratings"]'); }
-  if(kind==='party'){ const t=document.querySelector('.tab[data-tab="party"]'); const d=t&&t.querySelector('.party-dot'); if(d) d.remove(); }
-  refreshMoreBadge();
+  if(kind==='wish'){ _wishSeenTs=now; try{localStorage.setItem('kb_adm_wish_seen',now);}catch(e){} removeNewDot('dot-wish'); }
+  if(kind==='rating'){ _ratingSeenTs=now; try{localStorage.setItem('kb_adm_rating_seen',now);}catch(e){} removeNewDot('dot-rating'); }
+  if(kind==='party'){ removeNewDot('dot-party'); }
 };
 function listenWishRatingDots(){
   try{
     onSnapshot(collection(db,'wishlist'),snap=>{
       let latest='';
       snap.docs.forEach(d=>{ const t=d.data().updatedAt||''; if(t>latest) latest=t; });
-      if(latest && latest>_wishSeenTs) addNewDot('.tab[data-tab="wish"]'); else removeNewDot('.tab[data-tab="wish"]');
-      refreshMoreBadge();
+      if(latest && latest>_wishSeenTs) addNewDot('dot-wish'); else removeNewDot('dot-wish');
     },function(e){console.error('wish-dot listen',e);});
   }catch(e){}
   try{
     onSnapshot(collection(db,'ratings'),snap=>{
       let latest='';
       snap.docs.forEach(d=>{ const t=d.data().createdAt||''; if(t>latest) latest=t; });
-      if(latest && latest>_ratingSeenTs) addNewDot('.tab[data-tab="ratings"]'); else removeNewDot('.tab[data-tab="ratings"]');
-      refreshMoreBadge();
+      if(latest && latest>_ratingSeenTs) addNewDot('dot-rating'); else removeNewDot('dot-rating');
     },function(e){console.error('rating-dot listen',e);});
   }catch(e){}
 }
@@ -3433,27 +3451,51 @@ window.waRecipeList=function(id,plates){
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 };
 
-// ---- COLLAPSIBLE SECTIONS (Orders tab: Stats + Delivery Control) ----
+// ---- COLLAPSIBLE SECTIONS ----
 // State remembered per admin device so a collapsed section stays collapsed on reload.
-window.toggleSec=function(id){
+// Groups get ACCORDION behaviour: opening one section closes its siblings in the same group.
+// Orders tab (stats/delivery) is intentionally NOT grouped — both can stay open together.
+const SEC_GROUPS={
+  setup:['setupShop','setupTakeaway','setupBoys','setupBoyPay','setupPassword','setupCustomers','setupDefaultBoy'],
+  extra:['master','ratings','wish','party','recipe','print','ai']
+};
+const SEC_LOADERS={ratings:function(){loadRatings();}, wish:function(){loadAdminWish();}, recipe:function(){loadRecipeList();}};
+const SEC_LOADED={};
+window.toggleSec=function(id,group){
   const body=document.getElementById('sec-'+id); const chev=document.getElementById('chev-'+id);
   if(!body) return;
   const willOpen=body.style.display==='none';
+  if(willOpen && group && SEC_GROUPS[group]){
+    SEC_GROUPS[group].forEach(oid=>{
+      if(oid===id) return;
+      const b=document.getElementById('sec-'+oid), c=document.getElementById('chev-'+oid);
+      if(b) b.style.display='none';
+      if(c) c.style.transform='rotate(-90deg)';
+      try{localStorage.setItem('kb_adm_sec_'+oid,'closed');}catch(e){}
+    });
+  }
   body.style.display=willOpen?'block':'none';
   if(chev) chev.style.transform=willOpen?'rotate(0deg)':'rotate(-90deg)';
   try{localStorage.setItem('kb_adm_sec_'+id, willOpen?'open':'closed');}catch(e){}
+  if(willOpen){
+    if(id==='wish') markSeen('wish');
+    if(id==='ratings') markSeen('rating');
+    if(id==='party') markSeen('party');
+    if(SEC_LOADERS[id] && !SEC_LOADED[id]){ SEC_LOADED[id]=true; try{SEC_LOADERS[id]();}catch(e){} }
+  }
 };
 function initCollapsibleSections(){
   // Orders tab: glance info admin checks every session -> default OPEN
   const openByDefault=['stats','delivery'];
-  // Rarely-touched settings (set once, forget) -> default CLOSED to cut page bulk immediately
-  const closedByDefault=['todayCharges','setupShop','setupTakeaway','setupBoys','setupBoyPay','setupPassword','setupCustomers','setupDefaultBoy'];
+  // Rarely-touched settings + the consolidated Extra page -> default CLOSED to cut page bulk
+  const closedByDefault=['todayCharges','setupShop','setupTakeaway','setupBoys','setupBoyPay','setupPassword','setupCustomers','setupDefaultBoy'].concat(SEC_GROUPS.extra);
   openByDefault.concat(closedByDefault).forEach(id=>{
     let saved=null; try{saved=localStorage.getItem('kb_adm_sec_'+id);}catch(e){}
     const isOpen = saved ? saved==='open' : openByDefault.includes(id);
     const body=document.getElementById('sec-'+id); const chev=document.getElementById('chev-'+id);
     if(body) body.style.display=isOpen?'block':'none';
     if(chev) chev.style.transform=isOpen?'rotate(0deg)':'rotate(-90deg)';
+    if(isOpen && SEC_LOADERS[id] && !SEC_LOADED[id]){ SEC_LOADED[id]=true; try{SEC_LOADERS[id]();}catch(e){} }
   });
 }
 
@@ -3463,53 +3505,21 @@ window.sw=function(t){
   document.querySelectorAll('.tab[data-tab]').forEach(el=>el.classList.toggle('active',el.getAttribute('data-tab')===t));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   const panel=document.getElementById('tab-'+t); if(panel) panel.classList.add('active');
-  // close the More dropdown after any pick
-  const md=document.getElementById('moreMenu'); if(md) md.style.display='none';
-  const mt=document.getElementById('moreTab'); if(mt) mt.classList.toggle('active',['print','ai','master','ratings','wish','party','recipe'].includes(t));
   if(t==='setup'){loadDeliveryBoys();}
   if(t==='paylist'){startPaymentListListener();renderPaymentList();}
-  if(t==='ratings'){loadRatings();markSeen('rating');}
-  if(t==='wish'){loadAdminWish();markSeen('wish');}
-  if(t==='party'){markSeen('party');}
-  if(t==='recipe'){loadRecipeList();}
   if(t==='orders'&&adminMap)setTimeout(()=>adminMap.invalidateSize(),100);
 };
-window.toggleMoreMenu=function(e){
-  if(e) e.stopPropagation();
-  const md=document.getElementById('moreMenu');
-  const mt=document.getElementById('moreTab');
-  if(!md) return;
-  const open=(md.style.display!=='block');
-  if(open && mt){
-    // pehle dikhao (measure ke liye), phir More button ke theek neeche-dayein rakho —
-    // taaki .tabs ke overflow-x:auto se clip na ho (yahi bug tha: menu khulta tha par
-    // bar ke overflow me kat jaata tha, isliye kuch dikhta hi nahi tha).
-    md.style.visibility='hidden';
-    md.style.display='block';
-    const r=mt.getBoundingClientRect();
-    const w=md.offsetWidth||170;
-    let left=r.right-w;
-    if(left<8) left=8;
-    if(left+w>window.innerWidth-8) left=window.innerWidth-8-w;
-    md.style.top=(r.bottom+4)+'px';
-    md.style.left=left+'px';
-    md.style.right='auto';
-    md.style.visibility='visible';
-  } else {
-    md.style.display='none';
-  }
-};
-// tap outside closes the More dropdown
-document.addEventListener('click',function(e){
-  const md=document.getElementById('moreMenu'), mt=document.getElementById('moreTab');
-  if(md && md.style.display==='block' && mt && !mt.contains(e.target) && !md.contains(e.target)){
-    md.style.display='none';
-  }
-});
-// Restore last tab on load
+// Restore last tab on load — old saved sub-tabs (before the Extra-page consolidation)
+// now redirect into the Extra page and auto-open that specific accordion section.
 setTimeout(function(){
   try{
     var sv=localStorage.getItem('kb_adm_tab');
+    var moved=['master','ratings','wish','party','recipe','print','ai'];
+    if(sv && moved.indexOf(sv)>-1){
+      sw('extra');
+      setTimeout(function(){ toggleSec(sv,'extra'); },50);
+      return;
+    }
     if(sv&&sv!=='orders'&&document.getElementById('tab-'+sv))sw(sv);
   }catch(e){}
 },600);
@@ -3702,16 +3712,9 @@ function renderPartyBookings(all){
   const live=_partyAll.filter(function(b){ return b.status!=='dismissed' && String(b.partyDate||'')>=today; });
   const list=partyShowAll?_partyAll.slice():live;
   if(cnt) cnt.textContent=live.length;
-  // green dot on the Party tab when upcoming bookings exist
+  // green dot (in Extra page + aggregate on the Extra tab) when upcoming bookings exist
   try{
-    const ptab=document.querySelector('.tab[data-tab="party"]');
-    if(ptab){
-      let dot=ptab.querySelector('.party-dot');
-      if(live.length>0){
-        if(!dot){ dot=document.createElement('span'); dot.className='party-dot'; dot.style.cssText='display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle'; ptab.appendChild(dot); }
-      } else if(dot){ dot.remove(); }
-    }
-    refreshMoreBadge();
+    if(live.length>0) addNewDot('dot-party'); else removeNewDot('dot-party');
   }catch(e){}
   if(tgl){
     tgl.style.display=_partyAll.length?'inline-block':'none';
@@ -4297,7 +4300,7 @@ window.renderPaymentList=function(){
 };
 
 // FIX 7: Admin live tracking modal
-let atMap=null, atMarker=null;
+let atMap=null, atBoyMarkers={}, atDeliveryUnsub=null;
 window.showAdminTracking=function(){
   document.getElementById('adminTrackModal').style.display='block';
   setTimeout(initAdminTrackMap, 200);
@@ -4327,34 +4330,48 @@ function initAdminTrackMap(){
     atCustMarkers.push(m);
   });
 
-  // Listen to delivery boy live location
-  listenToDelivery(data=>{
-    const isStale = data?.updatedAt && (Date.now()-new Date(data.updatedAt).getTime())>10*60*1000;
-    if(data&&data.isDelivering&&data.lat&&data.lng&&!isStale){
-      document.getElementById('atBoyInfo').textContent=`🛵 ${data.boyName||'Delivery Boy'} | 📞 ${data.boyPhone||''}`;
-      const t=data.updatedAt?new Date(data.updatedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
-      document.getElementById('atEta').textContent=`📍 GPS Live | ${data.lat.toFixed(5)}, ${data.lng.toFixed(5)} | Updated: ${t} | ${activeOrders.length} active deliveries`;
-      const icon=L.divIcon({html:'<div style="background:#e65c00;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;box-shadow:0 3px 12px rgba(0,0,0,.4);border:3px solid white;animation:pulse 1.5s infinite">🛵</div><style>@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}</style>',iconSize:[46,46],iconAnchor:[23,23],className:''});
-      if(!atMarker){
-        atMarker=L.marker([data.lat,data.lng],{icon,zIndexOffset:1000}).addTo(atMap);
-        atMarker.bindPopup(`<b>🛵 ${data.boyName||'Delivery Boy'}</b><br>📞 ${data.boyPhone||''}<br>⏰ ${t}`).openPopup();
-      } else {
-        atMarker.setLatLng([data.lat,data.lng]);
-        atMarker.getPopup()?.setContent(`<b>🛵 ${data.boyName||'Delivery Boy'}</b><br>📞 ${data.boyPhone||''}<br>⏰ ${t}`);
-      }
-      // Fit map to show boy + all customers
-      const allPoints=[[data.lat,data.lng],...atCustMarkers.map(m=>m.getLatLng())].map(p=>Array.isArray(p)?p:[p.lat,p.lng]);
-      if(allPoints.length>1){try{atMap.fitBounds(allPoints,{padding:[40,40],maxZoom:16});}catch(e){}}
-      else atMap.setView([data.lat,data.lng],15);
-      atMap.invalidateSize();
-    } else {
-      document.getElementById('atBoyInfo').textContent='⚫ Delivery boy offline';
+  // Listen to every delivery boy's live location — show markers for whoever is
+  // GPS-active AND currently assigned to one of these active orders.
+  if(atDeliveryUnsub) atDeliveryUnsub();
+  atDeliveryUnsub=listenToAllDelivery(list=>{
+    const now=Date.now();
+    const assignedPhones=new Set(activeOrders.filter(o=>o.assignedBoyPhone).map(o=>o.assignedBoyPhone));
+    const tracked=list.filter(d=>{
+      if(!d.isDelivering||!d.lat||!d.lng) return false;
+      if(d.updatedAt&&(now-new Date(d.updatedAt).getTime())>10*60*1000) return false;
+      return assignedPhones.has(d.phone);
+    });
+    // drop markers for boys no longer tracked (delivered/cancelled/went stale)
+    Object.keys(atBoyMarkers).forEach(phone=>{
+      if(!tracked.find(d=>d.phone===phone)){ try{atMap.removeLayer(atBoyMarkers[phone]);}catch(e){} delete atBoyMarkers[phone]; }
+    });
+    if(!tracked.length){
+      document.getElementById('atBoyInfo').textContent='⚫ Koi active delivery boy nahi';
       document.getElementById('atEta').textContent=activeOrders.length>0?`${activeOrders.length} pending deliveries — waiting for delivery boy`:'No active deliveries';
       if(activeOrders.length>0&&atCustMarkers.length>0){
         const bounds=atCustMarkers.map(m=>[m.getLatLng().lat,m.getLatLng().lng]);
         try{atMap.fitBounds(bounds,{padding:[40,40],maxZoom:16});}catch(e){}
       }
+      return;
     }
+    document.getElementById('atBoyInfo').textContent=tracked.map(d=>`🛵 ${d.boyName||'Boy'}`).join(' · ');
+    const t0=tracked[0].updatedAt?new Date(tracked[0].updatedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+    document.getElementById('atEta').textContent=`${tracked.length} boy(s) live | Updated: ${t0} | ${activeOrders.length} active deliveries`;
+    const icon=L.divIcon({html:'<div style="background:#e65c00;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;box-shadow:0 3px 12px rgba(0,0,0,.4);border:3px solid white;animation:pulse 1.5s infinite">🛵</div><style>@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}</style>',iconSize:[46,46],iconAnchor:[23,23],className:''});
+    tracked.forEach(d=>{
+      const t=d.updatedAt?new Date(d.updatedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+      if(!atBoyMarkers[d.phone]){
+        atBoyMarkers[d.phone]=L.marker([d.lat,d.lng],{icon,zIndexOffset:1000}).addTo(atMap);
+        atBoyMarkers[d.phone].bindPopup(`<b>🛵 ${esc(d.boyName||'Delivery Boy')}</b><br>📞 ${esc(d.boyPhone||'')}<br>⏰ ${t}`);
+      } else {
+        atBoyMarkers[d.phone].setLatLng([d.lat,d.lng]);
+        atBoyMarkers[d.phone].getPopup()?.setContent(`<b>🛵 ${esc(d.boyName||'Delivery Boy')}</b><br>📞 ${esc(d.boyPhone||'')}<br>⏰ ${t}`);
+      }
+    });
+    const allPoints=[...tracked.map(d=>[d.lat,d.lng]),...atCustMarkers.map(m=>m.getLatLng())].map(p=>Array.isArray(p)?p:[p.lat,p.lng]);
+    if(allPoints.length>1){try{atMap.fitBounds(allPoints,{padding:[40,40],maxZoom:16});}catch(e){}}
+    else if(tracked.length===1) atMap.setView([tracked[0].lat,tracked[0].lng],15);
+    atMap.invalidateSize();
   });
 }
 
