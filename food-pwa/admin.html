@@ -163,19 +163,25 @@ input:checked+.slider:before{transform:translateX(20px);}
 /* MASTER MENU */
 .mi-row{background:white;border:none;border-radius:14px;padding:11px;margin-bottom:9px;box-shadow:var(--sh-sm);}
 .mi-top{display:flex;gap:8px;align-items:flex-start;}
-.mi-imgbox{width:110px;height:82px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:2.5rem;position:relative;cursor:pointer;}
-.mi-imgbox img{width:110px;height:82px;object-fit:cover;}
+.mi-imgbox{width:88px;height:88px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:2.2rem;position:relative;cursor:pointer;}
+.mi-imgbox img{width:88px;height:88px;object-fit:cover;}
 .mi-overlay{position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
 .mi-imgbox:hover .mi-overlay,.mi-imgbox:active .mi-overlay{opacity:1;}
-.mi-overlay span{color:white;font-size:.65rem;font-weight:700;text-align:center;line-height:1.3;}
-.mi-fields{flex:1;display:flex;flex-direction:column;gap:5px;}
-.inp{padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:.82rem;outline:none;font-family:inherit;width:100%;}
+.mi-overlay span{color:white;font-size:.6rem;font-weight:700;text-align:center;line-height:1.3;}
+.mi-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+.inp{padding:7px 9px;border:1px solid #ddd;border-radius:7px;font-size:.82rem;outline:none;font-family:inherit;width:100%;min-width:0;}
 .inp:focus{border-color:var(--o);}
 .inp-row{display:flex;gap:5px;}
 .inp-name{flex:1;min-width:0;}
 .inp-price{width:62px;flex-shrink:0;}
 .rm-btn{width:24px;height:24px;border-radius:50%;background:var(--rp);color:var(--r);border:none;font-size:.9rem;cursor:pointer;flex-shrink:0;margin-top:2px;}
 .up-status{font-size:.67rem;color:var(--b);font-weight:600;margin-top:3px;}
+/* Session COMPACT-MASTER: 2-up grid instead of stacked "Label: <select>" rows —
+   this is also what fixes the veg/non-veg emoji circle getting clipped, since a
+   squeezed select (long inline label eating the width) was cutting the glyph. */
+.mi-grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.mi-grid2 label{font-size:.6rem;font-weight:800;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px;}
+.mi-grid2 select.inp{min-width:0;}
 
 /* TODAY */
 .ti-row{background:white;border:none;border-radius:14px;padding:10px 11px;margin-bottom:8px;display:flex;align-items:center;gap:9px;box-shadow:var(--sh-sm);}
@@ -326,7 +332,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     <div class="tab" data-tab="today" onclick="sw('today')">📅 Menu</div>
     <div class="tab" data-tab="paylist" onclick="sw('paylist')">💰 Payments</div>
     <div class="tab" data-tab="setup" onclick="sw('setup')">⚙️ Setup</div>
-    <div class="tab" data-tab="extra" onclick="sw('extra')">🧰 Extra<span id="dot-extra-agg" style="display:none;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle"></span></div>
+    <div class="tab" data-tab="extra" onclick="sw('extra')">🧰 More<span id="dot-extra-agg" style="display:none;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle"></span></div>
   </div>
 
   <!-- ORDERS -->
@@ -455,21 +461,6 @@ input:checked+.slider:before{transform:translateX(20px);}
       <p style="font-size:.7rem;color:var(--muted);margin-top:6px">Saves instantly — stays as set for this date until you switch it again.</p>
     </div>
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('todayCharges')">
-        <div class="ct" style="margin:0">Delivery Charges by Location (₹)</div>
-        <span id="chev-todayCharges" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
-      </div>
-      <div id="sec-todayCharges" style="margin-top:9px">
-      <div class="lc-grid">
-        <div class="lc-item"><label>NTPC Township</label><input class="inp" type="number" inputmode="numeric" id="lcNTPC" placeholder="₹"></div>
-        <div class="lc-item"><label>GAIL Gaon</label><input class="inp" type="number" inputmode="numeric" id="lcGAIL" placeholder="₹"></div>
-        <div class="lc-item"><label>PATA Gate</label><input class="inp" type="number" inputmode="numeric" id="lcPATA" placeholder="₹"></div>
-        <div class="lc-item"><label>GAIL Vihar</label><input class="inp" type="number" inputmode="numeric" id="lcGVIHAR" placeholder="₹"></div>
-        <div class="lc-item"><label>Others</label><input class="inp" type="number" inputmode="numeric" id="lcOTHERS" placeholder="₹"></div>
-      </div>
-      </div>
-    </div>
-    <div class="card">
       <div class="ct">Select Items for This Date</div>
       <p style="font-size:.75rem;color:var(--muted);margin-bottom:9px">Toggle ON items. Enter quantity for each.</p>
       <div id="todayList"></div>
@@ -507,19 +498,6 @@ input:checked+.slider:before{transform:translateX(20px);}
        All 7 live as accordion cards on ONE page now (opening one closes the others in
        this group — see SEC_GROUPS.extra in toggleSec). Default: all closed on first visit. -->
   <div class="panel" id="tab-extra">
-
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('master','extra')">
-        <div class="ct" style="margin:0">🗂️ Master Menu Items</div>
-        <span id="chev-master" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
-      </div>
-      <div id="sec-master" style="margin-top:9px;display:none">
-        <div class="info-box">📸 Tap image to upload photo. Images stored via ImgBB.</div>
-        <div id="masterList"></div>
-        <button class="add-btn" onclick="addItem()">+ Add New Item</button>
-        <button class="btn btn-o" onclick="saveMaster()">💾 Save Master Menu</button>
-      </div>
-    </div>
 
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('ratings','extra')">
@@ -683,6 +661,18 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
     <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('master','setup')">
+        <div class="ct" style="margin:0">🗂️ Master Menu Items</div>
+        <span id="chev-master" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-master" style="margin-top:9px;display:none">
+        <div class="info-box">📸 Tap image to upload photo. Images stored via ImgBB.</div>
+        <div id="masterList"></div>
+        <button class="add-btn" onclick="addItem()">+ Add New Item</button>
+        <button class="btn btn-o" onclick="saveMaster()">💾 Save Master Menu</button>
+      </div>
+    </div>
+    <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupShop','setup')">
         <div class="ct" style="margin:0">Shop Details</div>
         <span id="chev-setupShop" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
@@ -733,6 +723,21 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="sg2"><label>Lunch ka time</label><input class="si" id="sSlotLunch" placeholder="12:30 PM - 2:30 PM" maxlength="40"></div>
       <div class="sg2"><label>Dinner ka time</label><input class="si" id="sSlotDinner" placeholder="7:30 PM - 10:30 PM" maxlength="40"></div>
       <div id="pickupHint" style="font-size:.7rem;color:var(--muted);margin-top:2px;line-height:1.5"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupCharges','setup')">
+        <div class="ct" style="margin:0">🚚 Delivery Charges by Location (₹)</div>
+        <span id="chev-setupCharges" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
+      </div>
+      <div id="sec-setupCharges" style="margin-top:9px;display:none">
+      <div class="lc-grid">
+        <div class="lc-item"><label>NTPC Township</label><input class="inp" type="number" inputmode="numeric" id="lcNTPC" placeholder="₹"></div>
+        <div class="lc-item"><label>GAIL Gaon</label><input class="inp" type="number" inputmode="numeric" id="lcGAIL" placeholder="₹"></div>
+        <div class="lc-item"><label>PATA Gate</label><input class="inp" type="number" inputmode="numeric" id="lcPATA" placeholder="₹"></div>
+        <div class="lc-item"><label>GAIL Vihar</label><input class="inp" type="number" inputmode="numeric" id="lcGVIHAR" placeholder="₹"></div>
+        <div class="lc-item"><label>Others</label><input class="inp" type="number" inputmode="numeric" id="lcOTHERS" placeholder="₹"></div>
+      </div>
       </div>
     </div>
     <div class="card">
@@ -2605,7 +2610,7 @@ window.genWAMessage=function(){
   const link=window.location.href.replace('admin.html','customer.html');
   // Plain text version (asterisks = WhatsApp bold) — this is what gets copied/sent
   let msg=`🍗 *KICKEN BITES*\n📅 *${date}'s Menu*\n\n`;
-  active.forEach(i=>{msg+=`• ${wab(i.name)} — ₹${i.price}${i.availableQty>0?' ('+i.availableQty+' plates)':''}\n`;});
+  active.forEach(i=>{msg+=`• ${wab(i.name)} — ₹${i.price}${i.availableQty>0?' ('+i.availableQty+' plates available)':''}\n`;});
   msg+=`\n🔥 *Limited Quantity Available!*\n👇 *CLICK TO ORDER* 👇\n${link}`;
   window._waMsgText=msg;
   document.getElementById('waMsgContent').innerHTML=formatWAPreview(msg,link);
@@ -2620,7 +2625,7 @@ window.genReminderMsg=function(){
   const link=window.location.href.replace('admin.html','customer.html');
   let msg='🔔 *REMINDER — KICKEN BITES*\n📅 *'+date+'*\n\nHungry? Today\'s fresh menu is ready 👇\n\n';
   const _bk={}; (todayOrders||[]).filter(o=>(o.status||'')!=='cancelled').forEach(o=>(o.items||[]).forEach(it=>{_bk[it.name]=(_bk[it.name]||0)+(Number(it.qty)||0);}));
-  active.forEach(i=>{const rem=Math.max(0,(Number(i.availableQty)||0)-(_bk[i.name]||0));msg+='• '+wab(i.name)+' — ₹'+i.price+(rem>0?' ('+rem+' left)':' (SOLD OUT)')+'\n';});
+  active.forEach(i=>{const rem=Math.max(0,(Number(i.availableQty)||0)-(_bk[i.name]||0));msg+='• '+wab(i.name)+' — ₹'+i.price+(rem>0?' ('+rem+' plates available)':' (SOLD OUT)')+'\n';});
   msg+='\n⏰ *Order soon — limited plates!*\n👇 *CLICK TO ORDER* 👇\n'+link;
   window._waMsgText=msg;
   document.getElementById('waMsgContent').innerHTML=formatWAPreview(msg,link);
@@ -2643,7 +2648,7 @@ window.sendOrdersReminder=async function(){
   try{ const ms=await getDoc(doc(db,'dailyMenu',ds)); if(ms.exists()){ (ms.data().items||[]).forEach(it=>{ if(it.id!=null && it.availableQty!=null) remainById[it.id]=Number(it.availableQty); }); } }catch(e){}
   const remOf=i=> (remainById[i.id]!=null ? remainById[i.id] : qtyForDay(i,wd));
   let msg='🔔 *REMINDER — KICKEN BITES*\n📅 *'+dateLbl+'*\n\nHungry? Fresh menu is ready 👇\n\n';
-  items.forEach(i=>{const rem=Math.max(0,remOf(i));msg+='• '+wab(i.name)+' — ₹'+i.price+(rem>0?' ('+rem+' left)':' (SOLD OUT)')+'\n';});
+  items.forEach(i=>{const rem=Math.max(0,remOf(i));msg+='• '+wab(i.name)+' — ₹'+i.price+(rem>0?' ('+rem+' plates left)':' (SOLD OUT)')+'\n';});
   msg+='\n⏰ *Order soon — limited plates!*\n👇 *CLICK TO ORDER* 👇\n'+link;
   window._waMsgText=msg;
   try{ document.getElementById('waMsgContent').innerHTML=formatWAPreview(msg,link); document.getElementById('waMsgBox').style.display='block'; }catch(e){}
@@ -2690,28 +2695,22 @@ function renderMaster(){
             <input class="inp inp-name" data-i="${idx}" data-f="name" value="${item.name||''}" placeholder="Item name">
             <input class="inp inp-price" data-i="${idx}" data-f="price" type="number" inputmode="numeric" value="${item.price||''}" placeholder="₹">
           </div>
-          <div class="inp-row" style="margin-top:6px">
-            <label style="font-size:.64rem;font-weight:800;text-transform:uppercase;color:var(--muted);align-self:center">Price unit:</label>
-            <select class="inp" data-i="${idx}" data-f="unit" style="flex:1">
+          <div class="mi-grid2">
+            <div><label>Unit</label><select class="inp" data-i="${idx}" data-f="unit">
               ${['plate','unit','kg','piece','half kg','bowl','glass'].map(u=>`<option value="${u}" ${((item.unit||'plate')===u)?'selected':''}>per ${u}</option>`).join('')}
-            </select>
-          </div>
-          <div class="inp-row" style="margin-top:6px">
-            <label style="font-size:.64rem;font-weight:800;text-transform:uppercase;color:var(--muted);align-self:center">Veg / Non-veg:</label>
-            <select class="inp" data-i="${idx}" data-f="foodType" style="flex:1">
+            </select></div>
+            <div><label>Veg / Non-veg</label><select class="inp" data-i="${idx}" data-f="foodType">
               <option value="nonveg" ${((item.foodType||'nonveg')==='nonveg')?'selected':''}>🔴 Non-veg</option>
               <option value="veg" ${(item.foodType==='veg')?'selected':''}>🟢 Veg</option>
-            </select>
+            </select></div>
           </div>
-          <div class="inp-row" style="margin-top:6px">
-            <label style="font-size:.64rem;font-weight:800;text-transform:uppercase;color:var(--muted);align-self:center">Half price:</label>
-            <input class="inp" data-i="${idx}" data-f="halfPrice" type="number" inputmode="numeric" value="${item.halfPrice||''}" placeholder="₹ (optional — Full/Half chips)" style="flex:1">
+          <div class="mi-grid2">
+            <div><label>Half price (₹)</label><input class="inp" data-i="${idx}" data-f="halfPrice" type="number" inputmode="numeric" value="${item.halfPrice||''}" placeholder="Optional" title="Bharenge to customer ko Full/Half chunne ka option milega. Khaali = normal item."></div>
+            <div><label>Emoji</label><input class="inp" data-i="${idx}" data-f="emoji" value="${item.emoji||'🍛'}" placeholder="🍛"></div>
           </div>
-          <div style="font-size:.58rem;color:var(--muted);margin-top:2px">Half price bharenge to customer ko Full/Half chunne ka option milega (jaise grilled chicken). Khaali = normal item.</div>
           <input class="inp" data-i="${idx}" data-f="desc" value="${item.desc||''}" placeholder="Description (optional)">
-          <input class="inp" data-i="${idx}" data-f="emoji" value="${item.emoji||'🍛'}" placeholder="Emoji" style="width:60px">
-          <div style="margin-top:7px">
-            <div style="font-size:.64rem;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:4px">🗓️ Weekly Default Days + Qty per day</div>
+          <div>
+            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:4px">🗓️ Weekly Default Days + Qty per day</div>
             <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:flex-start">
               ${['mon','tue','wed','thu','fri','sat','sun'].map(wd=>{
                 const on=item.weekdays&&item.weekdays[wd];
@@ -2722,7 +2721,6 @@ function renderMaster(){
                 </div>`;
               }).join('')}
             </div>
-            <div style="font-size:.6rem;color:var(--muted);margin-top:3px">Tap a day to turn it on, then set that day's quantity.</div>
           </div>
           <div class="up-status" id="us_${idx}"></div>
         </div>
@@ -2840,6 +2838,26 @@ window.runPrediction=async function(){
     const od=new Date((o.createdAt||''));
     if(od.getDay()===dow){(o.items||[]).forEach(i=>{itemHist[i.name]=(itemHist[i.name]||{count:0,qty:0});itemHist[i.name].count++;itemHist[i.name].qty+=i.qty;});}
   });
+  // Recent-vs-older trend for this item on this weekday — is demand rising or falling
+  // over the last several weeks? Splits same-weekday order dates into an older half
+  // and a recent half and compares average qty/day.
+  function itemTrend(name){
+    const byDate={};
+    allO.filter(o=>o.status!=='cancelled').forEach(o=>{
+      const od=new Date(o.createdAt||''); if(od.getDay()!==dow) return;
+      const key=(o.createdAt||'').slice(0,10);
+      (o.items||[]).forEach(it=>{ if(it.name!==name) return; byDate[key]=(byDate[key]||0)+(Number(it.qty)||0); });
+    });
+    const dates=Object.keys(byDate).sort();
+    if(dates.length<4) return null; // not enough same-weekday history to call a trend
+    const half=Math.floor(dates.length/2);
+    const older=dates.slice(0,half).reduce((s,k)=>s+byDate[k],0)/half;
+    const recent=dates.slice(half).reduce((s,k)=>s+byDate[k],0)/(dates.length-half);
+    if(older<=0) return null;
+    if(recent>older*1.15) return {dir:'up',pct:Math.round((recent/older-1)*100)};
+    if(recent<older*0.85) return {dir:'down',pct:Math.round((1-recent/older)*100)};
+    return {dir:'stable',pct:0};
+  }
   // Get advance bookings for that date
   const advance=allO.filter(o=>o.scheduledFor===ds&&o.status!=='cancelled');
   const advQty={};advance.forEach(o=>(o.items||[]).forEach(i=>{advQty[i.name]=(advQty[i.name]||0)+i.qty;}));
@@ -2849,20 +2867,30 @@ window.runPrediction=async function(){
     const hist=itemHist[item.name]||{count:0,qty:0};
     const avgQty=hist.count>0?Math.round(hist.qty/hist.count):0;
     const adv=advQty[item.name]||0;
+    const trend=itemTrend(item.name);
+    const trendMult=trend?(trend.dir==='up'?1+trend.pct/100:trend.dir==='down'?1-trend.pct/100:1):1;
     const base=avgQty||10;
-    const multiplier=isWeekend?1.3:1.0;
+    const multiplier=(isWeekend?1.3:1.0)*trendMult;
     const recommended=Math.round(base*multiplier+adv*1.5);
     const confidence=hist.count>3?Math.min(95,70+hist.count*3):hist.count>0?60:40;
     const reasons=[];
-    if(isWeekend)reasons.push(`${daysOfWeek[dow]} (weekend)`);
-    if(hist.count>0)reasons.push(`Avg ${avgQty} on ${daysOfWeek[dow]}s`);
-    if(adv>0)reasons.push(`${adv} advance bookings`);
-    if(!reasons.length)reasons.push('Based on typical demand');
+    if(isWeekend)reasons.push(`📅 ${daysOfWeek[dow]} (weekend — usually higher)`);
+    else reasons.push(`📅 ${daysOfWeek[dow]} (weekday)`);
+    if(hist.count>0)reasons.push(`📊 Avg ${avgQty} plates on ${daysOfWeek[dow]}s (from ${hist.count} past order${hist.count===1?'':'s'})`);
+    else reasons.push('📊 No past-order history for this weekday yet — estimate only');
+    if(trend&&trend.dir==='up')reasons.push(`📈 Recent ${daysOfWeek[dow]}s trending UP ~${trend.pct}% vs earlier weeks`);
+    else if(trend&&trend.dir==='down')reasons.push(`📉 Recent ${daysOfWeek[dow]}s trending DOWN ~${trend.pct}% vs earlier weeks`);
+    else if(trend)reasons.push(`➖ Demand steady over recent ${daysOfWeek[dow]}s`);
+    if(adv>0)reasons.push(`🎉 ${adv} advance/party booking${adv===1?'':'s'} already placed for this date`);
+    if(hist.count<=3)reasons.push('⚠️ Confidence is low — not much past data for this weekday yet');
     return{name:item.name,recommended,confidence,expected:{min:Math.max(0,recommended-5),max:recommended+8},reasons};
   }).sort((a,b)=>b.recommended-a.recommended).slice(0,2);
 
   const dateDisp=d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   let html=`<div class="ct" style="padding:0 0 8px">Prediction for ${dateDisp}</div>`;
+  html+=`<div style="background:var(--bp);border-radius:10px;padding:10px 11px;margin-bottom:11px;font-size:.76rem;color:#1e40af;line-height:1.55">
+    🌦️ <b>Mausam ka bhi khayal rakhein:</b> Ye prediction sirf aapke past orders aur din ke pattern (weekday/weekend) par based hai — live weather data isme shaamil nahi hai. Baarish, bohot thand ya garmi jaisa mausam order kam-zyada kar sakta hai, apne experience se adjust kar lein.
+  </div>`;
   predictions.forEach(p=>{
     html+=`<div class="pred-card">
       <div class="pred-item">🍛 ${p.name}</div>
@@ -2871,7 +2899,7 @@ window.runPrediction=async function(){
         <div style="font-size:.78rem;color:var(--muted)">plates recommended</div>
       </div>
       <div class="pred-conf">✅ ${p.confidence}% confidence | Expected: ${p.expected.min}–${p.expected.max} plates</div>
-      <div class="pred-reason"><b>Why:</b> ${p.reasons.join(' · ')}</div>
+      <div class="pred-reason"><b>Kyun:</b><br>${p.reasons.map(r=>'• '+r).join('<br>')}</div>
     </div>`;
   });
   document.getElementById('aiResults').innerHTML=html;
@@ -3456,8 +3484,8 @@ window.waRecipeList=function(id,plates){
 // Groups get ACCORDION behaviour: opening one section closes its siblings in the same group.
 // Orders tab (stats/delivery) is intentionally NOT grouped — both can stay open together.
 const SEC_GROUPS={
-  setup:['setupShop','setupTakeaway','setupBoys','setupBoyPay','setupPassword','setupCustomers','setupDefaultBoy'],
-  extra:['master','ratings','wish','party','recipe','print','ai']
+  setup:['master','setupShop','setupTakeaway','setupCharges','setupBoys','setupBoyPay','setupPassword','setupCustomers','setupDefaultBoy'],
+  extra:['ratings','wish','party','recipe','print','ai']
 };
 const SEC_LOADERS={ratings:function(){loadRatings();}, wish:function(){loadAdminWish();}, recipe:function(){loadRecipeList();}};
 const SEC_LOADED={};
@@ -3488,7 +3516,7 @@ function initCollapsibleSections(){
   // Orders tab: glance info admin checks every session -> default OPEN
   const openByDefault=['stats','delivery'];
   // Rarely-touched settings + the consolidated Extra page -> default CLOSED to cut page bulk
-  const closedByDefault=['todayCharges','setupShop','setupTakeaway','setupBoys','setupBoyPay','setupPassword','setupCustomers','setupDefaultBoy'].concat(SEC_GROUPS.extra);
+  const closedByDefault=SEC_GROUPS.setup.concat(SEC_GROUPS.extra);
   openByDefault.concat(closedByDefault).forEach(id=>{
     let saved=null; try{saved=localStorage.getItem('kb_adm_sec_'+id);}catch(e){}
     const isOpen = saved ? saved==='open' : openByDefault.includes(id);
@@ -3510,12 +3538,17 @@ window.sw=function(t){
   if(t==='orders'&&adminMap)setTimeout(()=>adminMap.invalidateSize(),100);
 };
 // Restore last tab on load — old saved sub-tabs (before the Extra-page consolidation)
-// now redirect into the Extra page and auto-open that specific accordion section.
+// now redirect into the correct page and auto-open that specific accordion section.
 setTimeout(function(){
   try{
     var sv=localStorage.getItem('kb_adm_tab');
-    var moved=['master','ratings','wish','party','recipe','print','ai'];
-    if(sv && moved.indexOf(sv)>-1){
+    if(sv==='master'){
+      sw('setup');
+      setTimeout(function(){ toggleSec('master','setup'); },50);
+      return;
+    }
+    var movedToExtra=['ratings','wish','party','recipe','print','ai'];
+    if(sv && movedToExtra.indexOf(sv)>-1){
       sw('extra');
       setTimeout(function(){ toggleSec(sv,'extra'); },50);
       return;
@@ -4472,9 +4505,12 @@ window.generateCollage = async function(itemsOverride, showPopup){
   const PAD = 12;
   const HEADER_H = 74;  // chhota header (tha 100)
   const FOOTER_H = 34;  // chhota footer (tha 48)
+  // Orders-tab reminder collage gets an extra bar below the item grid showing whether
+  // the shop is currently taking orders — "current status" the user asked for.
+  const STATUS_H = showPopup ? 56 : 0;
 
   canvas.width  = COLS*CELL_W + (COLS+1)*PAD;
-  canvas.height = HEADER_H + ROWS*(CELL_H+PAD) + PAD + FOOTER_H;
+  canvas.height = HEADER_H + ROWS*(CELL_H+PAD) + PAD + STATUS_H + FOOTER_H;
 
   // BG
   var bg = ctx.createLinearGradient(0,0,0,canvas.height);
@@ -4580,7 +4616,7 @@ window.generateCollage = async function(itemsOverride, showPopup){
       // Badge enlarged ~2.5x with BLACK text for readability (same colours).
       // Quantity wapas — sirf "Available now" se customer ko pata hi nahi chalta
       // tha kitni plate bachi hain, aur jaldi order karne ki wajah bhi nahi banti.
-      var _bTxt = soldOut ? 'SOLD OUT' : (_rem + (_rem===1 ? ' plate left' : ' plates left'));
+      var _bTxt = soldOut ? 'SOLD OUT' : (_rem + (showPopup ? (_rem===1?' plate left':' plates left') : (_rem===1?' plate available':' plates available')));
       var _bFont = 26;                       // thoda chhota kyunki text lamba hai
       ctx.font = 'bold '+_bFont+'px sans-serif';
       var _bPadX = 20, _bH = 52;             // was 26 → 2x tall
@@ -4618,8 +4654,27 @@ window.generateCollage = async function(itemsOverride, showPopup){
     ctx.fillText('Rs '+item.price, x+CELL_W/2, y+IMG_H+58);
   });
 
+  // CURRENT STATUS BAR (Orders-tab reminder only) — shows whether the shop is
+  // taking orders right now, pulled from the same toggle as the Menu tab's
+  // "Accept orders on this date?" switch.
+  var statusBarY = HEADER_H + ROWS*(CELL_H+PAD) + PAD;
+  if(STATUS_H>0){
+    var isTakingOrders = true;
+    try{ var _so=document.getElementById('shopOpen'); if(_so) isTakingOrders=_so.checked; }catch(e){}
+    ctx.fillStyle = isTakingOrders ? '#22c55e' : '#ef4444';
+    rRect(PAD, statusBarY, canvas.width-PAD*2, STATUS_H-10, 12);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    var _statusTxt = isTakingOrders ? '✅ Taking Orders Now' : '⛔ Orders Closed Right Now';
+    ctx.fillText(_statusTxt, canvas.width/2, statusBarY+(STATUS_H-10)/2+1);
+    ctx.textBaseline = 'alphabetic';
+  }
+
   // FOOTER
-  var fy = HEADER_H + ROWS*(CELL_H+PAD) + PAD + 10;
+  var fy = HEADER_H + ROWS*(CELL_H+PAD) + PAD + STATUS_H + 10;
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
   ctx.font = '14px sans-serif';
   ctx.textAlign = 'center';
