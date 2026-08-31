@@ -801,6 +801,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
                   <option value="GAIL Vihar">GAIL Vihar</option>
                   <option value="GAIL Gaon Gate">GAIL Gaon Gate</option>
                   <option value="Raghav Palace Hotel">Raghav Palace Hotel</option>
+                  <option value="Saint Josef School Gate">Saint Josef School Gate</option>
                   <option value="Others">Others</option>
                 </select>
               </div>
@@ -2921,7 +2922,7 @@ function getTotal(){
   if(orderType==='delivery'&&sub>0){
     const loc=document.getElementById('cLoc')?.value||'';
     const lc=menuConfig.locationCharges||{};
-    dc=lc[loc]!==undefined?Number(lc[loc]):Number(menuConfig.deliveryCharge)||0;
+    dc=lc[loc]!==undefined?Number(lc[loc]):(Number(menuConfig.deliveryCharge)||15);
   }
   return{sub,delivery:dc,total:sub+dc};
 }

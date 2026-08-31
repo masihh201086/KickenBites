@@ -66,6 +66,8 @@ h1,h2,h3,.lb h2{font-family:var(--font-head);}
 /* CARDS */
 .card{background:var(--card);border-radius:var(--r-lg);padding:15px;margin-bottom:12px;box-shadow:var(--sh-md);}
 .ct{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--o);margin-bottom:9px;}
+.sec-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--op);border:1px solid var(--ol);border-radius:10px;padding:9px 12px;}
+.sec-head .ct{margin-bottom:0;}
 
 /* STATS */
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px;}
@@ -369,11 +371,11 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div id="ordLiveNote" style="display:none;background:#fffbeb;border-radius:9px;padding:8px 10px;font-size:.7rem;color:#92400e;margin-top:7px"></div>
     </div>
     <div class="card" style="padding:11px">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('stats')">
+      <div class="sec-head" onclick="toggleSec('stats')">
         <div class="ct" style="margin:0">📊 Today's Snapshot</div>
         <span id="chev-stats" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
-      <div id="sec-stats" style="margin-top:10px">
+      <div id="sec-stats" style="margin-top:10px;display:none">
         <div class="sg" style="margin-bottom:9px">
           <div class="sb"><div class="sn" id="stOrders">0</div><div class="sl">Orders</div></div>
           <div class="sb"><div class="sn" id="stRev">₹0</div><div class="sl">Revenue</div></div>
@@ -395,11 +397,11 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
     <!-- DELIVERY CONTROL -->
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('delivery')">
+      <div class="sec-head" onclick="toggleSec('delivery')">
         <div class="ct" style="margin:0">🛵 Delivery Control</div>
         <span id="chev-delivery" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
-      <div id="sec-delivery" style="margin-top:10px">
+      <div id="sec-delivery" style="margin-top:10px;display:none">
       <div class="dc-row">
         <div>
           <div style="font-weight:700;font-size:.88rem" id="dcStatus">Delivery Not Started</div>
@@ -435,9 +437,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
     <div class="fr">
       <button class="fb active" onclick="filterO('all',this)">All</button>
-      <button class="fb" onclick="filterO('pending_payment',this)">Awaiting Pay</button>
       <button class="fb" onclick="filterO('confirmed',this)">Confirmed</button>
-      <button class="fb" onclick="filterO('preparing',this)">Preparing</button>
       <button class="fb" onclick="filterO('ready',this)">Ready</button>
       <button class="fb" onclick="filterO('out_for_delivery',this)">Out</button>
       <button class="fb" onclick="filterO('delivered',this)">Delivered</button>
@@ -508,7 +508,7 @@ input:checked+.slider:before{transform:translateX(20px);}
   <div class="panel" id="tab-extra">
 
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('ratings','extra')">
+      <div class="sec-head" onclick="toggleSec('ratings','extra')">
         <div class="ct" style="margin:0">⭐ Ratings &amp; Feedback<span id="dot-rating" style="display:none;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle"></span></div>
         <span id="chev-ratings" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -519,7 +519,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
 
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('wish','extra')">
+      <div class="sec-head" onclick="toggleSec('wish','extra')">
         <div class="ct" style="margin:0">🌟 Wishlist Votes<span id="dot-wish" style="display:none;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle"></span></div>
         <span id="chev-wish" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -543,7 +543,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
 
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('party','extra')">
+      <div class="sec-head" onclick="toggleSec('party','extra')">
         <div class="ct" style="margin:0">🎉 Party Bookings<span id="dot-party" style="display:none;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle"></span></div>
         <span id="chev-party" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -563,7 +563,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
 
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('recipe','extra')">
+      <div class="sec-head" onclick="toggleSec('recipe','extra')">
         <div class="ct" style="margin:0">🍲 Recipe Calculator</div>
         <span id="chev-recipe" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -594,7 +594,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
 
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('print','extra')">
+      <div class="sec-head" onclick="toggleSec('print','extra')">
         <div class="ct" style="margin:0">🖨️ Print &amp; Download</div>
         <span id="chev-print" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -638,7 +638,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('master','setup')">
+      <div class="sec-head" onclick="toggleSec('master','setup')">
         <div class="ct" style="margin:0">🗂️ Master Menu Items</div>
         <span id="chev-master" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -650,7 +650,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupShop','setup')">
+      <div class="sec-head" onclick="toggleSec('setupShop','setup')">
         <div class="ct" style="margin:0">Shop Details</div>
         <span id="chev-setupShop" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -688,7 +688,7 @@ input:checked+.slider:before{transform:translateX(20px);}
          Time window Setup me isliye rakha ki tyohaar/sardi me waqt badalta rehta hai
          aur admin ko har baar code badalwana na pade. -->
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupTakeaway','setup')">
+      <div class="sec-head" onclick="toggleSec('setupTakeaway','setup')">
         <div class="ct" style="margin:0">🏠 Takeaway Pickup</div>
         <span id="chev-setupTakeaway" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -703,24 +703,27 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupCharges','setup')">
+      <div class="sec-head" onclick="toggleSec('setupCharges','setup')">
         <div class="ct" style="margin:0">🚚 Delivery Charges by Location (₹)</div>
         <span id="chev-setupCharges" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
       <div id="sec-setupCharges" style="margin-top:9px;display:none">
+      <p style="font-size:.7rem;color:var(--muted);margin-bottom:9px">Default har jagah ₹15 hai. Jahan alag charge rakhna ho wahan naya number likh kar neeche Save karein.</p>
       <div class="lc-grid">
-        <div class="lc-item"><label>NTPC Township</label><input class="inp" type="number" inputmode="numeric" id="lcNTPC" placeholder="₹"></div>
-        <div class="lc-item"><label>GAIL Gaon</label><input class="inp" type="number" inputmode="numeric" id="lcGAIL" placeholder="₹"></div>
-        <div class="lc-item"><label>PATA Main Gate</label><input class="inp" type="number" inputmode="numeric" id="lcPATA" placeholder="₹"></div>
-        <div class="lc-item"><label>GAIL Vihar</label><input class="inp" type="number" inputmode="numeric" id="lcGVIHAR" placeholder="₹"></div>
-        <div class="lc-item"><label>GAIL Gaon Gate</label><input class="inp" type="number" inputmode="numeric" id="lcGGAONGATE" placeholder="₹"></div>
-        <div class="lc-item"><label>Raghav Palace Hotel</label><input class="inp" type="number" inputmode="numeric" id="lcRAGHAV" placeholder="₹"></div>
-        <div class="lc-item"><label>Others</label><input class="inp" type="number" inputmode="numeric" id="lcOTHERS" placeholder="₹"></div>
+        <div class="lc-item"><label>NTPC Township</label><input class="inp" type="number" inputmode="numeric" id="lcNTPC" placeholder="₹15"></div>
+        <div class="lc-item"><label>GAIL Gaon</label><input class="inp" type="number" inputmode="numeric" id="lcGAIL" placeholder="₹15"></div>
+        <div class="lc-item"><label>PATA Main Gate</label><input class="inp" type="number" inputmode="numeric" id="lcPATA" placeholder="₹15"></div>
+        <div class="lc-item"><label>GAIL Vihar</label><input class="inp" type="number" inputmode="numeric" id="lcGVIHAR" placeholder="₹15"></div>
+        <div class="lc-item"><label>GAIL Gaon Gate</label><input class="inp" type="number" inputmode="numeric" id="lcGGAONGATE" placeholder="₹15"></div>
+        <div class="lc-item"><label>Raghav Palace Hotel</label><input class="inp" type="number" inputmode="numeric" id="lcRAGHAV" placeholder="₹15"></div>
+        <div class="lc-item"><label>Saint Josef School Gate</label><input class="inp" type="number" inputmode="numeric" id="lcSTJOSEF" placeholder="₹15"></div>
+        <div class="lc-item"><label>Others</label><input class="inp" type="number" inputmode="numeric" id="lcOTHERS" placeholder="₹15"></div>
       </div>
+      <button class="btn btn-o" style="margin-top:11px;width:100%" onclick="saveDeliveryCharges()">💾 Save Delivery Charges</button>
       </div>
     </div>
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupBoys','setup')">
+      <div class="sec-head" onclick="toggleSec('setupBoys','setup')">
         <div class="ct" style="margin:0">🛵 Delivery Boys</div>
         <span id="chev-setupBoys" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -736,7 +739,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
     <!-- DELIVERY BOY PAYMENTS (B) -->
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupBoyPay','setup')">
+      <div class="sec-head" onclick="toggleSec('setupBoyPay','setup')">
         <div class="ct" style="margin:0">💵 Delivery Boy Payments</div>
         <span id="chev-setupBoyPay" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -749,7 +752,7 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupPassword','setup')">
+      <div class="sec-head" onclick="toggleSec('setupPassword','setup')">
         <div class="ct" style="margin:0">Change Password</div>
         <span id="chev-setupPassword" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -761,7 +764,7 @@ input:checked+.slider:before{transform:translateX(20px);}
     </div>
     <!-- ALL CUSTOMERS -->
     <div class="card" style="margin-top:9px">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupCustomers','setup')">
+      <div class="sec-head" onclick="toggleSec('setupCustomers','setup')">
         <div class="ct" style="margin:0">👥 All Registered Customers</div>
         <span id="chev-setupCustomers" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -777,7 +780,7 @@ input:checked+.slider:before{transform:translateX(20px);}
 
     <!-- DEFAULT DELIVERY BOY -->
     <div class="card" style="margin-top:9px">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('setupDefaultBoy','setup')">
+      <div class="sec-head" onclick="toggleSec('setupDefaultBoy','setup')">
         <div class="ct" style="margin:0">🛵 Default Delivery Boy</div>
         <span id="chev-setupDefaultBoy" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
       </div>
@@ -2411,26 +2414,12 @@ window.loadMenuDate=async function(ds){
   renderMenuActionBtns();
   if(existing&&!existing.isDefault){
     document.getElementById('shopOpen').checked=existing.isOpen!==false;
-    const lc=existing.locationCharges||{};
-    document.getElementById('lcNTPC').value=lc['NTPC Township']||'';
-    document.getElementById('lcGAIL').value=lc['GAIL Gaon']||'';
-    document.getElementById('lcPATA').value=lc['PATA Main Gate']||'';
-    document.getElementById('lcGVIHAR').value=lc['GAIL Vihar']||'';
-    document.getElementById('lcGGAONGATE').value=lc['GAIL Gaon Gate']||'';
-    document.getElementById('lcRAGHAV').value=lc['Raghav Palace Hotel']||'';
-    document.getElementById('lcOTHERS').value=lc['Others']||'';
+    fillLocationChargeFields(existing.locationCharges||cfg.locationCharges);
     const savedIds=(existing.items||[]).map(i=>i.id);
     masterItems.forEach(item=>{item.todayActive=savedIds.includes(item.id);const si=(existing.items||[]).find(i=>i.id===item.id);item.availableQty=si?si.availableQty:0;});
   }else{
     document.getElementById('shopOpen').checked=true;
-    const dc=cfg.locationCharges||{};
-    document.getElementById('lcNTPC').value=dc['NTPC Township']||'';
-    document.getElementById('lcGAIL').value=dc['GAIL Gaon']||'';
-    document.getElementById('lcPATA').value=dc['PATA Main Gate']||'';
-    document.getElementById('lcGVIHAR').value=dc['GAIL Vihar']||'';
-    document.getElementById('lcGGAONGATE').value=dc['GAIL Gaon Gate']||'';
-    document.getElementById('lcRAGHAV').value=dc['Raghav Palace Hotel']||'';
-    document.getElementById('lcOTHERS').value=dc['Others']||'';
+    fillLocationChargeFields(cfg.locationCharges);
     // No override → pre-load WEEKDAY DEFAULT menu
     const wd=weekdayKey(ds);
     masterItems.forEach(item=>{
@@ -2534,6 +2523,59 @@ function qtyForDay(item,wd){
 }
 window.togToday=function(idx){masterItems[idx].todayActive=!!document.getElementById('tt_'+idx).checked;renderToday();};
 
+// ---- LOCATION DELIVERY CHARGES ----
+// Single source of truth for the location list so every place that reads/writes
+// these fields (Setup card, Menu-tab shopOpen toggle, Save & Publish Menu) stays in sync.
+// Default charge is ₹15 for every location unless the admin types a different
+// number into that field AND saves it.
+const LOC_CHARGE_FIELDS=[
+  ['NTPC Township','lcNTPC'],
+  ['GAIL Gaon','lcGAIL'],
+  ['PATA Main Gate','lcPATA'],
+  ['GAIL Vihar','lcGVIHAR'],
+  ['GAIL Gaon Gate','lcGGAONGATE'],
+  ['Raghav Palace Hotel','lcRAGHAV'],
+  ['Saint Josef School Gate','lcSTJOSEF'],
+  ['Others','lcOTHERS']
+];
+function readLocationCharges(){
+  const lc={};
+  LOC_CHARGE_FIELDS.forEach(([name,id])=>{
+    const el=document.getElementById(id);
+    const raw=el?el.value.trim():'';
+    lc[name]=raw===''?15:(Number(raw)||0);
+  });
+  return lc;
+}
+function fillLocationChargeFields(src){
+  const s=src||{};
+  LOC_CHARGE_FIELDS.forEach(([name,id])=>{
+    const el=document.getElementById(id);
+    if(el) el.value=(s[name]!=null?s[name]:15);
+  });
+}
+window.saveDeliveryCharges=async function(){
+  const lc=readLocationCharges();
+  const btn=event&&event.target;
+  if(btn){btn.textContent='Saving…';btn.disabled=true;}
+  try{
+    cfg.locationCharges=lc;
+    await saveConfig(cfg);
+    // Keep today's/selected date's override in sync too, so an already-published
+    // day doesn't keep showing the OLD charges to customers.
+    if(selMenuDate){
+      try{
+        const existing=await getDailyMenu(selMenuDate);
+        if(existing&&!existing.isDefault){
+          await saveDailyMenu(selMenuDate,{...existing,locationCharges:lc});
+        }
+      }catch(e){}
+    }
+    showToast('✅ Delivery charges saved!');
+  }catch(e){alert('Error: '+e.message);}
+  if(btn){btn.textContent='💾 Save Delivery Charges';btn.disabled=false;}
+};
+
 window.toggleShopOpen=async function(){
   if(!selMenuDate)return;
   const isOpen=document.getElementById('shopOpen').checked;
@@ -2546,7 +2588,7 @@ window.toggleShopOpen=async function(){
     // Nothing selected on screen — keep the day's existing items instead of wiping them.
     try{ const existing=await getDailyMenu(selMenuDate); if(existing&&Array.isArray(existing.items)&&existing.items.length) active=existing.items; }catch(e){}
   }
-  const lc={'NTPC Township':Number(document.getElementById('lcNTPC').value)||0,'GAIL Gaon':Number(document.getElementById('lcGAIL').value)||0,'PATA Main Gate':Number(document.getElementById('lcPATA').value)||0,'GAIL Vihar':Number(document.getElementById('lcGVIHAR').value)||0,'GAIL Gaon Gate':Number(document.getElementById('lcGGAONGATE').value)||0,'Raghav Palace Hotel':Number(document.getElementById('lcRAGHAV').value)||0,'Others':Number(document.getElementById('lcOTHERS').value)||0};
+  const lc=readLocationCharges();
   try{
     await saveDailyMenu(selMenuDate,{date:selMenuDate,isOpen,locationCharges:lc,shopName:cfg.shopName||'Kicken Bites',upiId:cfg.upiId||'',upiName:cfg.upiName||'',imgbbKey:cfg.imgbbKey||'',items:active});
     showToast(isOpen?'✅ Orders ON for '+formatDisplayDate(selMenuDate)+' — stays on until you change it':'🚫 Orders CLOSED for '+formatDisplayDate(selMenuDate)+' — stays closed until you reopen it');
@@ -2564,7 +2606,7 @@ window.saveTodayMenu=async function(){
   masterItems.forEach((item,idx)=>{const qe=document.getElementById('tq_'+idx);if(qe)item.availableQty=parseInt(qe.value)||0;item.todayActive=!!document.getElementById('tt_'+idx)?.checked;});
   const active=masterItems.filter(i=>i.todayActive);
   if(!active.length){alert('Please select at least one item');return;}
-  const lc={'NTPC Township':Number(document.getElementById('lcNTPC').value)||0,'GAIL Gaon':Number(document.getElementById('lcGAIL').value)||0,'PATA Main Gate':Number(document.getElementById('lcPATA').value)||0,'GAIL Vihar':Number(document.getElementById('lcGVIHAR').value)||0,'GAIL Gaon Gate':Number(document.getElementById('lcGGAONGATE').value)||0,'Raghav Palace Hotel':Number(document.getElementById('lcRAGHAV').value)||0,'Others':Number(document.getElementById('lcOTHERS').value)||0};
+  const lc=readLocationCharges();
   const btn=event.target;btn.textContent='Saving…';btn.disabled=true;
   try{
     // Save charges to Firebase config so they persist as defaults
@@ -3090,6 +3132,7 @@ function loadSetupFields(){
     var dSel=document.getElementById('sDefaultBoy');
     if(dSel) dSel.value=cfg.defaultBoyPhone;
   }
+  fillLocationChargeFields(cfg.locationCharges);
 }
 
 window.saveSetup=async function(){
@@ -3125,7 +3168,7 @@ window.saveSetup=async function(){
     const el=document.getElementById('s'+k.charAt(0).toUpperCase()+k.slice(1));
     pickup[k]=((el?.value)||'').trim().slice(0,80);
   });
-  cfg={...cfg,shopName:document.getElementById('sName').value,upiId:document.getElementById('sUpi').value,upiName:document.getElementById('sUpiName').value,imgbbKey:imgbbKey||cfg.imgbbKey||'',adminPhone:adminPhone||cfg.adminPhone||'',defaultBoyPhone:defaultBoyPhone,duesLimit,payLaterMinOrders,mealLabel,...pickup};
+  cfg={...cfg,shopName:document.getElementById('sName').value,upiId:document.getElementById('sUpi').value,upiName:document.getElementById('sUpiName').value,imgbbKey:imgbbKey||cfg.imgbbKey||'',adminPhone:adminPhone||cfg.adminPhone||'',defaultBoyPhone:defaultBoyPhone,duesLimit,payLaterMinOrders,mealLabel,...pickup,locationCharges:readLocationCharges()};
   try{await saveConfig(cfg);showToast('✅ Settings saved!');}catch(e){alert('Error: '+e.message);}
 };
 
@@ -3397,10 +3440,9 @@ window.toggleSec=function(id,group){
   }
 };
 function initCollapsibleSections(){
-  // Orders tab: glance info admin checks every session -> default OPEN
-  const openByDefault=['stats','delivery'];
-  // Rarely-touched settings + the consolidated Extra page -> default CLOSED to cut page bulk
-  const closedByDefault=SEC_GROUPS.setup.concat(SEC_GROUPS.extra);
+  // User wants EVERY collapsible section closed by default, everywhere.
+  const openByDefault=[];
+  const closedByDefault=['stats','delivery'].concat(SEC_GROUPS.setup).concat(SEC_GROUPS.extra);
   openByDefault.concat(closedByDefault).forEach(id=>{
     let saved=null; try{saved=localStorage.getItem('kb_adm_sec_'+id);}catch(e){}
     const isOpen = saved ? saved==='open' : openByDefault.includes(id);
