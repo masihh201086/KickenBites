@@ -163,6 +163,7 @@ input:checked+.slider:before{transform:translateX(20px);}
 /* MASTER MENU */
 .mi-row{background:white;border:none;border-radius:14px;padding:11px;margin-bottom:9px;box-shadow:var(--sh-sm);}
 .mi-top{display:flex;gap:8px;align-items:flex-start;}
+.mi-left{width:88px;flex-shrink:0;display:flex;flex-direction:column;gap:5px;}
 .mi-imgbox{width:88px;height:88px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:2.2rem;position:relative;cursor:pointer;}
 .mi-imgbox img{width:88px;height:88px;object-fit:cover;}
 .mi-overlay{position:absolute;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
@@ -270,6 +271,13 @@ input:checked+.slider:before{transform:translateX(20px);}
 .aw-fill{height:100%;background:linear-gradient(90deg,#f59e0b,#e65c00);border-radius:5px;}
 .wd-tog{width:34px;height:30px;border-radius:8px;border:2px solid #e5e5e5;background:white;font-size:.68rem;font-weight:800;cursor:pointer;color:#999;font-family:inherit;}
 .wd-tog.on{border-color:var(--g);background:#f0fdf4;color:var(--g);}
+/* Session COMPACT-MASTER-2: weekday list moved into the image's left column
+   (side space that used to sit empty below it), so it no longer needs its own
+   full-width row below all the fields. */
+.wd-row{display:flex;align-items:center;gap:3px;}
+.wd-tog-sm{width:30px;height:22px;border-radius:5px;border:1.5px solid #e5e5e5;background:white;font-size:.6rem;font-weight:800;cursor:pointer;color:#999;font-family:inherit;flex-shrink:0;padding:0;}
+.wd-tog-sm.on{border-color:var(--g);background:#f0fdf4;color:var(--g);}
+.wd-qty-sm{width:100%;min-width:0;padding:2px 3px;border:1px solid #ddd;border-radius:5px;font-size:.62rem;text-align:center;font-family:inherit;}
 .cta-btn{display:inline-block;background:linear-gradient(135deg,#22c55e,#16a34a);color:white!important;font-weight:800;font-size:.85rem;padding:11px 22px;border-radius:11px;text-decoration:none;text-align:center;margin-top:8px;box-shadow:0 2px 8px rgba(34,197,94,.35);letter-spacing:.02em;}
 .cta-btn:active{transform:scale(.97);}
 </style>
@@ -598,37 +606,6 @@ input:checked+.slider:before{transform:translateX(20px);}
       </div>
     </div>
 
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleSec('ai','extra')">
-        <div class="ct" style="margin:0">📊 Demand Prediction</div>
-        <span id="chev-ai" style="transition:transform .2s;font-size:.85rem;color:var(--muted)">▼</span>
-      </div>
-      <div id="sec-ai" style="margin-top:9px;display:none">
-        <div class="ai-card">
-          <div class="ai-title">📊 Demand Prediction</div>
-          <div class="ai-sub">Predicts how much to prepare based on history, day, weather patterns, and advance bookings.</div>
-        </div>
-        <div class="card" style="box-shadow:none;border:1px solid #f0e5da">
-          <div class="ct">Select Date for Prediction</div>
-          <input type="date" class="inp" id="aiDate" style="width:100%;margin-bottom:8px">
-          <button class="btn btn-o" onclick="runPrediction()" style="margin-top:0">🔮 Predict Demand</button>
-        </div>
-        <div id="aiResults"></div>
-        <div class="card" style="box-shadow:none;border:1px solid #f0e5da">
-          <div class="ct">Prediction Accuracy</div>
-          <div class="acc-grid">
-            <div class="acc-box"><div class="acc-val" id="accToday">—</div><div class="acc-lbl">Today</div></div>
-            <div class="acc-box"><div class="acc-val" id="accWeek">—</div><div class="acc-lbl">This Week</div></div>
-            <div class="acc-box"><div class="acc-val" id="accMonth">—</div><div class="acc-lbl">This Month</div></div>
-          </div>
-        </div>
-        <div class="card" style="box-shadow:none;border:1px solid #f0e5da;margin-bottom:0">
-          <div class="ct">Smart Recommendations</div>
-          <div id="aiRecs"><p style="color:var(--muted);font-size:.8rem">Run a prediction to see recommendations</p></div>
-        </div>
-      </div>
-    </div>
-
   </div>
 
 
@@ -734,8 +711,10 @@ input:checked+.slider:before{transform:translateX(20px);}
       <div class="lc-grid">
         <div class="lc-item"><label>NTPC Township</label><input class="inp" type="number" inputmode="numeric" id="lcNTPC" placeholder="₹"></div>
         <div class="lc-item"><label>GAIL Gaon</label><input class="inp" type="number" inputmode="numeric" id="lcGAIL" placeholder="₹"></div>
-        <div class="lc-item"><label>PATA Gate</label><input class="inp" type="number" inputmode="numeric" id="lcPATA" placeholder="₹"></div>
+        <div class="lc-item"><label>PATA Main Gate</label><input class="inp" type="number" inputmode="numeric" id="lcPATA" placeholder="₹"></div>
         <div class="lc-item"><label>GAIL Vihar</label><input class="inp" type="number" inputmode="numeric" id="lcGVIHAR" placeholder="₹"></div>
+        <div class="lc-item"><label>GAIL Gaon Gate</label><input class="inp" type="number" inputmode="numeric" id="lcGGAONGATE" placeholder="₹"></div>
+        <div class="lc-item"><label>Raghav Palace Hotel</label><input class="inp" type="number" inputmode="numeric" id="lcRAGHAV" placeholder="₹"></div>
         <div class="lc-item"><label>Others</label><input class="inp" type="number" inputmode="numeric" id="lcOTHERS" placeholder="₹"></div>
       </div>
       </div>
@@ -1867,7 +1846,7 @@ function addCustomerPinsToMap(){
   custMapMarkers.forEach(m=>{try{adminMap.removeLayer(m);}catch(e){}});
   custMapMarkers.length=0;
   // Known area coordinates
-  const COORDS={'NTPC Township':{lat:26.6500,lng:79.4800},'GAIL Gaon':{lat:26.6420,lng:79.4950},'PATA Gate':{lat:26.6380,lng:79.5020},'GAIL Vihar':{lat:26.6460,lng:79.4880}};
+  const COORDS={'NTPC Township':{lat:26.6500,lng:79.4800},'GAIL Gaon':{lat:26.6420,lng:79.4950},'PATA Main Gate':{lat:26.6380,lng:79.5020},'GAIL Vihar':{lat:26.6460,lng:79.4880}};
   const activeOrders=allOrders.filter(o=>['confirmed','preparing','ready','out_for_delivery'].includes(o.status)&&o.orderType==='delivery');
   activeOrders.forEach((o,i)=>{
     let pos=null;
@@ -2435,8 +2414,10 @@ window.loadMenuDate=async function(ds){
     const lc=existing.locationCharges||{};
     document.getElementById('lcNTPC').value=lc['NTPC Township']||'';
     document.getElementById('lcGAIL').value=lc['GAIL Gaon']||'';
-    document.getElementById('lcPATA').value=lc['PATA Gate']||'';
+    document.getElementById('lcPATA').value=lc['PATA Main Gate']||'';
     document.getElementById('lcGVIHAR').value=lc['GAIL Vihar']||'';
+    document.getElementById('lcGGAONGATE').value=lc['GAIL Gaon Gate']||'';
+    document.getElementById('lcRAGHAV').value=lc['Raghav Palace Hotel']||'';
     document.getElementById('lcOTHERS').value=lc['Others']||'';
     const savedIds=(existing.items||[]).map(i=>i.id);
     masterItems.forEach(item=>{item.todayActive=savedIds.includes(item.id);const si=(existing.items||[]).find(i=>i.id===item.id);item.availableQty=si?si.availableQty:0;});
@@ -2445,8 +2426,10 @@ window.loadMenuDate=async function(ds){
     const dc=cfg.locationCharges||{};
     document.getElementById('lcNTPC').value=dc['NTPC Township']||'';
     document.getElementById('lcGAIL').value=dc['GAIL Gaon']||'';
-    document.getElementById('lcPATA').value=dc['PATA Gate']||'';
+    document.getElementById('lcPATA').value=dc['PATA Main Gate']||'';
     document.getElementById('lcGVIHAR').value=dc['GAIL Vihar']||'';
+    document.getElementById('lcGGAONGATE').value=dc['GAIL Gaon Gate']||'';
+    document.getElementById('lcRAGHAV').value=dc['Raghav Palace Hotel']||'';
     document.getElementById('lcOTHERS').value=dc['Others']||'';
     // No override → pre-load WEEKDAY DEFAULT menu
     const wd=weekdayKey(ds);
@@ -2563,7 +2546,7 @@ window.toggleShopOpen=async function(){
     // Nothing selected on screen — keep the day's existing items instead of wiping them.
     try{ const existing=await getDailyMenu(selMenuDate); if(existing&&Array.isArray(existing.items)&&existing.items.length) active=existing.items; }catch(e){}
   }
-  const lc={'NTPC Township':Number(document.getElementById('lcNTPC').value)||0,'GAIL Gaon':Number(document.getElementById('lcGAIL').value)||0,'PATA Gate':Number(document.getElementById('lcPATA').value)||0,'GAIL Vihar':Number(document.getElementById('lcGVIHAR').value)||0,'Others':Number(document.getElementById('lcOTHERS').value)||0};
+  const lc={'NTPC Township':Number(document.getElementById('lcNTPC').value)||0,'GAIL Gaon':Number(document.getElementById('lcGAIL').value)||0,'PATA Main Gate':Number(document.getElementById('lcPATA').value)||0,'GAIL Vihar':Number(document.getElementById('lcGVIHAR').value)||0,'GAIL Gaon Gate':Number(document.getElementById('lcGGAONGATE').value)||0,'Raghav Palace Hotel':Number(document.getElementById('lcRAGHAV').value)||0,'Others':Number(document.getElementById('lcOTHERS').value)||0};
   try{
     await saveDailyMenu(selMenuDate,{date:selMenuDate,isOpen,locationCharges:lc,shopName:cfg.shopName||'Kicken Bites',upiId:cfg.upiId||'',upiName:cfg.upiName||'',imgbbKey:cfg.imgbbKey||'',items:active});
     showToast(isOpen?'✅ Orders ON for '+formatDisplayDate(selMenuDate)+' — stays on until you change it':'🚫 Orders CLOSED for '+formatDisplayDate(selMenuDate)+' — stays closed until you reopen it');
@@ -2581,7 +2564,7 @@ window.saveTodayMenu=async function(){
   masterItems.forEach((item,idx)=>{const qe=document.getElementById('tq_'+idx);if(qe)item.availableQty=parseInt(qe.value)||0;item.todayActive=!!document.getElementById('tt_'+idx)?.checked;});
   const active=masterItems.filter(i=>i.todayActive);
   if(!active.length){alert('Please select at least one item');return;}
-  const lc={'NTPC Township':Number(document.getElementById('lcNTPC').value)||0,'GAIL Gaon':Number(document.getElementById('lcGAIL').value)||0,'PATA Gate':Number(document.getElementById('lcPATA').value)||0,'GAIL Vihar':Number(document.getElementById('lcGVIHAR').value)||0,'Others':Number(document.getElementById('lcOTHERS').value)||0};
+  const lc={'NTPC Township':Number(document.getElementById('lcNTPC').value)||0,'GAIL Gaon':Number(document.getElementById('lcGAIL').value)||0,'PATA Main Gate':Number(document.getElementById('lcPATA').value)||0,'GAIL Vihar':Number(document.getElementById('lcGVIHAR').value)||0,'GAIL Gaon Gate':Number(document.getElementById('lcGGAONGATE').value)||0,'Raghav Palace Hotel':Number(document.getElementById('lcRAGHAV').value)||0,'Others':Number(document.getElementById('lcOTHERS').value)||0};
   const btn=event.target;btn.textContent='Saving…';btn.disabled=true;
   try{
     // Save charges to Firebase config so they persist as defaults
@@ -2686,9 +2669,21 @@ function renderMaster(){
   list.innerHTML=masterItems.map((item,idx)=>`
     <div class="mi-row" id="mr_${idx}">
       <div class="mi-top">
-        <div class="mi-imgbox" onclick="trigImg(${idx})">
-          ${item.imageUrl?`<img src="${item.imageUrl}" onerror="this.style.display='none'">`:item.emoji||'🍛'}
-          <div class="mi-overlay"><span>📷 Change</span></div>
+        <div class="mi-left">
+          <div class="mi-imgbox" onclick="trigImg(${idx})">
+            ${item.imageUrl?`<img src="${item.imageUrl}" onerror="this.style.display='none'">`:item.emoji||'🍛'}
+            <div class="mi-overlay"><span>📷 Change</span></div>
+          </div>
+          <div class="wd-list">
+            ${['mon','tue','wed','thu','fri','sat','sun'].map(wd=>{
+              const on=item.weekdays&&item.weekdays[wd];
+              const q=(item.dayQty&&item.dayQty[wd]!=null)?item.dayQty[wd]:(on?(item.defaultQty||''):'');
+              return `<div class="wd-row">
+                <button type="button" class="wd-tog-sm ${on?'on':''}" onclick="togWD(${idx},'${wd}')">${wd[0].toUpperCase()+wd[1]}</button>
+                ${on?`<input class="wd-qty-sm" type="number" inputmode="numeric" min="0" value="${q}" placeholder="Qty" onchange="setDayQty(${idx},'${wd}',this.value)">`:''}
+              </div>`;
+            }).join('')}
+          </div>
         </div>
         <div class="mi-fields">
           <div class="inp-row">
@@ -2709,19 +2704,6 @@ function renderMaster(){
             <div><label>Emoji</label><input class="inp" data-i="${idx}" data-f="emoji" value="${item.emoji||'🍛'}" placeholder="🍛"></div>
           </div>
           <input class="inp" data-i="${idx}" data-f="desc" value="${item.desc||''}" placeholder="Description (optional)">
-          <div>
-            <div style="font-size:.6rem;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:4px">🗓️ Weekly Default Days + Qty per day</div>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:flex-start">
-              ${['mon','tue','wed','thu','fri','sat','sun'].map(wd=>{
-                const on=item.weekdays&&item.weekdays[wd];
-                const q=(item.dayQty&&item.dayQty[wd]!=null)?item.dayQty[wd]:(on?(item.defaultQty||''):'');
-                return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-                  <button type="button" class="wd-tog ${on?'on':''}" onclick="togWD(${idx},'${wd}')">${wd[0].toUpperCase()+wd[1]}</button>
-                  ${on?`<input class="inp" type="number" inputmode="numeric" min="0" value="${q}" placeholder="Qty" style="width:42px;padding:4px;font-size:.72rem;text-align:center" onchange="setDayQty(${idx},'${wd}',this.value)">`:'<div style="height:26px"></div>'}
-                </div>`;
-              }).join('')}
-            </div>
-          </div>
           <div class="up-status" id="us_${idx}"></div>
         </div>
         <button class="rm-btn" onclick="removeItem(${idx})">×</button>
@@ -2820,104 +2802,6 @@ window.doPrint=function(){
   window.print();setTimeout(()=>{document.getElementById('printArea').style.display='none';},1500);
 };
 
-// ---- AI DEMAND ----
-window.runPrediction=async function(){
-  const ds=document.getElementById('aiDate').value;
-  if(!ds){alert('Please select a date');return;}
-  const btn=event.target;btn.textContent='Predicting…';btn.disabled=true;
-  // Get historical orders to base predictions on
-  const allSnap=await getDocs(collection(db,'orders'));
-  const allO=allSnap.docs.map(d=>d.data());
-  const d=new Date(ds+'T00:00:00');
-  const dow=d.getDay(); // 0=Sun
-  const isWeekend=dow===0||dow===6;
-  const daysOfWeek=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  // Count item frequency for this day of week
-  const itemHist={};
-  allO.filter(o=>o.status!=='cancelled').forEach(o=>{
-    const od=new Date((o.createdAt||''));
-    if(od.getDay()===dow){(o.items||[]).forEach(i=>{itemHist[i.name]=(itemHist[i.name]||{count:0,qty:0});itemHist[i.name].count++;itemHist[i.name].qty+=i.qty;});}
-  });
-  // Recent-vs-older trend for this item on this weekday — is demand rising or falling
-  // over the last several weeks? Splits same-weekday order dates into an older half
-  // and a recent half and compares average qty/day.
-  function itemTrend(name){
-    const byDate={};
-    allO.filter(o=>o.status!=='cancelled').forEach(o=>{
-      const od=new Date(o.createdAt||''); if(od.getDay()!==dow) return;
-      const key=(o.createdAt||'').slice(0,10);
-      (o.items||[]).forEach(it=>{ if(it.name!==name) return; byDate[key]=(byDate[key]||0)+(Number(it.qty)||0); });
-    });
-    const dates=Object.keys(byDate).sort();
-    if(dates.length<4) return null; // not enough same-weekday history to call a trend
-    const half=Math.floor(dates.length/2);
-    const older=dates.slice(0,half).reduce((s,k)=>s+byDate[k],0)/half;
-    const recent=dates.slice(half).reduce((s,k)=>s+byDate[k],0)/(dates.length-half);
-    if(older<=0) return null;
-    if(recent>older*1.15) return {dir:'up',pct:Math.round((recent/older-1)*100)};
-    if(recent<older*0.85) return {dir:'down',pct:Math.round((1-recent/older)*100)};
-    return {dir:'stable',pct:0};
-  }
-  // Get advance bookings for that date
-  const advance=allO.filter(o=>o.scheduledFor===ds&&o.status!=='cancelled');
-  const advQty={};advance.forEach(o=>(o.items||[]).forEach(i=>{advQty[i.name]=(advQty[i.name]||0)+i.qty;}));
-  // Pick top 2 items from master menu
-  const menuItems=masterItems.filter(i=>i.name&&i.price>0).slice(0,6);
-  const predictions=menuItems.map(item=>{
-    const hist=itemHist[item.name]||{count:0,qty:0};
-    const avgQty=hist.count>0?Math.round(hist.qty/hist.count):0;
-    const adv=advQty[item.name]||0;
-    const trend=itemTrend(item.name);
-    const trendMult=trend?(trend.dir==='up'?1+trend.pct/100:trend.dir==='down'?1-trend.pct/100:1):1;
-    const base=avgQty||10;
-    const multiplier=(isWeekend?1.3:1.0)*trendMult;
-    const recommended=Math.round(base*multiplier+adv*1.5);
-    const confidence=hist.count>3?Math.min(95,70+hist.count*3):hist.count>0?60:40;
-    const reasons=[];
-    if(isWeekend)reasons.push(`📅 ${daysOfWeek[dow]} (weekend — usually higher)`);
-    else reasons.push(`📅 ${daysOfWeek[dow]} (weekday)`);
-    if(hist.count>0)reasons.push(`📊 Avg ${avgQty} plates on ${daysOfWeek[dow]}s (from ${hist.count} past order${hist.count===1?'':'s'})`);
-    else reasons.push('📊 No past-order history for this weekday yet — estimate only');
-    if(trend&&trend.dir==='up')reasons.push(`📈 Recent ${daysOfWeek[dow]}s trending UP ~${trend.pct}% vs earlier weeks`);
-    else if(trend&&trend.dir==='down')reasons.push(`📉 Recent ${daysOfWeek[dow]}s trending DOWN ~${trend.pct}% vs earlier weeks`);
-    else if(trend)reasons.push(`➖ Demand steady over recent ${daysOfWeek[dow]}s`);
-    if(adv>0)reasons.push(`🎉 ${adv} advance/party booking${adv===1?'':'s'} already placed for this date`);
-    if(hist.count<=3)reasons.push('⚠️ Confidence is low — not much past data for this weekday yet');
-    return{name:item.name,recommended,confidence,expected:{min:Math.max(0,recommended-5),max:recommended+8},reasons};
-  }).sort((a,b)=>b.recommended-a.recommended).slice(0,2);
-
-  const dateDisp=d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
-  let html=`<div class="ct" style="padding:0 0 8px">Prediction for ${dateDisp}</div>`;
-  html+=`<div style="background:var(--bp);border-radius:10px;padding:10px 11px;margin-bottom:11px;font-size:.76rem;color:#1e40af;line-height:1.55">
-    🌦️ <b>Mausam ka bhi khayal rakhein:</b> Ye prediction sirf aapke past orders aur din ke pattern (weekday/weekend) par based hai — live weather data isme shaamil nahi hai. Baarish, bohot thand ya garmi jaisa mausam order kam-zyada kar sakta hai, apne experience se adjust kar lein.
-  </div>`;
-  predictions.forEach(p=>{
-    html+=`<div class="pred-card">
-      <div class="pred-item">🍛 ${p.name}</div>
-      <div style="display:flex;align-items:baseline;gap:8px">
-        <div class="pred-qty">${p.recommended}</div>
-        <div style="font-size:.78rem;color:var(--muted)">plates recommended</div>
-      </div>
-      <div class="pred-conf">✅ ${p.confidence}% confidence | Expected: ${p.expected.min}–${p.expected.max} plates</div>
-      <div class="pred-reason"><b>Kyun:</b><br>${p.reasons.map(r=>'• '+r).join('<br>')}</div>
-    </div>`;
-  });
-  document.getElementById('aiResults').innerHTML=html;
-  // Accuracy (mock based on data availability)
-  const hasData=Object.keys(itemHist).length>0;
-  document.getElementById('accToday').textContent=hasData?'87%':'N/A';
-  document.getElementById('accWeek').textContent=hasData?'82%':'N/A';
-  document.getElementById('accMonth').textContent=hasData?'79%':'N/A';
-  // Recommendations
-  const top=predictions[0];
-  document.getElementById('aiRecs').innerHTML=`<div style="font-size:.82rem;line-height:1.8">
-    ✔ <b>Increase preparation:</b> ${top?.name||'—'}<br>
-    📅 <b>Day:</b> ${daysOfWeek[dow]} ${isWeekend?'(Weekend — higher demand)':'(Weekday)'}<br>
-    💡 <b>Tip:</b> ${isWeekend?'Stock up 30% more on weekends':'Typical weekday demand — prepare standard quantities'}<br>
-    💰 <b>Expected Revenue:</b> ₹${predictions.reduce((s,p)=>s+p.recommended*(masterItems.find(i=>i.name===p.name)?.price||0),0)}
-  </div>`;
-  btn.textContent='🔮 Predict Demand';btn.disabled=false;
-};
 
 // ---- DELIVERY BOY PAYMENTS (B) ----
 let _payMonth={type:'thismonth',val:''};
@@ -3485,7 +3369,7 @@ window.waRecipeList=function(id,plates){
 // Orders tab (stats/delivery) is intentionally NOT grouped — both can stay open together.
 const SEC_GROUPS={
   setup:['master','setupShop','setupTakeaway','setupCharges','setupBoys','setupBoyPay','setupPassword','setupCustomers','setupDefaultBoy'],
-  extra:['ratings','wish','party','recipe','print','ai']
+  extra:['ratings','wish','party','recipe','print']
 };
 const SEC_LOADERS={ratings:function(){loadRatings();}, wish:function(){loadAdminWish();}, recipe:function(){loadRecipeList();}};
 const SEC_LOADED={};
@@ -3547,7 +3431,7 @@ setTimeout(function(){
       setTimeout(function(){ toggleSec('master','setup'); },50);
       return;
     }
-    var movedToExtra=['ratings','wish','party','recipe','print','ai'];
+    var movedToExtra=['ratings','wish','party','recipe','print'];
     if(sv && movedToExtra.indexOf(sv)>-1){
       sw('extra');
       setTimeout(function(){ toggleSec(sv,'extra'); },50);
@@ -4303,7 +4187,7 @@ function renderPaylistChips(){
   html+=days.map(function(d,i){
     const sel=paylistFilter===d.date;
     const lbl=i===0?'Today':(i===1?'Tomorrow':d.wd);
-    return '<button onclick="setPaylistFilter(\''+d.date+'\')" style="flex-shrink:0;padding:8px 12px;border-radius:10px;border:1.5px solid '+(sel?'var(--orange)':'#ddd')+';background:'+(sel?'var(--orange)':'#fff')+';color:'+(sel?'#fff':'#333')+';font-weight:800;font-size:.74rem;cursor:pointer;text-align:center">'+lbl+'<br><span style="font-weight:600;font-size:.68rem">'+d.wd+' '+d.dayNum+'</span></button>';
+    return '<button onclick="setPaylistFilter(\''+d.date+'\')" style="flex-shrink:0;padding:8px 12px;border-radius:10px;border:1.5px solid '+(sel?'var(--o)':'#ddd')+';background:'+(sel?'var(--o)':'#fff')+';color:'+(sel?'#fff':'#333')+';font-weight:800;font-size:.74rem;cursor:pointer;text-align:center">'+lbl+'<br><span style="font-weight:600;font-size:.68rem">'+d.wd+' '+d.dayNum+'</span></button>';
   }).join('');
   wrap.innerHTML=html;
 }
@@ -4346,7 +4230,7 @@ function initAdminTrackMap(){
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:19}).addTo(atMap);
   }
   // Known area coordinates
-  const COORDS={'NTPC Township':{lat:26.6500,lng:79.4800},'GAIL Gaon':{lat:26.6420,lng:79.4950},'PATA Gate':{lat:26.6380,lng:79.5020},'GAIL Vihar':{lat:26.6460,lng:79.4880}};
+  const COORDS={'NTPC Township':{lat:26.6500,lng:79.4800},'GAIL Gaon':{lat:26.6420,lng:79.4950},'PATA Main Gate':{lat:26.6380,lng:79.5020},'GAIL Vihar':{lat:26.6460,lng:79.4880}};
   
   // Add customer delivery pins
   atCustMarkers.forEach(m=>{try{atMap.removeLayer(m);}catch(e){}});
@@ -4505,12 +4389,9 @@ window.generateCollage = async function(itemsOverride, showPopup){
   const PAD = 12;
   const HEADER_H = 74;  // chhota header (tha 100)
   const FOOTER_H = 34;  // chhota footer (tha 48)
-  // Orders-tab reminder collage gets an extra bar below the item grid showing whether
-  // the shop is currently taking orders — "current status" the user asked for.
-  const STATUS_H = showPopup ? 56 : 0;
 
   canvas.width  = COLS*CELL_W + (COLS+1)*PAD;
-  canvas.height = HEADER_H + ROWS*(CELL_H+PAD) + PAD + STATUS_H + FOOTER_H;
+  canvas.height = HEADER_H + ROWS*(CELL_H+PAD) + PAD + FOOTER_H;
 
   // BG
   var bg = ctx.createLinearGradient(0,0,0,canvas.height);
@@ -4630,16 +4511,17 @@ window.generateCollage = async function(itemsOverride, showPopup){
       ctx.textBaseline = 'middle';
       ctx.fillText(_bTxt, _bX + _bW/2, _bY + _bH/2 + 1);
       ctx.textBaseline = 'alphabetic';      // reset for other text
-      // Fill bar along the bottom of the image showing how full the batch is
-      var barY = y+IMG_H-14, barX = x+10, barW = CELL_W-20, barH = 8;
-      var bookedPct = _start>0 ? Math.min(100, Math.round((_booked/_start)*100)) : 0;
-      var remPct = 100 - bookedPct;
+      // Remaining-qty fill bar along the bottom of the image — fill = REMAINING stock
+      // (was showing "booked" %, which meant a healthy full-stock day showed an almost
+      // EMPTY bar — backwards. Also made taller + opaque track so it's visible on any photo.)
+      var barY = y+IMG_H-22, barX = x+10, barW = CELL_W-20, barH = 14;
+      var remPct = _start>0 ? Math.max(0, Math.min(100, Math.round((_rem/_start)*100))) : 0;
       var barColor = remPct>50 ? '#22c55e' : (remPct>20 ? '#f59e0b' : '#ef4444');
-      // track
-      ctx.fillStyle = 'rgba(255,255,255,.55)';
-      rRect(barX, barY, barW, barH, 4); ctx.fill();
-      // fill
-      if(bookedPct>0){ ctx.fillStyle = barColor; rRect(barX, barY, Math.max(6, barW*bookedPct/100), barH, 4); ctx.fill(); }
+      // track (dark, opaque — stays visible over any food photo)
+      ctx.fillStyle = 'rgba(0,0,0,.4)';
+      rRect(barX, barY, barW, barH, 7); ctx.fill();
+      // fill = remaining stock
+      if(remPct>0){ ctx.fillStyle = barColor; rRect(barX, barY, Math.max(10, barW*remPct/100), barH, 7); ctx.fill(); }
     }
 
     // Item name
@@ -4654,27 +4536,8 @@ window.generateCollage = async function(itemsOverride, showPopup){
     ctx.fillText('Rs '+item.price, x+CELL_W/2, y+IMG_H+58);
   });
 
-  // CURRENT STATUS BAR (Orders-tab reminder only) — shows whether the shop is
-  // taking orders right now, pulled from the same toggle as the Menu tab's
-  // "Accept orders on this date?" switch.
-  var statusBarY = HEADER_H + ROWS*(CELL_H+PAD) + PAD;
-  if(STATUS_H>0){
-    var isTakingOrders = true;
-    try{ var _so=document.getElementById('shopOpen'); if(_so) isTakingOrders=_so.checked; }catch(e){}
-    ctx.fillStyle = isTakingOrders ? '#22c55e' : '#ef4444';
-    rRect(PAD, statusBarY, canvas.width-PAD*2, STATUS_H-10, 12);
-    ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 24px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    var _statusTxt = isTakingOrders ? '✅ Taking Orders Now' : '⛔ Orders Closed Right Now';
-    ctx.fillText(_statusTxt, canvas.width/2, statusBarY+(STATUS_H-10)/2+1);
-    ctx.textBaseline = 'alphabetic';
-  }
-
   // FOOTER
-  var fy = HEADER_H + ROWS*(CELL_H+PAD) + PAD + STATUS_H + 10;
+  var fy = HEADER_H + ROWS*(CELL_H+PAD) + PAD + 10;
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
   ctx.font = '14px sans-serif';
   ctx.textAlign = 'center';

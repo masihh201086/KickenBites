@@ -24,11 +24,11 @@
   --sh-brand:0 5px 18px rgba(230,92,0,.32);
   --r-lg:18px;--hdr-h:68px;}
 *{box-sizing:border-box;margin:0;padding:0;}
-html{overscroll-behavior-y:none;}
+html{overscroll-behavior-y:auto;}
 /* Point 1: har button/tappable ko halka press-feedback */
 button:active{transform:scale(.96);}
 button{transition:transform .1s ease;}
-body{font-family:var(--font-body);background:var(--obg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none;}
+body{font-family:var(--font-body);background:var(--obg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
 h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 
 /* LOADING */
@@ -797,8 +797,10 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
                   <option value="">-- Select area --</option>
                   <option value="NTPC Township">NTPC Township</option>
                   <option value="GAIL Gaon">GAIL Gaon</option>
-                  <option value="PATA Gate">PATA Gate</option>
+                  <option value="PATA Main Gate">PATA Main Gate</option>
                   <option value="GAIL Vihar">GAIL Vihar</option>
+                  <option value="GAIL Gaon Gate">GAIL Gaon Gate</option>
+                  <option value="Raghav Palace Hotel">Raghav Palace Hotel</option>
                   <option value="Others">Others</option>
                 </select>
               </div>
@@ -959,8 +961,10 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
           <option value="">-- Select area --</option>
           <option value="NTPC Township">NTPC Township</option>
           <option value="GAIL Gaon">GAIL Gaon</option>
-          <option value="PATA Gate">PATA Gate</option>
+          <option value="PATA Main Gate">PATA Main Gate</option>
           <option value="GAIL Vihar">GAIL Vihar</option>
+          <option value="GAIL Gaon Gate">GAIL Gaon Gate</option>
+          <option value="Raghav Palace Hotel">Raghav Palace Hotel</option>
           <option value="Others">Others</option>
         </select>
         <input class="pi" id="piHouse" placeholder="House / Flat No." type="text">
