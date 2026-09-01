@@ -54,7 +54,7 @@ h1,h2,h3,.lb h2{font-family:var(--font-head);}
 .a-brand-logo{width:40px;height:40px;object-fit:contain;border-radius:50%;background:#fff;padding:3px;flex-shrink:0;box-shadow:0 2px 7px rgba(0,0,0,.2);}
 .a-brand-txt{min-width:0;}
 .hdr h1{font-size:1.05rem;font-weight:800;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;}
-.hdr h1 .adm{color:rgba(255,255,255,.85);}
+.hdr h1 .adm{color:#3b82f6;}
 .a-date{font-size:.68rem;opacity:.9;margin-top:1px;font-weight:500;}
 .live-badge{background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.3);color:white;font-size:.66rem;font-weight:700;padding:3px 9px;border-radius:20px;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.65}}
@@ -622,7 +622,12 @@ input:checked+.slider:before{transform:translateX(20px);}
         <div style="font-weight:900;color:var(--r);font-size:1.05rem" id="paylistCount">0 pending</div>
       </div>
       <p style="font-size:.73rem;color:var(--muted);margin-bottom:10px">Apne PhonePe transactions se time ke hisaab se match karein — ek tap Confirm karein.</p>
+      <div style="display:flex;gap:7px;margin-bottom:10px">
+        <button id="plvPendingBtn" onclick="setPaylistView('pending')" style="flex:1;padding:9px;border-radius:10px;border:none;font-weight:800;font-size:.78rem;cursor:pointer;background:var(--dark);color:#fff">⏳ Pending</button>
+        <button id="plvHistoryBtn" onclick="setPaylistView('history')" style="flex:1;padding:9px;border-radius:10px;border:1.5px solid #ddd;font-weight:800;font-size:.78rem;cursor:pointer;background:#fff;color:#333">📜 History</button>
+      </div>
       <div id="paylistChips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px"></div>
+      <button id="paylistConfirmAll" onclick="confirmAllPayments()" style="display:none;width:100%;padding:11px;border:none;border-radius:12px;font-weight:800;font-size:.82rem;cursor:pointer;background:var(--g);color:#fff;margin-bottom:10px">✅ Confirm All</button>
       <div id="paylistBody"><p style="font-size:.78rem;color:var(--muted);text-align:center;padding:10px">Loading…</p></div>
     </div>
   </div>
@@ -2004,10 +2009,11 @@ function renderOrders(){
     const payVerified=o.paymentConfirmed===true;
     const payMeth=o.payMethod==='upi'?'UPI ID':(o.payMethod==='qr'?'QR':'');
     const claimWhen=o.customerPaidAt?new Date(o.customerPaidAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
-    // S65: ref-number system hataya gaya — admin ab Payments tab ki list se
-    // match karke confirm karta hai. Yahan sirf ek chhota status-indicator.
+    // S65 said "verify from the Payments tab only" — reversed 2026-09-01: admin
+    // wants a one-tap Confirm right here too (Payments tab stays the main
+    // reconciliation-at-a-glance view for batch work).
     const payBox = (claimPaid&&!payVerified)
-      ? `<div style="background:#fef3c7;color:#92400e;border:1.5px solid #fbbf24;border-radius:9px;padding:8px 10px;margin-top:7px;font-size:.76rem;font-weight:800;line-height:1.5">💰 Payment claim — ₹${o.total}${payMeth?' · '+payMeth:''}${claimWhen?'<br><span style="font-weight:600">'+claimWhen+'</span>':''}<br><span style="font-weight:600">⏳ 💰 Payments tab me verify karein.</span></div>`
+      ? `<div style="background:#fef3c7;color:#92400e;border:1.5px solid #fbbf24;border-radius:9px;padding:8px 10px;margin-top:7px;font-size:.76rem;font-weight:800;line-height:1.5">💰 Payment claim — ₹${o.total}${payMeth?' · '+payMeth:''}${claimWhen?'<br><span style="font-weight:600">'+claimWhen+'</span>':''}<br><button onclick="verifyPayment('${o.id}')" style="margin-top:5px;border:none;border-radius:16px;padding:6px 12px;font-size:.72rem;font-weight:800;background:var(--g);color:#fff;cursor:pointer">✅ Confirm Payment</button></div>`
       : (payVerified&&o.status!=='cancelled'
         ? `<div style="background:#dcfce7;color:#166534;border-radius:9px;padding:7px 10px;margin-top:7px;font-size:.75rem;font-weight:700">✅ Payment verified — ₹${o.total}${payMeth?' · '+payMeth:''}</div>`
         : '');
@@ -2035,7 +2041,6 @@ function renderOrders(){
       <div class="oc-tot">₹${o.total}${o.deliveryCharge?` (incl. ₹${o.deliveryCharge} del.)`:''}</div>
       ${payBox}${refundBox}
       <div class="sr">
-        ${o.status==='pending_payment'?`<button class="sb2 sb-conf" onclick="verifyPayment('${o.id}')">✅ Confirm Pay</button>`:''}
         ${o.status==='confirmed'?`<button class="sb2 sb-prep" onclick="chgStatus('${o.id}','preparing')">👨‍🍳 Preparing</button>`:''}
         ${o.status==='preparing'?`<button class="sb2 sb-ready" onclick="chgStatus('${o.id}','ready')">📦 Ready</button>`:''}
         ${o.status==='ready'&&o.orderType==='delivery'?`<button class="sb2 sb-out" onclick="startDelivery('${o.id}')">🛵 Start Delivery</button>`:''}
@@ -2238,8 +2243,12 @@ window.verifyPayment=async function(orderId, force, overrideRef4){
         updateFields.upiRef4=r; updateFields.refNoProof=(r==='0000');
       }
     }
-    if(!force&&!confirm(`Payment confirm karein?\n\n${o.name} — ₹${o.total}\nRef: ${o.upiRef4||'?'}`)) return;
-    await updateOrderStatus(orderId,'confirmed',updateFields);
+    // FIX (2026-09-01): no confirm() popup anymore — tapping Confirm confirms
+    // immediately (single-tap UX ask). "force" param kept for the Confirm-All loop.
+    // FIX (2026-09-01): pass the order's OWN current status back, never hardcode
+    // 'confirmed' — an order that already progressed to out_for_delivery/delivered
+    // must NOT be rewound just because payment gets confirmed late.
+    await updateOrderStatus(orderId,o.status,updateFields);
     showToast('✅ Payment verified — customer ko green dikhega');
     // Session 37: verify ke baad hold khulta hai
     autoAssignIfSingleBoy(orderId, true);
@@ -2346,7 +2355,10 @@ async function autoAssignIfSingleBoy(orderId, force){
   if(active.length===1){
     const boy=active[0];
     try{
-      await updateOrderStatus(orderId,'confirmed',{assignedBoy:boy.name,assignedBoyPhone:boy.phone||boy.id});
+      // FIX (2026-09-01): merge-only write, never touches status — this used to
+      // hardcode status:'confirmed' via updateOrderStatus, which could rewind an
+      // order that already moved to out_for_delivery/delivered.
+      await setDoc(doc(db,'orders',orderId),{assignedBoy:boy.name,assignedBoyPhone:boy.phone||boy.id,assignedAt:new Date().toISOString()},{merge:true});
       showToast('✅ Auto-assigned to '+boy.name);
     }catch(e){console.error('Auto-assign error',e);}
   }
@@ -3210,7 +3222,8 @@ async function loadRatings() {
             <span style="color:#f59e0b;font-size:.9rem">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span>
             <span style="font-size:.68rem;color:var(--muted)">${r.createdAt?new Date(r.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):''}</span>
           </div>
-          ${r.review?`<div style="font-size:.78rem;color:#333;margin-top:4px;line-height:1.4">"${r.review}"</div>`:''}
+          ${(r.raterName||r.raterPhone)?`<div style="font-size:.7rem;color:var(--muted);margin-top:3px">👤 ${esc(r.raterName||'')}${r.raterPhone?' · 📞 '+esc(r.raterPhone):''}</div>`:''}
+          ${r.review?`<div style="font-size:.78rem;color:#333;margin-top:4px;line-height:1.4">"${esc(r.review)}"</div>`:''}
           <button onclick="hideRating('${r.id}')" style="font-size:.68rem;color:var(--r);background:none;border:none;cursor:pointer;margin-top:4px">Hide this review</button>
         </div>`).join('')}
       </div>`;
@@ -4103,13 +4116,16 @@ async function autoAssignDefaultBoy(order, force){
   var defaultPhone = cfg.defaultBoyPhone||'';
   if(!defaultPhone) return; // No default set
   if(order.assignedBoyPhone) return; // Already assigned
-  // Session 37: ye function customerPaid===true hote hi chalta tha — yaani customer
-  // ke daave par hi. Ab bina verify hue assign nahi hoga.
-  if(!force && payHoldsAssign(order)) return;
+  // POLICY CHANGE (2026-09-01): previously held until payment was verified
+  // (Session 37). Now assigns the moment the customer confirms the order —
+  // matches the "notify default boy immediately if online" ask. Still requires
+  // the default boy to actually be online, so an order never silently goes to
+  // someone who won't see it.
   if(order.orderType!=='delivery') return; // Takeaway - no delivery needed
   try{
     var boy = deliveryBoys.find(function(b){return (b.phone||b.id)===defaultPhone;});
     if(!boy) return;
+    if(!(boy.isOnline||boy.isActive)) return; // default boy not online — leave unassigned, anyone on duty can pick it up
     await setDoc(doc(db,'orders',order.id),{
       assignedBoyPhone: defaultPhone,
       assignedBoyName: boy.name||defaultPhone,
@@ -4206,6 +4222,7 @@ window.assignBoy=async function(orderId){
 // (already exists, unchanged below) hi asli kaam karta hai — hold-release +
 // auto-assign-boy sab wahi purana tested logic hai.
 let paylistUnsub=null, paylistAll=[], paylistFilter='all';
+let paylistView='pending', paylistHistUnsub=null, paylistHistAll=[], paylistHistFilter='today';
 function startPaymentListListener(){
   if(paylistUnsub) return;
   try{
@@ -4217,34 +4234,98 @@ function startPaymentListListener(){
     });
   }catch(e){}
 }
-window.setPaylistFilter=function(f){
-  paylistFilter=f;
+// FIX (2026-09-01): History sub-view — confirmed payments, so admin can see what
+// they already reconciled without it disappearing off the Pending list forever.
+// Lazy-started only when the admin actually opens History (matches this app's
+// standing pattern for rarely-touched sections).
+function startPaymentHistoryListener(){
+  if(paylistHistUnsub) return;
+  try{
+    const q=query(collection(db,'orders'), where('paymentConfirmed','==',true));
+    paylistHistUnsub=onSnapshot(q, snap=>{
+      paylistHistAll = snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(paylistView==='history') renderPaymentList();
+    });
+  }catch(e){}
+}
+window.setPaylistView=function(v){
+  paylistView=v;
+  const pb=document.getElementById('plvPendingBtn'), hb=document.getElementById('plvHistoryBtn');
+  if(pb) pb.style.background=v==='pending'?'var(--dark)':'#fff';
+  if(pb) pb.style.color=v==='pending'?'#fff':'#333';
+  if(pb) pb.style.border=v==='pending'?'none':'1.5px solid #ddd';
+  if(hb) hb.style.background=v==='history'?'var(--dark)':'#fff';
+  if(hb) hb.style.color=v==='history'?'#fff':'#333';
+  if(hb) hb.style.border=v==='history'?'none':'1.5px solid #ddd';
+  if(v==='pending'){ paylistFilter='all'; } else { paylistHistFilter='today'; startPaymentHistoryListener(); }
   renderPaymentList();
 };
+window.setPaylistFilter=function(f){
+  if(paylistView==='pending') paylistFilter=f; else paylistHistFilter=f;
+  renderPaymentList();
+};
+// Recent-N-days chips (today first, going backward) — for History, which looks
+// at the past. next7Days() (today forward) stays for Pending, which is about
+// today/upcoming orders.
+function pastNDays(n){
+  const out=[];const base=new Date(getTodayDate()+'T00:00:00');
+  const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  for(let i=0;i<n;i++){
+    const d=new Date(base.getTime()-i*86400000);
+    const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    out.push({date:ds,wd:WD[d.getDay()],dayNum:d.getDate(),idx:i});
+  }
+  return out;
+}
 function renderPaylistChips(){
   const wrap=document.getElementById('paylistChips');
   if(!wrap)return;
-  const days=next7Days();
-  let html='<button onclick="setPaylistFilter(\'all\')" style="flex-shrink:0;padding:8px 14px;border-radius:10px;border:1.5px solid '+(paylistFilter==='all'?'var(--dark)':'#ddd')+';background:'+(paylistFilter==='all'?'var(--dark)':'#fff')+';color:'+(paylistFilter==='all'?'#fff':'#333')+';font-weight:800;font-size:.78rem;cursor:pointer">All</button>';
+  const isHist=paylistView==='history';
+  const days=isHist?pastNDays(14):next7Days();
+  const filter=isHist?paylistHistFilter:paylistFilter;
+  let html='<button onclick="setPaylistFilter(\'all\')" style="flex-shrink:0;padding:8px 14px;border-radius:10px;border:1.5px solid '+(filter==='all'?'var(--dark)':'#ddd')+';background:'+(filter==='all'?'var(--dark)':'#fff')+';color:'+(filter==='all'?'#fff':'#333')+';font-weight:800;font-size:.78rem;cursor:pointer">All</button>';
   html+=days.map(function(d,i){
-    const sel=paylistFilter===d.date;
-    const lbl=i===0?'Today':(i===1?'Tomorrow':d.wd);
+    const sel=filter===d.date;
+    const lbl=isHist?(i===0?'Today':(i===1?'Yesterday':d.wd)):(i===0?'Today':(i===1?'Tomorrow':d.wd));
     return '<button onclick="setPaylistFilter(\''+d.date+'\')" style="flex-shrink:0;padding:8px 12px;border-radius:10px;border:1.5px solid '+(sel?'var(--o)':'#ddd')+';background:'+(sel?'var(--o)':'#fff')+';color:'+(sel?'#fff':'#333')+';font-weight:800;font-size:.74rem;cursor:pointer;text-align:center">'+lbl+'<br><span style="font-weight:600;font-size:.68rem">'+d.wd+' '+d.dayNum+'</span></button>';
   }).join('');
   wrap.innerHTML=html;
 }
+// FIX (2026-09-01): Confirm All — loops today's/filtered visible pending rows.
+// One bulk-action confirm() (not per-order — that popup was explicitly removed)
+// since firing N writes from a single mistap deserves one safety gate.
+window.confirmAllPayments=async function(){
+  const rows=paylistFilter==='all'?paylistAll.slice():paylistAll.filter(o=>o.date===paylistFilter);
+  if(!rows.length) return;
+  if(!confirm(`${rows.length} payments confirm karein?`)) return;
+  for(const o of rows){ try{ await verifyPayment(o.id,true); }catch(e){} }
+  showToast('✅ '+rows.length+' payments confirmed');
+};
 window.renderPaymentList=function(){
   renderPaylistChips();
   const body=document.getElementById('paylistBody');
   const cnt=document.getElementById('paylistCount');
+  const allBtn=document.getElementById('paylistConfirmAll');
   if(!body)return;
-  let rows=paylistFilter==='all'?paylistAll.slice():paylistAll.filter(o=>o.date===paylistFilter);
-  rows.sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));   // oldest first, jaise PhonePe me
-  if(cnt) cnt.textContent=rows.length+' pending';
-  if(!rows.length){ body.innerHTML='<div class="empty">✅ Sab match ho gaya</div>'; return; }
+  const isHist=paylistView==='history';
+  if(allBtn) allBtn.style.display=isHist?'none':'block';
+  let rows;
+  if(isHist){
+    rows=paylistHistFilter==='all'?paylistHistAll.slice():paylistHistAll.filter(o=>o.date===paylistHistFilter);
+    rows.sort((a,b)=>(b.paymentVerifiedAt||'').localeCompare(a.paymentVerifiedAt||''));   // newest-confirmed first
+  } else {
+    rows=paylistFilter==='all'?paylistAll.slice():paylistAll.filter(o=>o.date===paylistFilter);
+    rows.sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));   // oldest first, jaise PhonePe me
+  }
+  if(cnt) cnt.textContent=isHist?(rows.length+' confirmed'):(rows.length+' pending');
+  if(!rows.length){ body.innerHTML='<div class="empty">'+(isHist?'📭 Koi confirmed payment nahi':'✅ Sab match ho gaya')+'</div>'; return; }
   body.innerHTML=rows.map(function(o){
     const t=o.createdAt?new Date(o.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
     const items=(o.items||[]).map(i=>esc(i.name)+' ×'+i.qty).join(', ');
+    const vt=o.paymentVerifiedAt?new Date(o.paymentVerifiedAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+    const actionHtml=isHist
+      ?'<span style="font-size:.7rem;font-weight:800;color:var(--g)">✅ '+vt+'</span>'
+      :'<button onclick="verifyPayment(\''+o.id+'\')" style="border:none;border-radius:20px;padding:8px 14px;font-size:.74rem;font-weight:800;background:var(--g);color:#fff;cursor:pointer">✅ Confirm</button>';
     return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 13px;background:#fdfaf7;border-radius:14px;margin-bottom:8px;box-shadow:var(--sh-sm)">'
       +'<div style="min-width:0">'
         +'<div style="font-size:.85rem;font-weight:800">'+esc(o.name||'')+'</div>'
@@ -4252,7 +4333,7 @@ window.renderPaymentList=function(){
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:9px;flex-shrink:0">'
         +'<span style="font-size:.94rem;font-weight:900;color:var(--o)">₹'+(o.total||0)+'</span>'
-        +'<button onclick="verifyPayment(\''+o.id+'\')" style="border:none;border-radius:20px;padding:8px 14px;font-size:.74rem;font-weight:800;background:var(--g);color:#fff;cursor:pointer">✅ Confirm</button>'
+        +actionHtml
       +'</div>'
     +'</div>';
   }).join('');

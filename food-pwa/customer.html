@@ -64,6 +64,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
 .brand-logo{width:44px;height:44px;object-fit:contain;border-radius:50%;background:rgba(255,255,255,.97);padding:3px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.18);}
 .brand-txt{min-width:0;}
 .hdr h1{font-size:1.18rem;font-weight:800;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr h1 .ord{color:#3b82f6;}
 .hdr .dt{font-size:.7rem;opacity:.9;margin-top:2px;font-weight:500;}
 .pbtn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.28);color:white;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s;}
 .pbtn:active{background:rgba(255,255,255,.38);}
@@ -2204,7 +2205,10 @@ async function applyMenu(cfg){
   // chhupa rehta hai, isliye pehle se taiyar rehna hi behtar hai — Takeaway
   // dabate hi bina ruke dikh jaata hai.
   paintPickupCard();
-  document.getElementById('shopName').textContent=(cfg.shopName||'Kicken Bites');
+  // FIX (2026-09-01): heading now shows "<Shop Name> Orders" (matches admin's
+  // "Kicken Bites Admin" / delivery's "Kicken Bites Delivery" pattern) — esc()
+  // since shopName is admin-editable text going into innerHTML.
+  document.getElementById('shopName').innerHTML=esc(cfg.shopName||'Kicken Bites')+' <span class="ord">Orders</span>';
   document.getElementById('dateLbl').textContent='📅 Ordering for: '+new Date(today+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('menuSec').style.display='block';
   renderOrderDayChips();
@@ -3360,10 +3364,11 @@ window.submitAllRatings=async function(){
     if(r){
       const rev=document.getElementById('rev_'+item.id)?.value.trim()||'';
       try{
-        // Include item name so admin can display it properly
+        // Include item name + rater identity so admin can display it properly
         await setDoc(doc(db,'ratings',currentOrderId+'_'+item.id),{
           orderId:currentOrderId, itemId:item.id, itemName:item.name,
           rating:r, review:rev, hidden:false,
+          raterName:lastOrder.name||currentProfile?.name||'', raterPhone:lastOrder.phone||currentProfile?.phone||'',
           createdAt:new Date().toISOString()
         });
         submitted++;
@@ -3545,6 +3550,7 @@ window.submitModalRating=async function(orderId,items){
         await setDoc(doc(db,'ratings',orderId+'_'+item.id),{
           orderId,itemId:item.id,itemName:item.name,
           rating:r,review:rev,hidden:false,
+          raterName:currentProfile?.name||'', raterPhone:currentProfile?.phone||'',
           createdAt:new Date().toISOString()
         });
         submitted++;
@@ -3676,7 +3682,9 @@ async function submitPrevFb(cand,items){
       try{
         await setDoc(doc(db,'ratings',cand.id+'_'+item.id),{
           orderId:cand.id,itemId:item.id,itemName:item.name,
-          rating:r,review:rev,hidden:false,createdAt:new Date().toISOString()
+          rating:r,review:rev,hidden:false,
+          raterName:currentProfile?.name||'', raterPhone:currentProfile?.phone||'',
+          createdAt:new Date().toISOString()
         });
         submitted++;
         if(r===5) gotFive=true;
@@ -4053,12 +4061,12 @@ if('serviceWorker' in navigator){
 /* Session 24: jab running-total bar dikhta hai (body me padding-bottom lagta hai)
    to install button ko uske upar khiska do taaki overlap na ho. */
 body[style*="padding-bottom: 74px"] #kbInstallBtn{bottom:80px;}
-/* Session 25: install button ~70% chhota + halka, taaki dhyan na bhatkaaye.
-   opacity kam; tap/hover par poora clear ho jaata hai. */
+/* FIX (2026-09-01): user wants this fully opaque/visible again — reverting
+   Session 25's faded treatment (previously opacity:.55). */
 #kbInstallBtn{position:fixed;right:11px;bottom:12px;z-index:9000;display:inline-flex;
   align-items:center;gap:4px;padding:6px 10px;border:none;border-radius:20px;
   background:#e65c00;color:#fff;font-weight:800;font-size:.66rem;font-family:inherit;
-  box-shadow:0 3px 10px rgba(0,0,0,.2);cursor:pointer;opacity:.55;transition:opacity .2s;}
+  box-shadow:0 3px 10px rgba(0,0,0,.2);cursor:pointer;opacity:1;transition:opacity .2s;}
 #kbInstallBtn:hover,#kbInstallBtn:active{opacity:1;}
 #kbInstallBtn .kbi-ico{font-size:.82rem;line-height:1}
 #kbIosSheet,#kbAndSheet{position:fixed;inset:0;z-index:9001;display:none;background:rgba(0,0,0,.5);

@@ -29,7 +29,7 @@ h1,h2,h3,.lb-title{font-family:var(--font-head);}
 .d-brand-logo{width:40px;height:40px;object-fit:contain;border-radius:50%;background:#fff;padding:3px;flex-shrink:0;box-shadow:0 2px 7px rgba(0,0,0,.35);}
 .d-brand-txt{min-width:0;text-align:left;}
 .hdr h1{font-size:1.02rem;font-weight:800;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;}
-.hdr h1 .dl{color:#ff8c42;}
+.hdr h1 .dl{color:#3b82f6;}
 .hdr p{font-size:.66rem;opacity:.72;margin-top:1px;font-weight:500;}
 
 /* LOGIN */
@@ -178,7 +178,6 @@ h1,h2,h3,.lb-title{font-family:var(--font-head);}
     <div class="upd-badge" id="updBadge"></div>
     <div style="display:flex;gap:7px;margin-top:8px">
       <button onclick="showRoute()" style="flex:1;padding:9px;background:#8b5cf6;color:white;border:none;border-radius:10px;font-size:.78rem;font-weight:700;cursor:pointer">🗺️ Optimize Route</button>
-      <button onclick="showHistory()" style="flex:1;padding:9px;background:var(--dark);color:white;border:none;border-radius:10px;font-size:.78rem;font-weight:700;cursor:pointer">📅 History</button>
     </div>
   </div>
 
@@ -401,6 +400,10 @@ function genDeviceToken(){ return Date.now().toString(36)+Math.random().toString
 // SECURITY: escape customer-supplied text (name/address/notes) before it goes into
 // innerHTML — these come from customer.html's free-text inputs with no sanitization.
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// SECURITY: safe to drop into a single-quoted JS string literal that itself sits inside
+// a double-quoted HTML onclick="..." attribute — escapes backslash/quote/double-quote so
+// a customer name containing them can never break out of the string or the attribute.
+function jsAttr(s){ return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
 
 // Claim this device as the ONE active session for this boy: writes a fresh token
 // to deliveryBoys/{phone}.activeDevice and remembers it locally.
@@ -823,8 +826,6 @@ function loadOrders(){
       // Update summary using orders assigned to THIS boy
       var myOrders=allOrders.filter(o=>!o.assignedBoyPhone||o.assignedBoyPhone===boy.phone);
       updateTodaySummary(myOrders);
-      // Save delivered to history
-      myOrders.filter(o=>o.status==='delivered').forEach(saveToHistory);
       renderAllTabs();
     },
     err=>{
@@ -859,7 +860,10 @@ function orderCard(o) {
   const isOut = o.status==='out_for_delivery';
   const isDone = o.status==='delivered';
   // A4: a delivery can only be actioned on its own day or a past day — never a future date.
-  const isFuture = (o.date||'') > getTodayDate();
+  // A date-less order must NEVER slip through as "not future": '' > today is false, so
+  // treat a missing date the same as a future one (matches customer.html / admin.html).
+  const odate=(o.date||'').slice(0,10);
+  const isFuture = !odate || odate > getTodayDate();
   const mapsUrl = o.address ? `https://www.google.com/maps/search/${encodeURIComponent(o.address)}` : '#';
   return `<div class="oc ${isDone?'delivered':isOut?'active-del':''}">
     <div class="oc-top">
@@ -873,9 +877,9 @@ function orderCard(o) {
     <div class="oc-btns">
       <a class="obtn ob-call" href="tel:${o.phone}">📞 Call</a>
       <a class="obtn ob-maps" href="${mapsUrl}" target="_blank">🗺️ Maps</a>
-      <button class="obtn ob-wa" onclick="waMsgDelay('${o.phone}','${(o.name||'').replace(/'/g,'')}')">💬 WA</button>
+      <button class="obtn ob-wa" onclick="waMsgDelay('${o.phone}','${jsAttr(o.name)}')">💬 WA</button>
       ${isFuture?'':`${!isDone&&!isOut?`<button class="obtn ob-pickup" onclick="markPickedUp('${o.id}')">🛵 Picked Up</button>`:''}
-      ${isOut?`<button class="ob-deliver" onclick="markDelivered('${o.id}','${o.name.replace(/'/g,'')}')">✅ Delivered</button>`:''}`}
+      ${isOut?`<button class="ob-deliver" onclick="markDelivered('${o.id}','${jsAttr(o.name)}')">✅ Delivered</button>`:''}`}
       ${isDone?`<div class="del-done-tag">✅ Delivered!</div>`:''}
     </div>
     ${isFuture?`<div class="future-note">📅 Scheduled for ${new Date(o.date+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})} — you can deliver this on the day.</div>`:''}
@@ -885,8 +889,22 @@ function orderCard(o) {
 window.markPickedUp = async function(id) {
   try {
     const snap=await getDoc(doc(db,'orders',id));
-    if(snap.exists() && (snap.data().date||'')>getTodayDate()){ alert('This order is scheduled for a future date — you can pick it up on the day.'); return; }
-    await updateDoc(doc(db,'orders',id),{status:'out_for_delivery',pickedUpAt:new Date().toISOString()}); showToast('🛵 Picked up! Customer can now track you.');
+    if(snap.exists()){
+      const od=snap.data();
+      const sd=(od.date||'').slice(0,10); if(!sd || sd>getTodayDate()){ alert('This order is scheduled for a future date — you can pick it up on the day.'); return; }
+      // Same ownership rule as markDelivered (BUG-13): an order already assigned to
+      // someone else can't be picked up by a different boy.
+      if(od.assignedBoyPhone && boy?.phone && od.assignedBoyPhone!==boy.phone){ alert('This order is assigned to another delivery partner.'); return; }
+    }
+    // FIX (2026-09-01): picking up an unassigned order now CLAIMS it for this boy
+    // (assignedBoyPhone/Name) — previously pickup didn't touch assignment at all,
+    // so a later admin action (e.g. confirming payment) could still hand the same
+    // order to the default boy as if it were fresh/unclaimed.
+    const upd={status:'out_for_delivery',pickedUpAt:new Date().toISOString()};
+    if(snap.exists() && !snap.data().assignedBoyPhone && boy?.phone){
+      upd.assignedBoyPhone=boy.phone; upd.assignedBoyName=boy.name||boy.phone; upd.assignedAt=new Date().toISOString();
+    }
+    await updateDoc(doc(db,'orders',id),upd); showToast('🛵 Picked up! Customer can now track you.');
   }
   catch(e) { alert('Error. Check internet.'); }
 };
@@ -895,7 +913,7 @@ window.markDelivered = async function(id, name) {
   if (!confirm(`Confirm delivery to ${name}?`)) return;
   try {
     const snap=await getDoc(doc(db,'orders',id));
-    if(snap.exists() && (snap.data().date||'')>getTodayDate()){ alert('This order is scheduled for a future date — you can deliver it on the day.'); return; }
+    if(snap.exists()){ const sd2=(snap.data().date||'').slice(0,10); if(!sd2 || sd2>getTodayDate()){ alert('This order is scheduled for a future date — you can deliver it on the day.'); return; } }
     // BUG-13: any logged-in boy could mark ANY order delivered. If the admin has
     // assigned this order to someone, only that person may close it. Unassigned
     // orders stay open to whoever is on duty (single-boy days).
@@ -1057,9 +1075,6 @@ async function loadEarnings(){
     snap2.docs.forEach(d=>{const o=d.data(); if(o.status==='delivered') allOrdersMap[d.id]={id:d.id,...o};});
     const allOrdersList=Object.values(allOrdersMap);
 
-    // Also get from localStorage history
-    const historyOrders=JSON.parse(localStorage.getItem('kb_delivery_history')||'[]');
-
     // Filter delivered only
     const orders=allOrdersList.filter(o=>o.status==='delivered');
     const todayOrders=orders.filter(o=>o.date===todayStr);
@@ -1072,16 +1087,8 @@ async function loadEarnings(){
       return d>=monthStart;
     });
 
-    // Earn = deliveryCharge per order (fallback to 15 if not set)
-    const earn=arr=>arr.reduce((s,o)=>{
-      var charge=Number(o.deliveryCharge)||Number(o.delivery)||0;
-      if(!charge){
-        // Use location-based default if no charge set
-        var loc=o.address||o.location||'';
-        charge=loc.includes('PATA')?50:15; // PATA Gate = 50, others = 15
-      }
-      return s+charge;
-    },0);
+    // Earn = deliveryCharge per order (fallback to 15 if not set — see delCharge())
+    const earn=arr=>arr.reduce((s,o)=>s+delCharge(o),0);
 
     document.getElementById('todayEarn').textContent='₹'+earn(todayOrders);
     document.getElementById('todayDelCount').textContent=todayOrders.length+' deliveries today';
@@ -1104,10 +1111,12 @@ let _earnAllOrders=null;      // cache of this boy's delivered orders
 let _earnPeriod={type:'thismonth',val:''};
 const DEL_BASE_SALARY=1800;
 
+// Single source of truth for "what did this delivery earn" — real orders always carry
+// deliveryCharge from checkout; this default (₹15) only applies to old/malformed orders
+// missing the field, and matches the app-wide default location charge (see admin Setup).
 function delCharge(o){
   var charge=Number(o.deliveryCharge)||Number(o.delivery)||0;
-  if(!charge){var loc=o.address||o.location||'';charge=loc.includes('PATA')?50:15;}
-  return charge;
+  return charge||15;
 }
 
 async function fetchBoyDelivered(){
@@ -1218,11 +1227,7 @@ window.showRoute=function(){
 function updateTodaySummary(orders){
   var delivered=orders.filter(function(o){return o.status==='delivered';});
   var pending=orders.filter(function(o){return ['confirmed','preparing','ready','out_for_delivery'].includes(o.status);});
-  var earned=delivered.reduce(function(s,o){
-    var c=Number(o.deliveryCharge)||Number(o.delivery)||0;
-    if(!c){var loc=o.address||'';c=loc.includes('PATA')?50:15;}
-    return s+c;
-  },0);
+  var earned=delivered.reduce(function(s,o){return s+delCharge(o);},0);
   var bar=document.getElementById('todaySummaryBar');
   if(bar) bar.style.display='block';
   var so=document.getElementById('sumOrders');
@@ -1249,39 +1254,11 @@ function loadOfflineOrders(){
   return [];
 }
 
-// ---- DELIVERY HISTORY CALENDAR ----
-window.showHistory=function(){
-  var deliveredAll=JSON.parse(localStorage.getItem('kb_delivery_history')||'[]');
-  if(!deliveredAll.length){showToast('No delivery history saved yet');return;}
-  // Group by date
-  var byDate={};
-  deliveredAll.forEach(function(o){
-    var d=o.date||o.createdAt?.split('T')[0]||'';
-    if(!d)return;
-    if(!byDate[d])byDate[d]={count:0,earned:0};
-    byDate[d].count++;
-    byDate[d].earned+=(Number(o.deliveryCharge)||15);
-  });
-  var html='📅 DELIVERY HISTORY\n\n';
-  Object.keys(byDate).sort().reverse().slice(0,14).forEach(function(d){
-    var b=byDate[d];
-    var badge=b.count>=10?'🏆':b.count>=5?'⭐':'';
-    html+=d+': '+b.count+' deliveries | ₹'+b.earned+' '+badge+'\n';
-  });
-  alert(html);
-};
-
-// Save delivered orders to history
-function saveToHistory(order){
-  try{
-    var history=JSON.parse(localStorage.getItem('kb_delivery_history')||'[]');
-    if(!history.find(function(o){return o.id===order.id;})){
-      history.push(order);
-      if(history.length>200) history=history.slice(-200);
-      localStorage.setItem('kb_delivery_history',JSON.stringify(history));
-    }
-  }catch(e){}
-}
+// FIX (2026-09-01): "History" button removed — it only dumped this device's
+// local-only cache via alert(), was redundant with the live Earnings tab (which
+// reads real Firestore data), and its cache-population line elsewhere had an
+// unused variable. showHistory/saveToHistory + the kb_delivery_history cache
+// removed together — nothing else read from that cache.
 
 function showToast(msg){let t=document.getElementById('dtoast');if(!t){t=document.createElement('div');t.id='dtoast';t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--g);color:white;padding:10px 20px;border-radius:50px;font-weight:700;font-size:.84rem;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';setTimeout(()=>{t.style.opacity='0';},2800);}
 </script>
