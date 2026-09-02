@@ -864,7 +864,13 @@ function orderCard(o) {
   // treat a missing date the same as a future one (matches customer.html / admin.html).
   const odate=(o.date||'').slice(0,10);
   const isFuture = !odate || odate > getTodayDate();
-  const mapsUrl = o.address ? `https://www.google.com/maps/search/${encodeURIComponent(o.address)}` : '#';
+  // FIX (2026-09-01): was a plain text SEARCH link (/maps/search/) — switched to
+  // the DIRECTIONS format (matches the route-optimizer's URL pattern elsewhere
+  // in this file), so tapping it opens live turn-by-turn navigation from the
+  // boy's current location straight to the customer, instead of just a search
+  // result. Still address-text based (not a saved GPS pin) until customers get
+  // a map-pinned address — this is the best available without that.
+  const mapsUrl = o.address ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.address)}&travelmode=driving` : '#';
   return `<div class="oc ${isDone?'delivered':isOut?'active-del':''}">
     <div class="oc-top">
       <div class="oc-name">#${o.id.slice(-5).toUpperCase()} — ${esc(o.name)}</div>
@@ -910,7 +916,8 @@ window.markPickedUp = async function(id) {
 };
 
 window.markDelivered = async function(id, name) {
-  if (!confirm(`Confirm delivery to ${name}?`)) return;
+  // FIX (2026-09-01): no confirm() popup anymore — tapping "Delivered" delivers
+  // immediately, one tap (matches the same treatment given to payment-confirm).
   try {
     const snap=await getDoc(doc(db,'orders',id));
     if(snap.exists()){ const sd2=(snap.data().date||'').slice(0,10); if(!sd2 || sd2>getTodayDate()){ alert('This order is scheduled for a future date — you can deliver it on the day.'); return; } }

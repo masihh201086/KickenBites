@@ -3319,7 +3319,12 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;'
 // ---- SUCCESS ----
 function showSuccess(){
   document.getElementById('succOrderId').textContent=currentOrderId.slice(-8).toUpperCase();
-  const{total,delivery}=getTotal();
+  // FIX (2026-09-01): was calling getTotal(), which recalculates live from the
+  // cart (quantities{}) — but the cart is deliberately emptied right after the
+  // order is placed, so by the time this screen shows it always computed ₹0.
+  // The order was saved correctly; use the SAME total that was actually saved
+  // (lastOrder, set at order-creation time), never recompute here.
+  const total=lastOrder.total, delivery=lastOrder.delivery;
   let s=`<b>${esc(lastOrder.name)}</b> | 📞 ${esc(lastOrder.phone)}<br>`;
   lastOrder.items.forEach(i=>{s+=`<b>${esc(i.name)}</b> ×${i.qty} = ₹${i.subtotal}<br>`;});
   if(delivery)s+=`Delivery: ₹${delivery}<br>`;
