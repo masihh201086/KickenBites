@@ -41,6 +41,7 @@ h1,h2,h3,.lb h2{font-family:var(--font-head);}
 .lb-brand-logo{width:104px;height:104px;object-fit:contain;display:block;margin:0 auto 12px;border-radius:50%;background:radial-gradient(circle at 50% 42%,#fff5eb 0%,#ffe8d0 62%,#ffdcb8 100%);padding:9px;box-shadow:0 6px 22px rgba(230,92,0,.28),inset 0 0 0 1px rgba(230,92,0,.09);}
 .lb h2{font-size:1.4rem;font-weight:800;letter-spacing:-.02em;}
 .lb h2{font-size:1.3rem;font-weight:800;margin-bottom:4px;}
+.lb h2 .adm{color:#3b82f6;}
 .li{width:100%;padding:12px 14px;border:2px solid #e5e5e5;border-radius:var(--radius);font-size:1rem;outline:none;margin-bottom:10px;font-family:inherit;}
 .li:focus{border-color:var(--o);}
 .lbtn{width:100%;padding:14px;background:var(--ograd);color:white;border:none;border-radius:var(--radius);font-family:var(--font-head);font-size:1rem;font-weight:700;cursor:pointer;box-shadow:var(--sh-brand);transition:transform .12s;}
@@ -54,7 +55,7 @@ h1,h2,h3,.lb h2{font-family:var(--font-head);}
 .a-brand-logo{width:40px;height:40px;object-fit:contain;border-radius:50%;background:#fff;padding:3px;flex-shrink:0;box-shadow:0 2px 7px rgba(0,0,0,.2);}
 .a-brand-txt{min-width:0;}
 .hdr h1{font-size:1.05rem;font-weight:800;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;}
-.hdr h1 .adm{color:#3b82f6;}
+.hdr h1 .adm{color:#000;}
 .a-date{font-size:.68rem;opacity:.9;margin-top:1px;font-weight:500;}
 .live-badge{background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.3);color:white;font-size:.66rem;font-weight:700;padding:3px 9px;border-radius:20px;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.65}}
@@ -290,7 +291,7 @@ input:checked+.slider:before{transform:translateX(20px);}
 <div id="loginScreen">
   <div class="lb">
     <img src="logo.webp" decoding="async" onerror="this.onerror=null;this.src='logo.png'" class="lb-brand-logo" alt="Kicken Bites">
-    <h2>Kicken Bites</h2>
+    <h2>Kicken Bites <span class="adm">Admin</span></h2>
     <p style="color:var(--muted);font-size:.8rem;margin:5px 0 16px">Admin Login</p>
     <input class="li" type="password" id="lpass" placeholder="Password" onkeyup="if(event.key==='Enter')doLogin()">
     <button class="lbtn" onclick="doLogin()">Login →</button>
