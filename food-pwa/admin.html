@@ -3530,6 +3530,9 @@ function renderCustList(custs){
         ((c.location==='Others'&&(c.street||c.area||c.pincode))
           ? '<div style="font-size:.66rem;color:#aaa">'+esc([c.street,c.area,c.pincode?('PIN '+c.pincode):''].filter(Boolean).join(', '))+'</div>'
           : '')+
+        // FIX (2026-09-02): standard-location customers can now also save an
+        // Area/Colony/Landmark note — show it the same way "Others" addresses do.
+        (c.areaLandmark ? '<div style="font-size:.66rem;color:#aaa">'+esc(c.areaLandmark)+'</div>' : '')+
       '</div>'+
       '<a href="https://wa.me/91'+c.phone+'" target="_blank" onclick="event.stopPropagation()" style="background:#25d366;color:white;border-radius:8px;padding:6px 9px;font-size:.7rem;font-weight:700;text-decoration:none">💬</a>'+
       '<a href="tel:'+c.phone+'" onclick="event.stopPropagation()" style="background:#3b82f6;color:white;border-radius:8px;padding:6px 9px;font-size:.7rem;font-weight:700;text-decoration:none">📞</a>'+
@@ -3910,7 +3913,7 @@ window.viewCustomerProfile=async function(phone){
       '<div style="font-size:.76rem;opacity:.9;margin-top:2px">📞 '+esc(phone)+'</div>'+
       '<div style="font-size:.72rem;opacity:.85;margin-top:1px">'+level+'</div>';
 
-    let addr=esc([c.location,c.houseNo,c.addrLine2].filter(Boolean).join(' — ')||'Not set');
+    let addr=esc([c.location,c.houseNo,c.areaLandmark,c.addrLine2].filter(Boolean).join(' — ')||'Not set');
     let bodyHtml='';
     bodyHtml+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px">'+
       '<div style="background:var(--op);border-radius:14px;padding:11px;text-align:center"><div style="font-size:1.3rem;font-weight:900;color:var(--o)">'+totalOrders+'</div><div style="font-size:.68rem;color:#888">Total Orders</div></div>'+

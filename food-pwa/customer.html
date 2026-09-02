@@ -809,6 +809,7 @@ h1,h2,h3,.lb-title,.mc-name,.mc-price,.pay-amt{font-family:var(--font-head);}
               </div>
               <div id="stdAddr">
                 <div class="ig"><label>House / Flat No. *</label><input type="text" id="cHouse" placeholder="e.g. B-204, Type-3"></div>
+                <div class="ig"><label>Area / Colony / Landmark</label><input type="text" id="cAreaLandmark" placeholder="e.g. Netaji Kunj, near water tank"></div>
               </div>
               <div id="othersAddr" style="display:none">
                 <div class="addr-grid">
@@ -1417,6 +1418,8 @@ function autoFill(p) {
   if(phone){document.getElementById('cPhone').value=phone;document.getElementById('cPhoneTA').value=phone;}
   if(loc){document.getElementById('cLoc').value=loc;locChanged();}
   if(house) document.getElementById('cHouse').value=house;
+  const areaLandmark=p?.areaLandmark||localStorage.getItem('custAreaLandmark')||'';
+  if(areaLandmark){const el=document.getElementById('cAreaLandmark'); if(el) el.value=areaLandmark;}
   // S47: Others ka poora pata wapas bharo (ab ye save hota hai).
   if(loc==='Others'&&p){
     const set=(id,v)=>{const el=document.getElementById(id); if(el&&v) el.value=v;};
@@ -2767,7 +2770,8 @@ function ckSummary(){
   if(orderType==='takeaway') return [g('cNameTA'),g('cPhoneTA')].filter(Boolean).join(' · ');
   const loc=g('cLoc');
   const house=(loc==='Others')?g('cHouseOther'):g('cHouse');
-  return [g('cName'),g('cPhone'),[house,loc].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+  const areaLandmark=(loc!=='Others')?g('cAreaLandmark'):'';
+  return [g('cName'),g('cPhone'),[house,areaLandmark,loc].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
 }
 window.ckSaveDetails=function(){
   const err=document.getElementById('ckErr2');
@@ -3009,7 +3013,7 @@ function updateBill(){
 
 // ---- PLACE ORDER ----
 window.placeOrderClick=async function(){
-  let name,phone,address,addrLine1='',addrLine2='',othersParts=null;
+  let name,phone,address,addrLine1='',addrLine2='',othersParts=null,areaLandmarkVal='';
   if(orderType==='delivery'){
     name=document.getElementById('cName').value.trim();
     phone=document.getElementById('cPhone').value.trim();
@@ -3044,15 +3048,24 @@ window.placeOrderClick=async function(){
     }else{
       const house=document.getElementById('cHouse').value.trim();
       if(!house){alert('Please enter house/flat number');return;}
-      address=`${loc} — ${house}`;
+      const areaLandmark=document.getElementById('cAreaLandmark').value.trim();
+      areaLandmarkVal=areaLandmark;
+      // FIX (2026-09-02): standard-location addresses only ever carried house
+      // number + the broad location (e.g. "NTPC Township — B-204") — no way to
+      // note the specific colony/landmark within that big area. Optional field,
+      // appended when filled; nothing changes for anyone who leaves it blank.
+      // Kept as its OWN variable (not merged into addrLine1/house) so the House
+      // field only ever re-fills with the house number next time, same as before.
+      address=areaLandmark?`${loc} — ${house}, ${areaLandmark}`:`${loc} — ${house}`;
       addrLine1=house;
     }
     // Auto-save
     localStorage.setItem('custName',name);localStorage.setItem('custPhone',phone);
     localStorage.setItem('custLoc',loc);localStorage.setItem('custHouse',addrLine1);
-    if(currentProfile){currentProfile.name=name;currentProfile.location=loc;currentProfile.houseNo=addrLine1;}
+    localStorage.setItem('custAreaLandmark',areaLandmarkVal);
+    if(currentProfile){currentProfile.name=name;currentProfile.location=loc;currentProfile.houseNo=addrLine1;currentProfile.areaLandmark=areaLandmarkVal;}
     try{
-      const custDoc={name,phone,location:loc,houseNo:addrLine1,addrLine2,updatedAt:new Date().toISOString()};
+      const custDoc={name,phone,location:loc,houseNo:addrLine1,addrLine2,areaLandmark:areaLandmarkVal,updatedAt:new Date().toISOString()};
       if(othersParts) Object.assign(custDoc,othersParts);   // S47: houseNo yahan sirf ghar ka number ho jaata hai
       await setDoc(doc(db,'customers',phone),custDoc,{merge:true});
     }catch(e){}
@@ -3731,7 +3744,7 @@ window.showGoogleReviewPopup=function(){
 
 window.placeNext=function(){
   quantities={};currentOrderId=null;currentTotal=0;
-  ['cName','cPhone','cHouse','cNameTA','cPhoneTA','orderNotes','cHouseOther','cStreet','cLandmark','cArea'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['cName','cPhone','cHouse','cAreaLandmark','cNameTA','cPhoneTA','orderNotes','cHouseOther','cStreet','cLandmark','cArea'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('cLoc').value='';locChanged();
   orderType='delivery';document.getElementById('btnDel').classList.add('active');document.getElementById('btnTA').classList.remove('active');
   document.getElementById('delSec').style.display='block';document.getElementById('taSec').style.display='none';
